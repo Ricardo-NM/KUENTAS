@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import {
   LockIcon,
@@ -8,15 +9,52 @@ import {
   MailCheckIcon,
   type MailCheckIconHandle,
 } from "lucide-animated";
-import { useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { loginAction, type AuthActionState } from "../actions";
+
+const inputBaseClass =
+  "min-h-12 w-full rounded-lg border bg-white/8 px-4 pl-12 text-sm text-white outline-none transition placeholder:text-[#c8c5cb]/55 focus:bg-white/12 focus:ring-2";
+const normalInputClass =
+  "border-white/14 focus:border-[#d0e1fb]/70 focus:ring-[#d0e1fb]/20";
+const errorInputClass =
+  "field-error-pulse border-[#ffdad6] bg-[#ba1a1a]/10 focus:border-[#ffdad6] focus:ring-[#ffdad6]/20";
+
+const initialState: AuthActionState = {
+  status: "idle",
+};
 
 export function LoginForm() {
+  const router = useRouter();
+  const [state, formAction, isPending] = useActionState(
+    loginAction,
+    initialState,
+  );
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const emailIconRef = useRef<MailCheckIconHandle>(null);
   const passwordIconRef = useRef<LockIconHandle>(null);
 
+  const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const canSubmit = emailIsValid && password.length > 0;
+  const credentialsAreInvalid = state.status === "error";
+
+  useEffect(() => {
+    if (state.status === "success") {
+      router.push("/inicio");
+    }
+  }, [router, state.status]);
+
   return (
-    <form className="auth-form-reveal mb-2 w-full rounded-2xl border border-white/12 bg-white/10 px-6 py-8 shadow-[0_24px_70px_rgb(0_0_0/0.32)] backdrop-blur-md sm:px-8 lg:mb-20">
+    <form
+      action={formAction}
+      onSubmit={(event) => {
+        if (!canSubmit) {
+          event.preventDefault();
+        }
+      }}
+      className="auth-form-reveal mb-2 w-full rounded-2xl border border-white/12 bg-white/10 px-6 py-8 shadow-[0_24px_70px_rgb(0_0_0/0.32)] backdrop-blur-md sm:px-8 lg:mb-20"
+    >
       <h1 className="auth-form-reveal auth-form-delay-1 font-heading text-2xl font-bold leading-8 text-white">
         Inicia sesión
       </h1>
@@ -36,9 +74,18 @@ export function LoginForm() {
               type="email"
               autoComplete="email"
               placeholder="correo@kuentas.com"
+              value={email}
+              required
+              aria-invalid={credentialsAreInvalid}
+              aria-describedby={
+                credentialsAreInvalid ? "login-error" : undefined
+              }
+              onChange={(event) => setEmail(event.target.value)}
               onFocus={() => emailIconRef.current?.startAnimation()}
               onBlur={() => emailIconRef.current?.stopAnimation()}
-              className="min-h-12 w-full rounded-lg border border-white/14 bg-white/8 px-4 pl-12 text-sm text-white outline-none transition placeholder:text-[#c8c5cb]/55 focus:border-[#d0e1fb]/70 focus:bg-white/12 focus:ring-2 focus:ring-[#d0e1fb]/20"
+              className={`${inputBaseClass} ${
+                credentialsAreInvalid ? errorInputClass : normalInputClass
+              }`}
             />
             <MailCheckIcon
               ref={emailIconRef}
@@ -63,9 +110,18 @@ export function LoginForm() {
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               placeholder="••••••••••••"
+              value={password}
+              required
+              aria-invalid={credentialsAreInvalid}
+              aria-describedby={
+                credentialsAreInvalid ? "login-error" : undefined
+              }
+              onChange={(event) => setPassword(event.target.value)}
               onFocus={() => passwordIconRef.current?.startAnimation()}
               onBlur={() => passwordIconRef.current?.stopAnimation()}
-              className="min-h-12 w-full rounded-lg border border-white/14 bg-white/8 px-4 pl-12 pr-14 text-sm text-white outline-none transition placeholder:text-[#c8c5cb]/55 focus:border-[#d0e1fb]/70 focus:bg-white/12 focus:ring-2 focus:ring-[#d0e1fb]/20"
+              className={`${inputBaseClass} ${
+                credentialsAreInvalid ? errorInputClass : normalInputClass
+              } pr-14`}
             />
             <LockIcon
               ref={passwordIconRef}
@@ -125,11 +181,22 @@ export function LoginForm() {
         </button>
       </div>
 
+      {credentialsAreInvalid ? (
+        <p
+          id="login-error"
+          className="mt-3 text-center text-sm font-semibold text-[#ff453a]"
+          aria-live="polite"
+        >
+          {state.message}
+        </p>
+      ) : null}
+
       <button
-        type="button"
-        className="auth-form-reveal auth-form-delay-5 mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb]"
+        type="submit"
+        disabled={isPending || !canSubmit}
+        className="auth-form-reveal auth-form-delay-5 mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
       >
-        Iniciar sesión
+        {isPending ? "Iniciando sesión..." : "Iniciar sesión"}
       </button>
 
       <p className="auth-form-reveal auth-form-delay-6 mt-6 text-center text-xs font-medium text-[#eff1f3]/75">
