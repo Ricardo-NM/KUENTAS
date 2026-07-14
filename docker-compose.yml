@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: kuentas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kuentas
+      POSTGRES_PASSWORD: kuentas_password
+      POSTGRES_DB: kuentas
+    ports:
+      - "5432:5432"
+    volumes:
+      - kuentas_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kuentas -d kuentas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  kuentas_postgres_data:
