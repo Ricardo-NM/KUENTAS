@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
   hashPassword: vi.fn(),
   verifyPassword: vi.fn(),
   createSession: vi.fn(),
+  clearFailedLoginAttempts: vi.fn(),
+  isLoginBlocked: vi.fn(),
+  recordFailedLoginAttempt: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -29,6 +32,12 @@ vi.mock("@/lib/auth/password", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   createSession: mocks.createSession,
+}));
+
+vi.mock("@/lib/auth/rate-limit", () => ({
+  clearFailedLoginAttempts: mocks.clearFailedLoginAttempts,
+  isLoginBlocked: mocks.isLoginBlocked,
+  recordFailedLoginAttempt: mocks.recordFailedLoginAttempt,
 }));
 
 function formData(input: Record<string, string>) {
@@ -50,6 +59,7 @@ describe("auth actions", () => {
       cookieValue: "session.token",
       expiresAt: new Date("2030-01-01T00:00:00.000Z"),
     });
+    mocks.isLoginBlocked.mockResolvedValue(false);
   });
 
   it("does not create users when registration input is invalid", async () => {
@@ -104,7 +114,30 @@ describe("auth actions", () => {
       status: "error",
       message: invalidCredentialsMessage,
     });
+    expect(mocks.recordFailedLoginAttempt).toHaveBeenCalledWith(
+      "missing@example.com",
+    );
     expect(mocks.createSession).not.toHaveBeenCalled();
+  });
+
+  it("blocks login before checking credentials after five failed attempts", async () => {
+    mocks.isLoginBlocked.mockResolvedValue(true);
+
+    const result = await loginAction(
+      undefined,
+      formData({
+        email: "blocked@example.com",
+        password: "Password1!",
+      }),
+    );
+
+    expect(result).toEqual({
+      status: "error",
+      message: invalidCredentialsMessage,
+    });
+    expect(mocks.userFindUnique).not.toHaveBeenCalled();
+    expect(mocks.verifyPassword).not.toHaveBeenCalled();
+    expect(mocks.recordFailedLoginAttempt).not.toHaveBeenCalled();
   });
 
   it("creates a remembered session when login succeeds", async () => {
@@ -128,5 +161,8 @@ describe("auth actions", () => {
       "hashed-password",
     );
     expect(mocks.createSession).toHaveBeenCalledWith("user_123", true);
+    expect(mocks.clearFailedLoginAttempts).toHaveBeenCalledWith(
+      "user@example.com",
+    );
   });
 });

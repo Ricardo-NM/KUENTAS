@@ -4,6 +4,11 @@ import { getPrisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import {
+  clearFailedLoginAttempts,
+  isLoginBlocked,
+  recordFailedLoginAttempt,
+} from "@/lib/auth/rate-limit";
+import {
   invalidCredentialsMessage,
   loginSchema,
   registerSchema,
@@ -107,9 +112,18 @@ export async function loginAction(
     };
   }
 
+  const { email, password, remember } = parsedInput.data;
+
+  if (await isLoginBlocked(email)) {
+    return {
+      status: "error",
+      message: invalidCredentialsMessage,
+    };
+  }
+
   const user = await getPrisma().user.findUnique({
     where: {
-      email: parsedInput.data.email,
+      email,
     },
     select: {
       id: true,
@@ -118,6 +132,8 @@ export async function loginAction(
   });
 
   if (!user) {
+    await recordFailedLoginAttempt(email);
+
     return {
       status: "error",
       message: invalidCredentialsMessage,
@@ -125,18 +141,21 @@ export async function loginAction(
   }
 
   const passwordMatches = await verifyPassword(
-    parsedInput.data.password,
+    password,
     user.passwordHash,
   );
 
   if (!passwordMatches) {
+    await recordFailedLoginAttempt(email);
+
     return {
       status: "error",
       message: invalidCredentialsMessage,
     };
   }
 
-  await createSession(user.id, parsedInput.data.remember);
+  await clearFailedLoginAttempts(email);
+  await createSession(user.id, remember);
 
   return {
     status: "success",
