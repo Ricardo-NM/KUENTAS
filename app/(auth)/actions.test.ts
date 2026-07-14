@@ -3,7 +3,10 @@ import {
   registerAction,
   loginAction,
 } from "./actions";
-import { invalidCredentialsMessage } from "@/lib/auth/validation";
+import {
+  invalidCredentialsMessage,
+  tooManyLoginAttemptsMessage,
+} from "@/lib/auth/validation";
 
 const mocks = vi.hoisted(() => ({
   userCreate: vi.fn(),
@@ -133,7 +136,7 @@ describe("auth actions", () => {
 
     expect(result).toEqual({
       status: "error",
-      message: invalidCredentialsMessage,
+      message: tooManyLoginAttemptsMessage,
     });
     expect(mocks.userFindUnique).not.toHaveBeenCalled();
     expect(mocks.verifyPassword).not.toHaveBeenCalled();

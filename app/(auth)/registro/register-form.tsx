@@ -19,7 +19,7 @@ const inputBaseClass =
 const normalInputClass =
   "border-white/14 focus:border-[#d0e1fb]/70 focus:ring-[#d0e1fb]/20";
 const errorInputClass =
-  "field-error-pulse border-[#ffdad6] bg-[#ba1a1a]/10 focus:border-[#ffdad6] focus:ring-[#ffdad6]/20";
+  "field-error-pulse border-[#ff453a] bg-[#ba1a1a]/10 focus:border-[#ff453a] focus:ring-[#ff453a]/20";
 
 const initialState: AuthActionState = {
   status: "idle",
@@ -271,7 +271,7 @@ export function RegisterForm() {
             </div>
             <p
               id="registerEmail-error"
-              className={`text-xs font-medium text-[#ffdad6] transition duration-200 ${
+              className={`text-xs font-medium text-[#ff453a] transition duration-200 ${
                 showEmailError
                   ? "translate-y-0 opacity-100"
                   : "-translate-y-1 opacity-0"
@@ -346,7 +346,9 @@ export function RegisterForm() {
                 required
                 aria-invalid={repeatPasswordDoesNotMatch}
                 aria-describedby={
-                  repeatPasswordDoesNotMatch ? "repeatPassword-error" : undefined
+                  repeatPasswordDoesNotMatch
+                    ? "repeatPassword-error"
+                    : undefined
                 }
                 onChange={(event) => setRepeatPassword(event.target.value)}
                 onFocus={() => repeatPasswordIconRef.current?.startAnimation()}
@@ -378,7 +380,7 @@ export function RegisterForm() {
             </div>
             <p
               id="repeatPassword-error"
-              className={`text-xs font-medium text-[#ffdad6] transition duration-200 ${
+              className={`text-xs font-medium text-[#ff453a] transition duration-200 ${
                 repeatPasswordDoesNotMatch
                   ? "translate-y-0 opacity-100"
                   : "-translate-y-1 opacity-0"
@@ -390,7 +392,7 @@ export function RegisterForm() {
         </div>
 
         {serverGeneralError ? (
-          <p className="mt-4 text-center text-sm font-semibold text-[#ffdad6]">
+          <p className="mt-4 text-center text-sm font-semibold text-[#ff453a]">
             {serverGeneralError}
           </p>
         ) : null}
@@ -398,7 +400,7 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={isPending || !canSubmit}
-          className="auth-form-reveal auth-form-delay-6 mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
+          className="auth-form-reveal auth-form-delay-6 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
         >
           {isPending ? "Creando cuenta..." : "Crear cuenta"}
         </button>
@@ -421,8 +423,8 @@ export function RegisterForm() {
           aria-live="polite"
           className="fixed inset-0 z-50 grid place-items-center bg-black/55 px-6 backdrop-blur-sm"
         >
-          <div className="grid w-full max-w-sm justify-items-center gap-4 rounded-2xl border border-white/12 bg-[#0f172a] px-8 py-9 text-center shadow-[0_24px_70px_rgb(0_0_0/0.4)]">
-            <div className="grid size-16 place-items-center rounded-full bg-[#16a34a]">
+          <div className="grid w-full max-w-sm justify-items-center gap-4 rounded-2xl border border-white/12 bg-white/10 px-8 py-9 text-center shadow-[0_24px_70px_rgb(0_0_0/0.4)]">
+            <div className="grid size-16 place-items-center rounded-full bg-[#06b747]">
               <Check aria-hidden="true" className="size-9 text-white" />
             </div>
             <p className="text-base font-bold text-white">

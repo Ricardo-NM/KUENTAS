@@ -17,7 +17,7 @@ const inputBaseClass =
 const normalInputClass =
   "border-white/14 focus:border-[#d0e1fb]/70 focus:ring-[#d0e1fb]/20";
 const errorInputClass =
-  "field-error-pulse border-[#ffdad6] bg-[#ba1a1a]/10 focus:border-[#ffdad6] focus:ring-[#ffdad6]/20";
+  "field-error-pulse border-[#ff453a] bg-[#ba1a1a]/10 focus:border-[#ff453a] focus:ring-[#ff453a]/20";
 
 const initialState: AuthActionState = {
   status: "idle",
@@ -38,6 +38,7 @@ export function LoginForm() {
   const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const canSubmit = emailIsValid && password.length > 0;
   const credentialsAreInvalid = state.status === "error";
+  const loginMessage = credentialsAreInvalid ? state.message : undefined;
 
   useEffect(() => {
     if (state.status === "success") {
@@ -181,20 +182,20 @@ export function LoginForm() {
         </button>
       </div>
 
-      {credentialsAreInvalid ? (
-        <p
-          id="login-error"
-          className="mt-3 text-center text-sm font-semibold text-[#ff453a]"
-          aria-live="polite"
-        >
-          {state.message}
-        </p>
-      ) : null}
+      <p
+        id="login-error"
+        className={`mt-3 min-h-4 text-center text-xs font-medium text-[#ff453a] transition duration-200 ${
+          loginMessage ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
+        }`}
+        aria-live="polite"
+      >
+        {loginMessage ?? " "}
+      </p>
 
       <button
         type="submit"
         disabled={isPending || !canSubmit}
-        className="auth-form-reveal auth-form-delay-5 mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
+        className="auth-form-reveal auth-form-delay-5 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
       >
         {isPending ? "Iniciando sesión..." : "Iniciar sesión"}
       </button>

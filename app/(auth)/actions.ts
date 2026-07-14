@@ -12,6 +12,7 @@ import {
   invalidCredentialsMessage,
   loginSchema,
   registerSchema,
+  tooManyLoginAttemptsMessage,
 } from "@/lib/auth/validation";
 
 export type AuthActionState =
@@ -117,7 +118,7 @@ export async function loginAction(
   if (await isLoginBlocked(email)) {
     return {
       status: "error",
-      message: invalidCredentialsMessage,
+      message: tooManyLoginAttemptsMessage,
     };
   }
 

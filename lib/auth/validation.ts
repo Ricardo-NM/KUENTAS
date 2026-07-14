@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 export const invalidCredentialsMessage = "Alguno de los campos es incorrecto";
+export const tooManyLoginAttemptsMessage =
+  "Demasiados intentos fallidos, espera un momento";
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
