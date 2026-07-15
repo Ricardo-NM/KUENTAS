@@ -7,6 +7,7 @@ import {
   CircleCheckIcon,
   DeleteIcon,
   KeySquareIcon,
+  LogoutIcon,
   MailboxIcon,
   MoonIcon,
   SunMediumIcon,
@@ -22,7 +23,9 @@ import {
 } from "lucide-animated";
 import {
   Laptop,
+  MonitorSmartphone,
   Smartphone,
+  UserRoundX,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -122,12 +125,16 @@ const initialProfileActionState: DashboardProfileActionState = {
   status: "idle",
 };
 
-function getSessionActivityIcon(deviceLabel: string): LucideIcon {
+function isMobileSessionDevice(deviceLabel: string) {
   const normalizedLabel = deviceLabel.toLowerCase();
 
   return normalizedLabel.includes("iphone") ||
     normalizedLabel.includes("ipad") ||
-    normalizedLabel.includes("android")
+    normalizedLabel.includes("android");
+}
+
+function getSessionActivityIcon(deviceLabel: string): LucideIcon {
+  return isMobileSessionDevice(deviceLabel)
     ? Smartphone
     : Laptop;
 }
@@ -971,7 +978,13 @@ function ConfiguracionSecurityPanel({
   const router = useRouter();
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
+  const cancelDeleteAccountIconRef = useRef<AnimatedIconHandle>(null);
+  const confirmDeleteAccountIconRef = useRef<AnimatedIconHandle>(null);
+  const cancelSessionIconRef = useRef<AnimatedIconHandle>(null);
   const deleteAccountIconRef = useRef<AnimatedIconHandle>(null);
+  const logoutSessionIconRef = useRef<AnimatedIconHandle>(null);
+  const [isDeleteAccountConfirmationOpen, setIsDeleteAccountConfirmationOpen] =
+    useState(false);
   const [confirmation, setConfirmation] = useState<SessionConfirmation | null>(
     null,
   );
@@ -1010,6 +1023,23 @@ function ConfiguracionSecurityPanel({
     },
   ];
   const hasOtherSessions = sessions.some((session) => !session.isCurrent);
+  const confirmationSession =
+    confirmation?.type === "single"
+      ? sessions.find((session) => session.id === confirmation.sessionId)
+      : null;
+  const isConfirmationMobileDevice =
+    confirmation?.type === "single" &&
+    isMobileSessionDevice(confirmation.deviceLabel);
+  const confirmationSessionTime =
+    confirmation?.type === "single"
+      ? confirmationSession?.isCurrent
+        ? t("dashboard.settings.security.recentActivity.activeNow", {
+            defaultValue: fallbackCopy.securityActiveNow,
+          })
+        : confirmationSession?.lastSeenAt
+          ? formatSessionActivityTime(confirmationSession.lastSeenAt, language)
+          : null
+      : null;
   const confirmationTitle =
     confirmation?.type === "all"
       ? t("dashboard.settings.security.recentActivity.confirm.closeAllTitle", {
@@ -1144,6 +1174,7 @@ function ConfiguracionSecurityPanel({
                 onMouseLeave={() =>
                   deleteAccountIconRef.current?.stopAnimation()
                 }
+                onClick={() => setIsDeleteAccountConfirmationOpen(true)}
                 className={cn(
                   destructiveActionClassName,
                   "mt-5 min-h-11 gap-2 px-5 text-sm",
@@ -1308,21 +1339,56 @@ function ConfiguracionSecurityPanel({
               aria-modal="true"
               aria-labelledby="session-confirmation-title"
               aria-describedby="session-confirmation-description"
-              className="w-full max-w-[420px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+              className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
               initial={{ opacity: 0, y: 8, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
             >
-              <h3
-                id="session-confirmation-title"
-                className="font-heading text-lg font-semibold leading-7 text-on-surface"
-              >
-                {confirmationTitle}
-              </h3>
+              <div className="flex min-w-0 items-center gap-3 text-left">
+                <span
+                  aria-hidden="true"
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive-container/75 text-destructive"
+                >
+                  {confirmation?.type === "all" ? (
+                    <MonitorSmartphone
+                      aria-hidden="true"
+                      className="shrink-0"
+                      size={20}
+                    />
+                  ) : isConfirmationMobileDevice ? (
+                    <Smartphone
+                      aria-hidden="true"
+                      className="shrink-0"
+                      size={20}
+                    />
+                  ) : (
+                    <Laptop
+                      aria-hidden="true"
+                      className="shrink-0"
+                      size={20}
+                    />
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <h3
+                    id="session-confirmation-title"
+                    className="break-words text-sm font-bold leading-5 text-on-surface"
+                  >
+                    {confirmation?.type === "single"
+                      ? confirmation.deviceLabel
+                      : confirmationTitle}
+                  </h3>
+                  {confirmationSessionTime ? (
+                    <p className="text-xs font-medium leading-4 text-on-surface-variant">
+                      {confirmationSessionTime}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
               <p
                 id="session-confirmation-description"
-                className="mt-2 text-sm leading-5 text-on-surface-variant"
+                className="mt-4 text-sm leading-5 text-on-surface-variant"
               >
                 {confirmationDescription}
               </p>
@@ -1331,8 +1397,22 @@ function ConfiguracionSecurityPanel({
                   type="button"
                   disabled={isSessionActionPending}
                   onClick={() => setConfirmation(null)}
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  onFocus={() => cancelSessionIconRef.current?.startAnimation()}
+                  onBlur={() => cancelSessionIconRef.current?.stopAnimation()}
+                  onMouseEnter={() =>
+                    cancelSessionIconRef.current?.startAnimation()
+                  }
+                  onMouseLeave={() =>
+                    cancelSessionIconRef.current?.stopAnimation()
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
+                  <XIcon
+                    ref={cancelSessionIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
                   {t("dashboard.settings.security.recentActivity.confirm.cancel", {
                     defaultValue: fallbackCopy.securityConfirmCancel,
                   })}
@@ -1341,8 +1421,22 @@ function ConfiguracionSecurityPanel({
                   type="button"
                   disabled={isSessionActionPending}
                   onClick={executeConfirmedSessionAction}
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  onFocus={() => logoutSessionIconRef.current?.startAnimation()}
+                  onBlur={() => logoutSessionIconRef.current?.stopAnimation()}
+                  onMouseEnter={() =>
+                    logoutSessionIconRef.current?.startAnimation()
+                  }
+                  onMouseLeave={() =>
+                    logoutSessionIconRef.current?.stopAnimation()
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
+                  <LogoutIcon
+                    ref={logoutSessionIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
                   {isSessionActionPending
                     ? t(
                         "dashboard.settings.security.recentActivity.confirm.closing",
@@ -1356,6 +1450,119 @@ function ConfiguracionSecurityPanel({
                           defaultValue: fallbackCopy.securityConfirmAction,
                         },
                       )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isDeleteAccountConfirmationOpen ? (
+          <motion.div
+            role="presentation"
+            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-account-confirmation-title"
+              aria-describedby="delete-account-confirmation-description"
+              className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
+              <div className="flex min-w-0 items-center gap-3 text-left">
+                <span
+                  aria-hidden="true"
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive-container/75 text-destructive"
+                >
+                  <UserRoundX
+                    aria-hidden="true"
+                    className="shrink-0"
+                    size={20}
+                  />
+                </span>
+                <h3
+                  id="delete-account-confirmation-title"
+                  className="break-words text-sm font-bold leading-5 text-on-surface"
+                >
+                  {t("dashboard.settings.security.dangerZone.confirm.title", {
+                    defaultValue:
+                      fallbackCopy.securityDeleteAccountConfirmTitle,
+                  })}
+                </h3>
+              </div>
+              <p
+                id="delete-account-confirmation-description"
+                className="mt-4 text-sm leading-5 text-on-surface-variant"
+              >
+                {t("dashboard.settings.security.dangerZone.confirm.body", {
+                  defaultValue: fallbackCopy.securityDeleteAccountConfirmBody,
+                })}
+              </p>
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteAccountConfirmationOpen(false)}
+                  onFocus={() =>
+                    cancelDeleteAccountIconRef.current?.startAnimation()
+                  }
+                  onBlur={() =>
+                    cancelDeleteAccountIconRef.current?.stopAnimation()
+                  }
+                  onMouseEnter={() =>
+                    cancelDeleteAccountIconRef.current?.startAnimation()
+                  }
+                  onMouseLeave={() =>
+                    cancelDeleteAccountIconRef.current?.stopAnimation()
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <XIcon
+                    ref={cancelDeleteAccountIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
+                  {t("dashboard.settings.security.dangerZone.confirm.cancel", {
+                    defaultValue:
+                      fallbackCopy.securityDeleteAccountConfirmCancel,
+                  })}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteAccountConfirmationOpen(false)}
+                  onFocus={() =>
+                    confirmDeleteAccountIconRef.current?.startAnimation()
+                  }
+                  onBlur={() =>
+                    confirmDeleteAccountIconRef.current?.stopAnimation()
+                  }
+                  onMouseEnter={() =>
+                    confirmDeleteAccountIconRef.current?.startAnimation()
+                  }
+                  onMouseLeave={() =>
+                    confirmDeleteAccountIconRef.current?.stopAnimation()
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <DeleteIcon
+                    ref={confirmDeleteAccountIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
+                  {t("dashboard.settings.security.dangerZone.confirm.confirm", {
+                    defaultValue:
+                      fallbackCopy.securityDeleteAccountConfirmAction,
+                  })}
                 </button>
               </div>
             </motion.div>

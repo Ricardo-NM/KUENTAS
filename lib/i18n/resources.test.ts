@@ -144,11 +144,23 @@ describe("i18n resources", () => {
     ).toBe("Cerrar todas las sesiones");
     expect(
       resources.es.translation.dashboard.settings.security.recentActivity
+        .confirm.confirm,
+    ).toBe("Cerrar sesión");
+    expect(
+      resources.es.translation.dashboard.settings.security.recentActivity
         .feedback.closedAll,
     ).toBe("Todas las demás sesiones fueron cerradas.");
     expect(
       resources.es.translation.dashboard.settings.security.dangerZone.action,
     ).toBe("Eliminar mi cuenta permanentemente");
+    expect(
+      resources.es.translation.dashboard.settings.security.dangerZone.confirm,
+    ).toEqual({
+      title: "Eliminar cuenta",
+      body: "¿Estas seguro de eliminar tu cuenta permanentemente? Esta acción no se puede revertir.",
+      cancel: "Cancelar",
+      confirm: "Confirmar",
+    });
     expect(resources.es.translation.dashboard.settings.notifications.title).toBe(
       "Ajustes de notificaciones",
     );
@@ -201,11 +213,23 @@ describe("i18n resources", () => {
     ).toBe("Sign out all sessions");
     expect(
       resources.en.translation.dashboard.settings.security.recentActivity
+        .confirm.confirm,
+    ).toBe("Sign out");
+    expect(
+      resources.en.translation.dashboard.settings.security.recentActivity
         .feedback.closedAll,
     ).toBe("All other sessions were signed out.");
     expect(
       resources.en.translation.dashboard.settings.security.dangerZone.action,
     ).toBe("Delete my account permanently");
+    expect(
+      resources.en.translation.dashboard.settings.security.dangerZone.confirm,
+    ).toEqual({
+      title: "Delete account",
+      body: "Are you sure you want to permanently delete your account? This action cannot be undone.",
+      cancel: "Cancel",
+      confirm: "Confirm",
+    });
     expect(resources.en.translation.dashboard.settings.notifications.title).toBe(
       "Notification settings",
     );

@@ -133,7 +133,7 @@
             "closeAllTitle": "Cerrar todas las sesiones",
             "closeAllBody": "Se cerrarán todas las sesiones excepto esta. Los demás dispositivos tendrán que volver a iniciar sesión.",
             "cancel": "Cancelar",
-            "confirm": "Confirmar",
+            "confirm": "Cerrar sesión",
             "closing": "Cerrando..."
           },
           "feedback": {
@@ -146,7 +146,13 @@
         "dangerZone": {
           "title": "Zona de peligro",
           "description": "Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, asegúrate de haber exportado tus datos financieros si los necesitas.",
-          "action": "Eliminar mi cuenta permanentemente"
+          "action": "Eliminar mi cuenta permanentemente",
+          "confirm": {
+            "title": "Eliminar cuenta",
+            "body": "¿Estas seguro de eliminar tu cuenta permanentemente? Esta acción no se puede revertir.",
+            "cancel": "Cancelar",
+            "confirm": "Confirmar"
+          }
         }
       },
       "notifications": {

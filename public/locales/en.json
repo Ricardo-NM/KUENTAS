@@ -133,7 +133,7 @@
             "closeAllTitle": "Sign out all sessions",
             "closeAllBody": "All sessions except this one will be signed out. Other devices will need to log in again.",
             "cancel": "Cancel",
-            "confirm": "Confirm",
+            "confirm": "Sign out",
             "closing": "Signing out..."
           },
           "feedback": {
@@ -146,7 +146,13 @@
         "dangerZone": {
           "title": "Danger zone",
           "description": "Once you delete your account, there is no going back. Please make sure you have exported any financial data you need.",
-          "action": "Delete my account permanently"
+          "action": "Delete my account permanently",
+          "confirm": {
+            "title": "Delete account",
+            "body": "Are you sure you want to permanently delete your account? This action cannot be undone.",
+            "cancel": "Cancel",
+            "confirm": "Confirm"
+          }
         }
       },
       "notifications": {

@@ -89,7 +89,7 @@ export const dashboardSettingsFallbackCopy = {
     securityConfirmCloseAllBody:
       "Se cerrarán todas las sesiones excepto esta. Los demás dispositivos tendrán que volver a iniciar sesión.",
     securityConfirmCancel: "Cancelar",
-    securityConfirmAction: "Confirmar",
+    securityConfirmAction: "Cerrar sesión",
     securityClosingSession: "Cerrando...",
     securitySessionActionFeedback: "Actividad de sesiones actualizada.",
     securitySessionClosed: "Sesión cerrada correctamente.",
@@ -100,6 +100,11 @@ export const dashboardSettingsFallbackCopy = {
     securityDangerDescription:
       "Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, asegúrate de haber exportado tus datos financieros si los necesitas.",
     securityDangerAction: "Eliminar mi cuenta permanentemente",
+    securityDeleteAccountConfirmTitle: "Eliminar cuenta",
+    securityDeleteAccountConfirmBody:
+      "¿Estas seguro de eliminar tu cuenta permanentemente? Esta acción no se puede revertir.",
+    securityDeleteAccountConfirmCancel: "Cancelar",
+    securityDeleteAccountConfirmAction: "Confirmar",
     notificationsTitle: "Ajustes de notificaciones",
     upcomingPaymentsTitle: "Pagos próximos",
     upcomingPaymentsDescription:
@@ -161,7 +166,7 @@ export const dashboardSettingsFallbackCopy = {
     securityConfirmCloseAllBody:
       "All sessions except this one will be signed out. Other devices will need to log in again.",
     securityConfirmCancel: "Cancel",
-    securityConfirmAction: "Confirm",
+    securityConfirmAction: "Sign out",
     securityClosingSession: "Signing out...",
     securitySessionActionFeedback: "Session activity updated.",
     securitySessionClosed: "Session signed out successfully.",
@@ -172,6 +177,11 @@ export const dashboardSettingsFallbackCopy = {
     securityDangerDescription:
       "Once you delete your account, there is no going back. Please make sure you have exported any financial data you need.",
     securityDangerAction: "Delete my account permanently",
+    securityDeleteAccountConfirmTitle: "Delete account",
+    securityDeleteAccountConfirmBody:
+      "Are you sure you want to permanently delete your account? This action cannot be undone.",
+    securityDeleteAccountConfirmCancel: "Cancel",
+    securityDeleteAccountConfirmAction: "Confirm",
     notificationsTitle: "Notification settings",
     upcomingPaymentsTitle: "Upcoming payments",
     upcomingPaymentsDescription: "Get a reminder one week before your due date.",
