@@ -15,7 +15,9 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type ComponentPropsWithoutRef,
   type ForwardRefExoticComponent,
+  type MouseEvent,
   type RefAttributes,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -34,8 +36,8 @@ import {
 } from "@/lib/dashboard/theme";
 import {
   applyDashboardTheme,
-  dashboardThemeStorageKey,
-  resolveDashboardTheme,
+  readDashboardThemePreference,
+  startDashboardThemeViewTransition,
   type DashboardTheme,
 } from "@/lib/dashboard/theme-preference";
 import { cn } from "@/lib/utils";
@@ -233,21 +235,17 @@ function ConfiguracionGeneralPanel() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
   const [selectedCurrency, setSelectedCurrency] = useState("MXN");
-  const [selectedTheme, setSelectedTheme] = useState<DashboardTheme>(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
-
-    try {
-      return resolveDashboardTheme(
-        window.localStorage.getItem(dashboardThemeStorageKey),
-      );
-    } catch {
-      return "light";
-    }
-  });
+  const [selectedTheme, setSelectedTheme] = useState<DashboardTheme>("light");
   const sunIconRef = useRef<SunMediumIconHandle>(null);
   const moonIconRef = useRef<MoonIconHandle>(null);
+
+  useEffect(() => {
+    const syncTheme = window.setTimeout(() => {
+      setSelectedTheme(readDashboardThemePreference());
+    }, 0);
+
+    return () => window.clearTimeout(syncTheme);
+  }, []);
 
   const changeLanguage = (languageValue: string) => {
     if (isSupportedLanguage(languageValue)) {
@@ -262,9 +260,23 @@ function ConfiguracionGeneralPanel() {
     window.setTimeout(() => iconRef.current?.stopAnimation(), 650);
   };
 
-  const selectTheme = (theme: DashboardTheme) => {
-    setSelectedTheme(theme);
-    applyDashboardTheme(theme);
+  const selectTheme = (
+    theme: DashboardTheme,
+    event: MouseEvent<HTMLButtonElement>,
+  ) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const origin = {
+      clientX: event.clientX || bounds.left + bounds.width / 2,
+      clientY: event.clientY || bounds.top + bounds.height / 2,
+    };
+
+    startDashboardThemeViewTransition({
+      origin,
+      update: () => {
+        setSelectedTheme(theme);
+        applyDashboardTheme(theme);
+      },
+    });
     playThemeIconAnimation(theme);
   };
 
@@ -357,7 +369,7 @@ function ConfiguracionGeneralPanel() {
           <button
             type="button"
             aria-pressed={selectedTheme === "light"}
-            onClick={() => selectTheme("light")}
+            onClick={(event) => selectTheme("light", event)}
             className={cn(
               "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               selectedTheme === "light"
@@ -379,7 +391,7 @@ function ConfiguracionGeneralPanel() {
           <button
             type="button"
             aria-pressed={selectedTheme === "dark"}
-            onClick={() => selectTheme("dark")}
+            onClick={(event) => selectTheme("dark", event)}
             className={cn(
               "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               selectedTheme === "dark"

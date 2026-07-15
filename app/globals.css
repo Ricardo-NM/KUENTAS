@@ -214,6 +214,17 @@ body {
   }
 }
 
+html.theme-view-transition::view-transition-image-pair(root) {
+  isolation: auto;
+}
+
+html.theme-view-transition::view-transition-old(root),
+html.theme-view-transition::view-transition-new(root) {
+  animation: none;
+  display: block;
+  mix-blend-mode: normal;
+}
+
 @keyframes login-reveal {
   from {
     opacity: 0;
@@ -351,5 +362,12 @@ body {
     filter: none;
     opacity: 1;
     transform: none;
+  }
+
+  html.theme-view-transition::view-transition-old(root),
+  html.theme-view-transition::view-transition-new(root),
+  html.theme-view-transition::view-transition-group(root) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }

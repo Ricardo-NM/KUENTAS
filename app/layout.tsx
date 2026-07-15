@@ -40,6 +40,7 @@ export default function RootLayout({
     >
       <head>
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: getDashboardThemeInitScript(),
           }}
