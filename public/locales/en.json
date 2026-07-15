@@ -23,6 +23,28 @@
     "logout": "Log out",
     "loggingOut": "Logging out..."
   },
+  "dashboard": {
+    "navigationLabel": "Primary navigation",
+    "groups": {
+      "menu": "MENU",
+      "account": "ACCOUNT"
+    },
+    "navigation": {
+      "inicio": "Home",
+      "calendario": "Calendar",
+      "pagos": "Payments",
+      "estadisticas": "Statistics",
+      "configuracion": "Settings"
+    },
+    "greeting": "Greetings from {{section}}",
+    "topbar": {
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search...",
+      "notifications": "Notifications"
+    },
+    "logout": "Log out",
+    "loggingOut": "Logging out..."
+  },
   "language": {
     "button": "Language",
     "aria": "Change language",

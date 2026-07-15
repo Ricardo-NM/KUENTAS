@@ -23,6 +23,28 @@
     "logout": "Cerrar sesión",
     "loggingOut": "Cerrando sesión..."
   },
+  "dashboard": {
+    "navigationLabel": "Navegación principal",
+    "groups": {
+      "menu": "MENU",
+      "account": "CUENTA"
+    },
+    "navigation": {
+      "inicio": "Inicio",
+      "calendario": "Calendario",
+      "pagos": "Pagos",
+      "estadisticas": "Estadísticas",
+      "configuracion": "Configuración"
+    },
+    "greeting": "Saludos desde {{section}}",
+    "topbar": {
+      "searchLabel": "Buscar",
+      "searchPlaceholder": "Buscar...",
+      "notifications": "Notificaciones"
+    },
+    "logout": "Cerrar sesión",
+    "loggingOut": "Cerrando sesión..."
+  },
   "language": {
     "button": "Idioma",
     "aria": "Cambiar idioma",

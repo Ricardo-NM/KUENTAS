@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   defaultLanguage,
   getInitialLanguage,
+  applyTranslationResources,
   languageStorageKey,
   persistLanguage,
   resources,
@@ -14,6 +15,7 @@ import {
 
 function setupI18n() {
   if (i18n.isInitialized) {
+    applyTranslationResources(i18n);
     return i18n;
   }
 
@@ -28,6 +30,8 @@ function setupI18n() {
       escapeValue: false,
     },
   });
+
+  applyTranslationResources(i18n);
 
   return i18n;
 }
