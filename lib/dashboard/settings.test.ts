@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dashboardCurrencyOptions,
+  dashboardNotificationOptions,
   dashboardSettingsFallbackCopy,
   dashboardSettingsSections,
 } from "./settings";
@@ -48,6 +49,82 @@ describe("dashboard settings sections", () => {
     expect(dashboardSettingsFallbackCopy.en.greeting).toBe(
       "Greetings from {{section}}",
     );
+    expect(dashboardSettingsFallbackCopy.es.profileSave).toBe(
+      "Guardar cambios",
+    );
+    expect(dashboardSettingsFallbackCopy.en.profileSave).toBe("Save changes");
+    expect(dashboardSettingsFallbackCopy.es.securityTitle).toBe(
+      "Seguridad de la cuenta",
+    );
+    expect(dashboardSettingsFallbackCopy.es.securityCurrentPassword).toBe(
+      "Contraseña actual",
+    );
+    expect(dashboardSettingsFallbackCopy.es.securityTwoFactorTitle).toBe(
+      "Autenticación de dos pasos (2FA)",
+    );
+    expect(dashboardSettingsFallbackCopy.es.securityDangerAction).toBe(
+      "Eliminar mi cuenta permanentemente",
+    );
+    expect(dashboardSettingsFallbackCopy.es.securityCloseAllSessions).toBe(
+      "Cerrar todas",
+    );
+    expect(dashboardSettingsFallbackCopy.es.securityUnknownDevice).toBe(
+      "Dispositivo desconocido",
+    );
+    expect(dashboardSettingsFallbackCopy.es.securityConfirmCloseAllTitle).toBe(
+      "Cerrar todas las sesiones",
+    );
+    expect(dashboardSettingsFallbackCopy.es.securityAllSessionsClosed).toBe(
+      "Todas las demás sesiones fueron cerradas.",
+    );
+    expect(dashboardSettingsFallbackCopy.es.notificationsTitle).toBe(
+      "Ajustes de notificaciones",
+    );
+    expect(dashboardSettingsFallbackCopy.es.upcomingPaymentsTitle).toBe(
+      "Pagos próximos",
+    );
+    expect(dashboardSettingsFallbackCopy.es.paymentAlertsTitle).toBe(
+      "Alertas de pago",
+    );
+    expect(dashboardSettingsFallbackCopy.es.weeklySummaryTitle).toBe(
+      "Resumen semanal",
+    );
+    expect(dashboardSettingsFallbackCopy.en.securityTitle).toBe(
+      "Account security",
+    );
+    expect(dashboardSettingsFallbackCopy.en.securityCurrentPassword).toBe(
+      "Current password",
+    );
+    expect(dashboardSettingsFallbackCopy.en.securityTwoFactorTitle).toBe(
+      "Two-factor authentication (2FA)",
+    );
+    expect(dashboardSettingsFallbackCopy.en.securityDangerAction).toBe(
+      "Delete my account permanently",
+    );
+    expect(dashboardSettingsFallbackCopy.en.securityCloseAllSessions).toBe(
+      "Sign out all",
+    );
+    expect(dashboardSettingsFallbackCopy.en.securityUnknownDevice).toBe(
+      "Unknown device",
+    );
+    expect(dashboardSettingsFallbackCopy.en.securityConfirmCloseAllTitle).toBe(
+      "Sign out all sessions",
+    );
+    expect(dashboardSettingsFallbackCopy.en.securityAllSessionsClosed).toBe(
+      "All other sessions were signed out.",
+    );
+    expect(dashboardSettingsFallbackCopy.en.notificationsTitle).toBe(
+      "Notification settings",
+    );
+    expect(dashboardSettingsFallbackCopy.en.upcomingPaymentsTitle).toBe(
+      "Upcoming payments",
+    );
+    expect(dashboardSettingsFallbackCopy.en.paymentAlertsTitle).toBe(
+      "Payment alerts",
+    );
+    expect(dashboardSettingsFallbackCopy.en.weeklySummaryTitle).toBe(
+      "Weekly summary",
+    );
   });
 
   it("defines the general settings currency options in the requested order", () => {
@@ -74,6 +151,59 @@ describe("dashboard settings sections", () => {
         fallbackLabels: {
           es: "EUR (€) - Euro",
           en: "EUR (€) - Euro",
+        },
+      },
+    ]);
+  });
+
+  it("defines notification settings toggles with icons and initial states", () => {
+    expect(dashboardNotificationOptions).toEqual([
+      {
+        id: "upcoming-payments",
+        titleKey: "dashboard.settings.notifications.options.upcomingPayments.title",
+        descriptionKey:
+          "dashboard.settings.notifications.options.upcomingPayments.description",
+        icon: "calendar-days",
+        initiallyEnabled: true,
+        fallbackTitles: {
+          es: "Pagos próximos",
+          en: "Upcoming payments",
+        },
+        fallbackDescriptions: {
+          es: "Recibe un aviso una semana antes de tu fecha límite.",
+          en: "Get a reminder one week before your due date.",
+        },
+      },
+      {
+        id: "payment-alerts",
+        titleKey: "dashboard.settings.notifications.options.paymentAlerts.title",
+        descriptionKey:
+          "dashboard.settings.notifications.options.paymentAlerts.description",
+        icon: "badge-alert",
+        initiallyEnabled: true,
+        fallbackTitles: {
+          es: "Alertas de pago",
+          en: "Payment alerts",
+        },
+        fallbackDescriptions: {
+          es: "Notificar cuando existan pagos pendientes.",
+          en: "Notify when there are pending payments.",
+        },
+      },
+      {
+        id: "weekly-summary",
+        titleKey: "dashboard.settings.notifications.options.weeklySummary.title",
+        descriptionKey:
+          "dashboard.settings.notifications.options.weeklySummary.description",
+        icon: "mailbox",
+        initiallyEnabled: false,
+        fallbackTitles: {
+          es: "Resumen semanal",
+          en: "Weekly summary",
+        },
+        fallbackDescriptions: {
+          es: "Correo electrónico con tus estadísticas de la semana.",
+          en: "Email with your weekly statistics.",
         },
       },
     ]);

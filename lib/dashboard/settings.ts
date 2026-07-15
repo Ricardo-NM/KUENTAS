@@ -49,6 +49,66 @@ export const dashboardSettingsFallbackCopy = {
     visualThemeLabel: "Tema visual",
     lightTheme: "Claro",
     darkTheme: "Oscuro",
+    profileTitle: "Perfil de usuario",
+    profilePhotoTitle: "Foto de perfil",
+    profilePhotoHelp: "PNG o JPG de hasta 5MB.",
+    profileUpload: "Subir nueva",
+    profileDelete: "Eliminar",
+    profileFirstName: "Nombre",
+    profileLastName: "Apellidos",
+    profileEmail: "Correo electrónico",
+    profileCancel: "Cancelar",
+    profileSave: "Guardar cambios",
+    profileSaving: "Guardando...",
+    profileSaved: "Cambios guardados correctamente.",
+    profileAvatarLabel: "Cambiar foto de perfil",
+    securityTitle: "Seguridad de la cuenta",
+    securityPasswordTitle: "Contraseña",
+    securityCurrentPassword: "Contraseña actual",
+    securityNewPassword: "Nueva contraseña",
+    securityConfirmPassword: "Confirmar contraseña",
+    securityTwoFactorTitle: "Autenticación de dos pasos (2FA)",
+    securityTwoFactorDescription:
+      "Añade una capa extra de seguridad a tu cuenta de Kuentas.",
+    securityTwoFactorEnabled: "2FA activado",
+    securityRecentActivityTitle: "Actividad reciente",
+    securityDesktopSessionDevice: "MacBook Pro - Chrome",
+    securityDesktopSessionMeta: "Madrid, ES · Activo ahora",
+    securityCurrentSession: "Sesión actual",
+    securityMobileSessionDevice: "iPhone 15 - App Móvil",
+    securityMobileSessionMeta: "Barcelona, ES · Hace 2 horas",
+    securitySignOut: "Cerrar sesión",
+    securityCloseAllSessions: "Cerrar todas",
+    securityActiveNow: "Activo ahora",
+    securityUnknownDevice: "Dispositivo desconocido",
+    securityNoSessions: "No hay sesiones activas para mostrar.",
+    securityConfirmCloseTitle: "Cerrar esta sesión",
+    securityConfirmCloseBody:
+      "Se cerrará la sesión de {{device}}. Ese dispositivo tendrá que volver a iniciar sesión.",
+    securityConfirmCloseAllTitle: "Cerrar todas las sesiones",
+    securityConfirmCloseAllBody:
+      "Se cerrarán todas las sesiones excepto esta. Los demás dispositivos tendrán que volver a iniciar sesión.",
+    securityConfirmCancel: "Cancelar",
+    securityConfirmAction: "Confirmar",
+    securityClosingSession: "Cerrando...",
+    securitySessionActionFeedback: "Actividad de sesiones actualizada.",
+    securitySessionClosed: "Sesión cerrada correctamente.",
+    securityAllSessionsClosed: "Todas las demás sesiones fueron cerradas.",
+    securityCurrentSessionBlocked: "No puedes cerrar la sesión actual desde aquí.",
+    securitySessionNotFound: "La sesión ya no está disponible.",
+    securityDangerTitle: "Zona de peligro",
+    securityDangerDescription:
+      "Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, asegúrate de haber exportado tus datos financieros si los necesitas.",
+    securityDangerAction: "Eliminar mi cuenta permanentemente",
+    notificationsTitle: "Ajustes de notificaciones",
+    upcomingPaymentsTitle: "Pagos próximos",
+    upcomingPaymentsDescription:
+      "Recibe un aviso una semana antes de tu fecha límite.",
+    paymentAlertsTitle: "Alertas de pago",
+    paymentAlertsDescription: "Notificar cuando existan pagos pendientes.",
+    weeklySummaryTitle: "Resumen semanal",
+    weeklySummaryDescription:
+      "Correo electrónico con tus estadísticas de la semana.",
   },
   en: {
     title: "Settings",
@@ -61,8 +121,117 @@ export const dashboardSettingsFallbackCopy = {
     visualThemeLabel: "Visual theme",
     lightTheme: "Light",
     darkTheme: "Dark",
+    profileTitle: "User profile",
+    profilePhotoTitle: "Profile photo",
+    profilePhotoHelp: "PNG or JPG up to 5MB.",
+    profileUpload: "Upload new",
+    profileDelete: "Remove",
+    profileFirstName: "First name",
+    profileLastName: "Last name",
+    profileEmail: "Email address",
+    profileCancel: "Cancel",
+    profileSave: "Save changes",
+    profileSaving: "Saving...",
+    profileSaved: "Changes saved successfully.",
+    profileAvatarLabel: "Change profile photo",
+    securityTitle: "Account security",
+    securityPasswordTitle: "Password",
+    securityCurrentPassword: "Current password",
+    securityNewPassword: "New password",
+    securityConfirmPassword: "Confirm password",
+    securityTwoFactorTitle: "Two-factor authentication (2FA)",
+    securityTwoFactorDescription:
+      "Add an extra layer of security to your Kuentas account.",
+    securityTwoFactorEnabled: "2FA enabled",
+    securityRecentActivityTitle: "Recent activity",
+    securityDesktopSessionDevice: "MacBook Pro - Chrome",
+    securityDesktopSessionMeta: "Madrid, ES · Active now",
+    securityCurrentSession: "Current session",
+    securityMobileSessionDevice: "iPhone 15 - Mobile App",
+    securityMobileSessionMeta: "Barcelona, ES · 2 hours ago",
+    securitySignOut: "Sign out",
+    securityCloseAllSessions: "Sign out all",
+    securityActiveNow: "Active now",
+    securityUnknownDevice: "Unknown device",
+    securityNoSessions: "There are no active sessions to show.",
+    securityConfirmCloseTitle: "Sign out this session",
+    securityConfirmCloseBody:
+      "The session on {{device}} will be signed out. That device will need to log in again.",
+    securityConfirmCloseAllTitle: "Sign out all sessions",
+    securityConfirmCloseAllBody:
+      "All sessions except this one will be signed out. Other devices will need to log in again.",
+    securityConfirmCancel: "Cancel",
+    securityConfirmAction: "Confirm",
+    securityClosingSession: "Signing out...",
+    securitySessionActionFeedback: "Session activity updated.",
+    securitySessionClosed: "Session signed out successfully.",
+    securityAllSessionsClosed: "All other sessions were signed out.",
+    securityCurrentSessionBlocked: "You cannot sign out the current session here.",
+    securitySessionNotFound: "The session is no longer available.",
+    securityDangerTitle: "Danger zone",
+    securityDangerDescription:
+      "Once you delete your account, there is no going back. Please make sure you have exported any financial data you need.",
+    securityDangerAction: "Delete my account permanently",
+    notificationsTitle: "Notification settings",
+    upcomingPaymentsTitle: "Upcoming payments",
+    upcomingPaymentsDescription: "Get a reminder one week before your due date.",
+    paymentAlertsTitle: "Payment alerts",
+    paymentAlertsDescription: "Notify when there are pending payments.",
+    weeklySummaryTitle: "Weekly summary",
+    weeklySummaryDescription: "Email with your weekly statistics.",
   },
 } as const;
+
+export const dashboardNotificationOptions = [
+  {
+    id: "upcoming-payments",
+    titleKey: "dashboard.settings.notifications.options.upcomingPayments.title",
+    descriptionKey:
+      "dashboard.settings.notifications.options.upcomingPayments.description",
+    icon: "calendar-days",
+    initiallyEnabled: true,
+    fallbackTitles: {
+      es: "Pagos próximos",
+      en: "Upcoming payments",
+    },
+    fallbackDescriptions: {
+      es: "Recibe un aviso una semana antes de tu fecha límite.",
+      en: "Get a reminder one week before your due date.",
+    },
+  },
+  {
+    id: "payment-alerts",
+    titleKey: "dashboard.settings.notifications.options.paymentAlerts.title",
+    descriptionKey:
+      "dashboard.settings.notifications.options.paymentAlerts.description",
+    icon: "badge-alert",
+    initiallyEnabled: true,
+    fallbackTitles: {
+      es: "Alertas de pago",
+      en: "Payment alerts",
+    },
+    fallbackDescriptions: {
+      es: "Notificar cuando existan pagos pendientes.",
+      en: "Notify when there are pending payments.",
+    },
+  },
+  {
+    id: "weekly-summary",
+    titleKey: "dashboard.settings.notifications.options.weeklySummary.title",
+    descriptionKey:
+      "dashboard.settings.notifications.options.weeklySummary.description",
+    icon: "mailbox",
+    initiallyEnabled: false,
+    fallbackTitles: {
+      es: "Resumen semanal",
+      en: "Weekly summary",
+    },
+    fallbackDescriptions: {
+      es: "Correo electrónico con tus estadísticas de la semana.",
+      en: "Email with your weekly statistics.",
+    },
+  },
+] as const;
 
 export const dashboardCurrencyOptions = [
   {
@@ -95,3 +264,6 @@ export type DashboardSettingsSection =
   (typeof dashboardSettingsSections)[number];
 export type DashboardSettingsSectionId = DashboardSettingsSection["id"];
 export type DashboardSettingsIcon = DashboardSettingsSection["icon"];
+export type DashboardNotificationOption =
+  (typeof dashboardNotificationOptions)[number];
+export type DashboardNotificationIcon = DashboardNotificationOption["icon"];

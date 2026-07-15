@@ -71,6 +71,101 @@
           "dark": "Oscuro"
         }
       },
+      "profile": {
+        "title": "Perfil de usuario",
+        "photo": {
+          "title": "Foto de perfil",
+          "help": "PNG o JPG de hasta 5MB.",
+          "upload": "Subir nueva",
+          "delete": "Eliminar",
+          "avatarLabel": "Cambiar foto de perfil"
+        },
+        "fields": {
+          "firstName": "Nombre",
+          "lastName": "Apellidos",
+          "email": "Correo electrónico"
+        },
+        "actions": {
+          "cancel": "Cancelar",
+          "save": "Guardar cambios",
+          "saving": "Guardando..."
+        },
+        "feedback": {
+          "saved": "Cambios guardados correctamente."
+        }
+      },
+      "security": {
+        "title": "Seguridad de la cuenta",
+        "password": {
+          "title": "Contraseña",
+          "fields": {
+            "current": "Contraseña actual",
+            "new": "Nueva contraseña",
+            "confirm": "Confirmar contraseña"
+          }
+        },
+        "twoFactor": {
+          "title": "Autenticación de dos pasos (2FA)",
+          "description": "Añade una capa extra de seguridad a tu cuenta de Kuentas.",
+          "enabledLabel": "2FA activado"
+        },
+        "recentActivity": {
+          "title": "Actividad reciente",
+          "closeAll": "Cerrar todas",
+          "closeSession": "Cerrar sesión",
+          "current": "Sesión actual",
+          "activeNow": "Activo ahora",
+          "unknownDevice": "Dispositivo desconocido",
+          "empty": "No hay sesiones activas para mostrar.",
+          "desktop": {
+            "device": "MacBook Pro - Chrome",
+            "meta": "Madrid, ES · Activo ahora",
+            "status": "Sesión actual"
+          },
+          "mobile": {
+            "device": "iPhone 15 - App Móvil",
+            "meta": "Barcelona, ES · Hace 2 horas",
+            "action": "Cerrar sesión"
+          },
+          "confirm": {
+            "closeTitle": "Cerrar esta sesión",
+            "closeBody": "Se cerrará la sesión de {{device}}. Ese dispositivo tendrá que volver a iniciar sesión.",
+            "closeAllTitle": "Cerrar todas las sesiones",
+            "closeAllBody": "Se cerrarán todas las sesiones excepto esta. Los demás dispositivos tendrán que volver a iniciar sesión.",
+            "cancel": "Cancelar",
+            "confirm": "Confirmar",
+            "closing": "Cerrando..."
+          },
+          "feedback": {
+            "closed": "Sesión cerrada correctamente.",
+            "closedAll": "Todas las demás sesiones fueron cerradas.",
+            "currentSession": "No puedes cerrar la sesión actual desde aquí.",
+            "notFound": "La sesión ya no está disponible."
+          }
+        },
+        "dangerZone": {
+          "title": "Zona de peligro",
+          "description": "Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, asegúrate de haber exportado tus datos financieros si los necesitas.",
+          "action": "Eliminar mi cuenta permanentemente"
+        }
+      },
+      "notifications": {
+        "title": "Ajustes de notificaciones",
+        "options": {
+          "upcomingPayments": {
+            "title": "Pagos próximos",
+            "description": "Recibe un aviso una semana antes de tu fecha límite."
+          },
+          "paymentAlerts": {
+            "title": "Alertas de pago",
+            "description": "Notificar cuando existan pagos pendientes."
+          },
+          "weeklySummary": {
+            "title": "Resumen semanal",
+            "description": "Correo electrónico con tus estadísticas de la semana."
+          }
+        }
+      },
       "greeting": "Saludos desde {{section}}"
     },
     "logout": "Cerrar sesión",

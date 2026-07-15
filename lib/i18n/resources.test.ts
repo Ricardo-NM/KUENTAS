@@ -115,5 +115,120 @@ describe("i18n resources", () => {
     expect(
       resources.en.translation.dashboard.settings.general.theme.label,
     ).toBe("Visual theme");
+
+    expect(resources.es.translation.dashboard.settings.security.title).toBe(
+      "Seguridad de la cuenta",
+    );
+    expect(
+      resources.es.translation.dashboard.settings.security.password.fields
+        .current,
+    ).toBe("Contraseña actual");
+    expect(
+      resources.es.translation.dashboard.settings.security.twoFactor.title,
+    ).toBe("Autenticación de dos pasos (2FA)");
+    expect(
+      resources.es.translation.dashboard.settings.security.recentActivity
+        .title,
+    ).toBe("Actividad reciente");
+    expect(
+      resources.es.translation.dashboard.settings.security.recentActivity
+        .closeAll,
+    ).toBe("Cerrar todas");
+    expect(
+      resources.es.translation.dashboard.settings.security.recentActivity
+        .unknownDevice,
+    ).toBe("Dispositivo desconocido");
+    expect(
+      resources.es.translation.dashboard.settings.security.recentActivity
+        .confirm.closeAllTitle,
+    ).toBe("Cerrar todas las sesiones");
+    expect(
+      resources.es.translation.dashboard.settings.security.recentActivity
+        .feedback.closedAll,
+    ).toBe("Todas las demás sesiones fueron cerradas.");
+    expect(
+      resources.es.translation.dashboard.settings.security.dangerZone.action,
+    ).toBe("Eliminar mi cuenta permanentemente");
+    expect(resources.es.translation.dashboard.settings.notifications.title).toBe(
+      "Ajustes de notificaciones",
+    );
+    expect(
+      resources.es.translation.dashboard.settings.notifications.options
+        .upcomingPayments,
+    ).toEqual({
+      title: "Pagos próximos",
+      description: "Recibe un aviso una semana antes de tu fecha límite.",
+    });
+    expect(
+      resources.es.translation.dashboard.settings.notifications.options
+        .paymentAlerts,
+    ).toEqual({
+      title: "Alertas de pago",
+      description: "Notificar cuando existan pagos pendientes.",
+    });
+    expect(
+      resources.es.translation.dashboard.settings.notifications.options
+        .weeklySummary,
+    ).toEqual({
+      title: "Resumen semanal",
+      description: "Correo electrónico con tus estadísticas de la semana.",
+    });
+
+    expect(resources.en.translation.dashboard.settings.security.title).toBe(
+      "Account security",
+    );
+    expect(
+      resources.en.translation.dashboard.settings.security.password.fields
+        .current,
+    ).toBe("Current password");
+    expect(
+      resources.en.translation.dashboard.settings.security.twoFactor.title,
+    ).toBe("Two-factor authentication (2FA)");
+    expect(
+      resources.en.translation.dashboard.settings.security.recentActivity.title,
+    ).toBe("Recent activity");
+    expect(
+      resources.en.translation.dashboard.settings.security.recentActivity
+        .closeAll,
+    ).toBe("Sign out all");
+    expect(
+      resources.en.translation.dashboard.settings.security.recentActivity
+        .unknownDevice,
+    ).toBe("Unknown device");
+    expect(
+      resources.en.translation.dashboard.settings.security.recentActivity
+        .confirm.closeAllTitle,
+    ).toBe("Sign out all sessions");
+    expect(
+      resources.en.translation.dashboard.settings.security.recentActivity
+        .feedback.closedAll,
+    ).toBe("All other sessions were signed out.");
+    expect(
+      resources.en.translation.dashboard.settings.security.dangerZone.action,
+    ).toBe("Delete my account permanently");
+    expect(resources.en.translation.dashboard.settings.notifications.title).toBe(
+      "Notification settings",
+    );
+    expect(
+      resources.en.translation.dashboard.settings.notifications.options
+        .upcomingPayments,
+    ).toEqual({
+      title: "Upcoming payments",
+      description: "Get a reminder one week before your due date.",
+    });
+    expect(
+      resources.en.translation.dashboard.settings.notifications.options
+        .paymentAlerts,
+    ).toEqual({
+      title: "Payment alerts",
+      description: "Notify when there are pending payments.",
+    });
+    expect(
+      resources.en.translation.dashboard.settings.notifications.options
+        .weeklySummary,
+    ).toEqual({
+      title: "Weekly summary",
+      description: "Email with your weekly statistics.",
+    });
   });
 });

@@ -71,6 +71,101 @@
           "dark": "Dark"
         }
       },
+      "profile": {
+        "title": "User profile",
+        "photo": {
+          "title": "Profile photo",
+          "help": "PNG or JPG up to 5MB.",
+          "upload": "Upload new",
+          "delete": "Remove",
+          "avatarLabel": "Change profile photo"
+        },
+        "fields": {
+          "firstName": "First name",
+          "lastName": "Last name",
+          "email": "Email address"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "save": "Save changes",
+          "saving": "Saving..."
+        },
+        "feedback": {
+          "saved": "Changes saved successfully."
+        }
+      },
+      "security": {
+        "title": "Account security",
+        "password": {
+          "title": "Password",
+          "fields": {
+            "current": "Current password",
+            "new": "New password",
+            "confirm": "Confirm password"
+          }
+        },
+        "twoFactor": {
+          "title": "Two-factor authentication (2FA)",
+          "description": "Add an extra layer of security to your Kuentas account.",
+          "enabledLabel": "2FA enabled"
+        },
+        "recentActivity": {
+          "title": "Recent activity",
+          "closeAll": "Sign out all",
+          "closeSession": "Sign out",
+          "current": "Current session",
+          "activeNow": "Active now",
+          "unknownDevice": "Unknown device",
+          "empty": "There are no active sessions to show.",
+          "desktop": {
+            "device": "MacBook Pro - Chrome",
+            "meta": "Madrid, ES · Active now",
+            "status": "Current session"
+          },
+          "mobile": {
+            "device": "iPhone 15 - Mobile App",
+            "meta": "Barcelona, ES · 2 hours ago",
+            "action": "Sign out"
+          },
+          "confirm": {
+            "closeTitle": "Sign out this session",
+            "closeBody": "The session on {{device}} will be signed out. That device will need to log in again.",
+            "closeAllTitle": "Sign out all sessions",
+            "closeAllBody": "All sessions except this one will be signed out. Other devices will need to log in again.",
+            "cancel": "Cancel",
+            "confirm": "Confirm",
+            "closing": "Signing out..."
+          },
+          "feedback": {
+            "closed": "Session signed out successfully.",
+            "closedAll": "All other sessions were signed out.",
+            "currentSession": "You cannot sign out the current session here.",
+            "notFound": "The session is no longer available."
+          }
+        },
+        "dangerZone": {
+          "title": "Danger zone",
+          "description": "Once you delete your account, there is no going back. Please make sure you have exported any financial data you need.",
+          "action": "Delete my account permanently"
+        }
+      },
+      "notifications": {
+        "title": "Notification settings",
+        "options": {
+          "upcomingPayments": {
+            "title": "Upcoming payments",
+            "description": "Get a reminder one week before your due date."
+          },
+          "paymentAlerts": {
+            "title": "Payment alerts",
+            "description": "Notify when there are pending payments."
+          },
+          "weeklySummary": {
+            "title": "Weekly summary",
+            "description": "Email with your weekly statistics."
+          }
+        }
+      },
       "greeting": "Greetings from {{section}}"
     },
     "logout": "Log out",

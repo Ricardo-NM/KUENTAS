@@ -1,9 +1,18 @@
 "use client";
 
 import {
+  BadgeAlertIcon,
+  CalendarDaysIcon,
   ChevronDownIcon,
+  CircleCheckIcon,
+  DeleteIcon,
+  KeySquareIcon,
+  MailboxIcon,
   MoonIcon,
   SunMediumIcon,
+  SwitchCameraIcon,
+  UploadIcon,
+  XIcon,
   type MoonIconHandle,
   type SunMediumIconHandle,
   BellIcon,
@@ -11,20 +20,36 @@ import {
   ShieldCheckIcon,
   UserRoundCogIcon,
 } from "lucide-animated";
+import {
+  Laptop,
+  Smartphone,
+  type LucideIcon,
+} from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type ComponentPropsWithoutRef,
   type ForwardRefExoticComponent,
   type MouseEvent,
   type RefAttributes,
+  useActionState,
   useEffect,
   useRef,
   useState,
+  useTransition,
 } from "react";
+import { useRouter } from "next/navigation";
+import {
+  revokeOtherSessionsAction,
+  revokeSessionAction,
+  updateUserProfileAction,
+  type DashboardProfileActionState,
+} from "./actions";
 import {
   dashboardCurrencyOptions,
+  dashboardNotificationOptions,
   dashboardSettingsFallbackCopy,
   dashboardSettingsSections,
+  type DashboardNotificationIcon,
   type DashboardSettingsIcon,
   type DashboardSettingsSection,
   type DashboardSettingsSectionId,
@@ -61,6 +86,76 @@ const settingsIcons: Record<DashboardSettingsIcon, AnimatedIcon> = {
   bell: BellIcon,
   "shield-check": ShieldCheckIcon,
 };
+
+const notificationIcons: Record<DashboardNotificationIcon, AnimatedIcon> = {
+  "calendar-days": CalendarDaysIcon,
+  "badge-alert": BadgeAlertIcon,
+  mailbox: MailboxIcon,
+};
+
+type DashboardSettingsProfile = {
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+type DashboardSessionActivity = {
+  id: string;
+  deviceLabel: string;
+  lastSeenAt: string;
+  createdAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
+};
+
+type SessionConfirmation =
+  | {
+      type: "single";
+      sessionId: string;
+      deviceLabel: string;
+    }
+  | {
+      type: "all";
+    };
+
+const initialProfileActionState: DashboardProfileActionState = {
+  status: "idle",
+};
+
+function getSessionActivityIcon(deviceLabel: string): LucideIcon {
+  const normalizedLabel = deviceLabel.toLowerCase();
+
+  return normalizedLabel.includes("iphone") ||
+    normalizedLabel.includes("ipad") ||
+    normalizedLabel.includes("android")
+    ? Smartphone
+    : Laptop;
+}
+
+function formatSessionActivityTime(
+  lastSeenAt: string,
+  language: "es" | "en",
+) {
+  const diffMs = new Date(lastSeenAt).getTime() - Date.now();
+  const absoluteDiffMs = Math.abs(diffMs);
+  const formatter = new Intl.RelativeTimeFormat(language, {
+    numeric: "auto",
+  });
+
+  if (absoluteDiffMs < 60 * 1000) {
+    return formatter.format(0, "minute");
+  }
+
+  if (absoluteDiffMs < 60 * 60 * 1000) {
+    return formatter.format(Math.round(diffMs / (60 * 1000)), "minute");
+  }
+
+  if (absoluteDiffMs < 24 * 60 * 60 * 1000) {
+    return formatter.format(Math.round(diffMs / (60 * 60 * 1000)), "hour");
+  }
+
+  return formatter.format(Math.round(diffMs / (24 * 60 * 60 * 1000)), "day");
+}
 
 type SelectOption = {
   value: string;
@@ -152,6 +247,102 @@ function SettingsSelect({
           </motion.div>
         ) : null}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function SettingsToggleRow({
+  ariaLabel,
+  description,
+  Icon,
+  id,
+  initiallyEnabled,
+  title,
+}: {
+  ariaLabel: string;
+  description: string;
+  Icon: AnimatedIcon;
+  id: string;
+  initiallyEnabled: boolean;
+  title: string;
+}) {
+  const [isEnabled, setIsEnabled] = useState(initiallyEnabled);
+  const iconRef = useRef<AnimatedIconHandle>(null);
+  const shouldReduceMotion = useReducedMotion();
+
+  const toggle = () => {
+    setIsEnabled((current) => !current);
+
+    if (shouldReduceMotion) {
+      return;
+    }
+
+    iconRef.current?.startAnimation();
+    window.setTimeout(() => iconRef.current?.stopAnimation(), 650);
+  };
+
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-4 py-4 text-left">
+      <div className="flex min-w-0 items-start gap-3">
+        <span
+          aria-hidden="true"
+          className={cn(
+            "mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-200",
+            isEnabled
+              ? "bg-primary/10 text-primary"
+              : "bg-surface-container text-on-surface-variant",
+          )}
+        >
+          <Icon
+            ref={iconRef}
+            animateOnHover={false}
+            className="shrink-0"
+            size={19}
+          />
+        </span>
+        <div className="min-w-0">
+          <h3
+            id={`${id}-title`}
+            className="text-sm font-semibold leading-5 text-on-surface"
+          >
+            {title}
+          </h3>
+          <p
+            id={`${id}-description`}
+            className="mt-0.5 text-xs leading-[18px] text-on-surface-variant"
+          >
+            {description}
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isEnabled}
+        aria-label={ariaLabel}
+        aria-labelledby={`${id}-title`}
+        aria-describedby={`${id}-description`}
+        onClick={toggle}
+        className="inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            "relative h-6 w-11 rounded-full transition-colors duration-200 ease-out",
+            isEnabled ? "bg-primary" : "bg-surface-container-highest",
+          )}
+        >
+          <span
+            className={cn(
+              "absolute left-0.5 top-0.5 size-5 rounded-full shadow-[0_1px_3px_rgb(13_13_18/0.2)] transition-transform duration-200 ease-out",
+              isEnabled
+                ? "translate-x-5 bg-primary-foreground"
+                : "translate-x-0 bg-surface-container-lowest",
+            )}
+          />
+        </span>
+      </button>
     </div>
   );
 }
@@ -416,7 +607,772 @@ function ConfiguracionGeneralPanel() {
   );
 }
 
-export function ConfiguracionSettingsView() {
+function ConfiguracionProfilePanel({ user }: { user: DashboardSettingsProfile }) {
+  const { i18n, t } = useTranslation();
+  const language = i18n.language?.startsWith("en") ? "en" : "es";
+  const fallbackCopy = dashboardSettingsFallbackCopy[language];
+  const [state, formAction, isPending] = useActionState(
+    updateUserProfileAction,
+    initialProfileActionState,
+  );
+  const avatarIconRef = useRef<AnimatedIconHandle>(null);
+  const uploadIconRef = useRef<AnimatedIconHandle>(null);
+  const deleteIconRef = useRef<AnimatedIconHandle>(null);
+  const cancelIconRef = useRef<AnimatedIconHandle>(null);
+  const saveIconRef = useRef<AnimatedIconHandle>(null);
+  const shouldReduceMotion = useReducedMotion();
+  const [hiddenSavedMessageId, setHiddenSavedMessageId] = useState<
+    string | null
+  >(null);
+  const [firstNameValue, setFirstNameValue] = useState(user.firstName);
+  const [lastNameValue, setLastNameValue] = useState(user.lastName);
+  const firstNameError = state.errors?.firstName?.[0];
+  const lastNameError = state.errors?.lastName?.[0];
+  const savedFirstName =
+    state.status === "success" ? state.values.firstName : user.firstName;
+  const savedLastName =
+    state.status === "success" ? state.values.lastName : user.lastName;
+  const hasProfileChanges =
+    firstNameValue.trim() !== savedFirstName ||
+    lastNameValue.trim() !== savedLastName;
+  const savedMessage =
+    state.status === "success" && state.messageKey
+      ? t(state.messageKey, {
+          defaultValue: fallbackCopy.profileSaved,
+        })
+      : undefined;
+  const savedMessageId = state.status === "success" ? state.successId : null;
+  const showSavedMessage =
+    Boolean(savedMessage && savedMessageId) &&
+    savedMessageId !== hiddenSavedMessageId;
+  const fieldClassName =
+    "min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-medium text-on-surface shadow-[0_1px_2px_rgb(13_13_18/0.04)] outline-none transition placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15";
+
+  useEffect(() => {
+    if (!savedMessageId) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setHiddenSavedMessageId(savedMessageId);
+    }, 3000);
+
+    return () => window.clearTimeout(timeout);
+  }, [savedMessageId]);
+
+  return (
+    <form action={formAction} className="w-full max-w-[760px] text-left">
+      <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
+        {t("dashboard.settings.profile.title", {
+          defaultValue: fallbackCopy.profileTitle,
+        })}
+      </h2>
+
+      <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          aria-label={t("dashboard.settings.profile.photo.avatarLabel", {
+            defaultValue: fallbackCopy.profileAvatarLabel,
+          })}
+          onFocus={() => avatarIconRef.current?.startAnimation()}
+          onBlur={() => avatarIconRef.current?.stopAnimation()}
+          onMouseEnter={() => avatarIconRef.current?.startAnimation()}
+          onMouseLeave={() => avatarIconRef.current?.stopAnimation()}
+          className="group relative inline-flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-outline-variant bg-surface-container-highest text-xl font-bold text-on-surface shadow-[inset_0_0_0_1px_rgb(255_255_255/0.16)] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <span aria-hidden="true">
+            {(user.firstName || user.email).trim().charAt(0).toUpperCase()}
+          </span>
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 flex items-center justify-center bg-primary/72 text-primary-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+          >
+            <SwitchCameraIcon
+              ref={avatarIconRef}
+              animateOnHover={false}
+              size={28}
+            />
+          </span>
+        </button>
+
+        <div className="min-w-0">
+          <p className="text-base font-bold leading-6 text-on-surface">
+            {t("dashboard.settings.profile.photo.title", {
+              defaultValue: fallbackCopy.profilePhotoTitle,
+            })}
+          </p>
+          <p className="mt-1 text-sm leading-5 text-on-surface-variant">
+            {t("dashboard.settings.profile.photo.help", {
+              defaultValue: fallbackCopy.profilePhotoHelp,
+            })}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onFocus={() => uploadIconRef.current?.startAnimation()}
+              onBlur={() => uploadIconRef.current?.stopAnimation()}
+              onMouseEnter={() => uploadIconRef.current?.startAnimation()}
+              onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
+              className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground shadow-[0_4px_10px_rgb(13_13_18/0.12)]"
+            >
+              <UploadIcon
+                ref={uploadIconRef}
+                aria-hidden="true"
+                animateOnHover={false}
+                size={16}
+              />
+              {t("dashboard.settings.profile.photo.upload", {
+                defaultValue: fallbackCopy.profileUpload,
+              })}
+            </button>
+            <button
+              type="button"
+              onFocus={() => deleteIconRef.current?.startAnimation()}
+              onBlur={() => deleteIconRef.current?.stopAnimation()}
+              onMouseEnter={() => deleteIconRef.current?.startAnimation()}
+              onMouseLeave={() => deleteIconRef.current?.stopAnimation()}
+              className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-bold text-accent-foreground"
+            >
+              <DeleteIcon
+                ref={deleteIconRef}
+                aria-hidden="true"
+                animateOnHover={false}
+                size={16}
+              />
+              {t("dashboard.settings.profile.photo.delete", {
+                defaultValue: fallbackCopy.profileDelete,
+              })}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-5 md:grid-cols-2">
+        <div className="min-w-0">
+          <label
+            htmlFor="profile-first-name"
+            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+          >
+            {t("dashboard.settings.profile.fields.firstName", {
+              defaultValue: fallbackCopy.profileFirstName,
+            })}
+          </label>
+          <input
+            id="profile-first-name"
+            name="firstName"
+            type="text"
+            autoComplete="given-name"
+            value={firstNameValue}
+            onChange={(event) => setFirstNameValue(event.target.value)}
+            aria-invalid={Boolean(firstNameError)}
+            aria-describedby={
+              firstNameError ? "profile-first-name-error" : undefined
+            }
+            className={cn(
+              fieldClassName,
+              firstNameError ? "border-destructive focus:border-destructive" : "",
+            )}
+          />
+          {firstNameError ? (
+            <p
+              id="profile-first-name-error"
+              className="mt-2 text-xs font-semibold text-destructive"
+            >
+              {firstNameError}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="min-w-0">
+          <label
+            htmlFor="profile-last-name"
+            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+          >
+            {t("dashboard.settings.profile.fields.lastName", {
+              defaultValue: fallbackCopy.profileLastName,
+            })}
+          </label>
+          <input
+            id="profile-last-name"
+            name="lastName"
+            type="text"
+            autoComplete="family-name"
+            value={lastNameValue}
+            onChange={(event) => setLastNameValue(event.target.value)}
+            aria-invalid={Boolean(lastNameError)}
+            aria-describedby={
+              lastNameError ? "profile-last-name-error" : undefined
+            }
+            className={cn(
+              fieldClassName,
+              lastNameError ? "border-destructive focus:border-destructive" : "",
+            )}
+          />
+          {lastNameError ? (
+            <p
+              id="profile-last-name-error"
+              className="mt-2 text-xs font-semibold text-destructive"
+            >
+              {lastNameError}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(260px,360px)_1fr] lg:items-end">
+        <div className="min-w-0">
+          <label
+            htmlFor="profile-email"
+            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+          >
+            {t("dashboard.settings.profile.fields.email", {
+              defaultValue: fallbackCopy.profileEmail,
+            })}
+          </label>
+          <input
+            id="profile-email"
+            type="email"
+            autoComplete="email"
+            value={user.email}
+            readOnly
+            aria-readonly="true"
+            className="min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container px-4 text-sm font-medium text-on-surface-variant outline-none"
+          />
+        </div>
+
+        <div className="flex flex-col-reverse gap-3 sm:flex-row lg:justify-end">
+          <button
+            type="reset"
+            onClick={() => {
+              setFirstNameValue(savedFirstName);
+              setLastNameValue(savedLastName);
+            }}
+            onFocus={() => cancelIconRef.current?.startAnimation()}
+            onBlur={() => cancelIconRef.current?.stopAnimation()}
+            onMouseEnter={() => cancelIconRef.current?.startAnimation()}
+            onMouseLeave={() => cancelIconRef.current?.stopAnimation()}
+            className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <XIcon
+              ref={cancelIconRef}
+              aria-hidden="true"
+              animateOnHover={false}
+              className="mr-2"
+              size={17}
+            />
+            {t("dashboard.settings.profile.actions.cancel", {
+              defaultValue: fallbackCopy.profileCancel,
+            })}
+          </button>
+          <button
+            type="submit"
+            disabled={isPending || !hasProfileChanges}
+            onFocus={() => saveIconRef.current?.startAnimation()}
+            onBlur={() => saveIconRef.current?.stopAnimation()}
+            onMouseEnter={() => saveIconRef.current?.startAnimation()}
+            onMouseLeave={() => saveIconRef.current?.stopAnimation()}
+            className={cn(
+              "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-bold transition-[background-color,color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              hasProfileChanges && !isPending
+                ? "cursor-pointer bg-primary text-primary-foreground shadow-[0_8px_20px_rgb(13_13_18/0.16)] hover:bg-primary/90"
+                : "cursor-not-allowed bg-surface-container-high text-on-surface-variant shadow-none",
+            )}
+          >
+            <CircleCheckIcon
+              ref={saveIconRef}
+              aria-hidden="true"
+              animateOnHover={false}
+              size={18}
+            />
+            {isPending
+              ? t("dashboard.settings.profile.actions.saving", {
+                  defaultValue: fallbackCopy.profileSaving,
+                })
+              : t("dashboard.settings.profile.actions.save", {
+                  defaultValue: fallbackCopy.profileSave,
+                })}
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {savedMessage && showSavedMessage ? (
+          <motion.p
+            key={savedMessageId}
+            role="status"
+            className="mt-4 text-right text-sm font-semibold text-chart-1"
+            initial={
+              shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }
+            }
+            animate={{ opacity: 1, y: 0 }}
+            exit={
+              shouldReduceMotion ? { opacity: 0, y: 0 } : { opacity: 0, y: -8 }
+            }
+            transition={
+              shouldReduceMotion
+                ? { duration: 0 }
+                : { duration: 0.22, ease: "easeOut" }
+            }
+          >
+            {savedMessage}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
+    </form>
+  );
+}
+
+function ConfiguracionNotificationsPanel() {
+  const { i18n, t } = useTranslation();
+  const language = i18n.language?.startsWith("en") ? "en" : "es";
+  const fallbackCopy = dashboardSettingsFallbackCopy[language];
+
+  return (
+    <div className="w-full max-w-[760px] text-left">
+      <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
+        {t("dashboard.settings.notifications.title", {
+          defaultValue: fallbackCopy.notificationsTitle,
+        })}
+      </h2>
+
+      <div className="mt-5 divide-y divide-border">
+        {dashboardNotificationOptions.map((option) => {
+          const title = t(option.titleKey, {
+            defaultValue: option.fallbackTitles[language],
+          });
+          const description = t(option.descriptionKey, {
+            defaultValue: option.fallbackDescriptions[language],
+          });
+          const Icon = notificationIcons[option.icon];
+
+          return (
+            <SettingsToggleRow
+              key={option.id}
+              id={`notification-${option.id}`}
+              title={title}
+              description={description}
+              ariaLabel={title}
+              Icon={Icon}
+              initiallyEnabled={option.initiallyEnabled}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ConfiguracionSecurityPanel({
+  sessions,
+}: {
+  sessions: DashboardSessionActivity[];
+}) {
+  const { i18n, t } = useTranslation();
+  const router = useRouter();
+  const language = i18n.language?.startsWith("en") ? "en" : "es";
+  const fallbackCopy = dashboardSettingsFallbackCopy[language];
+  const deleteAccountIconRef = useRef<AnimatedIconHandle>(null);
+  const [confirmation, setConfirmation] = useState<SessionConfirmation | null>(
+    null,
+  );
+  const [sessionFeedbackKey, setSessionFeedbackKey] = useState<string | null>(
+    null,
+  );
+  const [isSessionActionPending, startSessionActionTransition] =
+    useTransition();
+  const fieldClassName =
+    "min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-medium text-on-surface shadow-[0_1px_2px_rgb(13_13_18/0.04)] outline-none transition placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15";
+  const destructiveActionClassName =
+    "inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg border border-destructive bg-[#ffffff] px-4 text-xs font-bold leading-4 text-destructive shadow-[0_1px_2px_rgb(13_13_18/0.04)] transition-colors duration-200 hover:bg-destructive hover:text-[#ffffff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  const signOutTextActionClassName =
+    "inline-flex cursor-pointer border-0 bg-transparent p-0 text-xs font-bold leading-4 text-destructive shadow-none transition-opacity duration-200 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  const passwordPlaceholder = t("common.passwordPlaceholder", {
+    defaultValue: "••••••••",
+  });
+  const passwordFields = [
+    {
+      id: "security-current-password",
+      labelKey: "dashboard.settings.security.password.fields.current",
+      fallback: fallbackCopy.securityCurrentPassword,
+      autoComplete: "current-password",
+    },
+    {
+      id: "security-new-password",
+      labelKey: "dashboard.settings.security.password.fields.new",
+      fallback: fallbackCopy.securityNewPassword,
+      autoComplete: "new-password",
+    },
+    {
+      id: "security-confirm-password",
+      labelKey: "dashboard.settings.security.password.fields.confirm",
+      fallback: fallbackCopy.securityConfirmPassword,
+      autoComplete: "new-password",
+    },
+  ];
+  const hasOtherSessions = sessions.some((session) => !session.isCurrent);
+  const confirmationTitle =
+    confirmation?.type === "all"
+      ? t("dashboard.settings.security.recentActivity.confirm.closeAllTitle", {
+          defaultValue: fallbackCopy.securityConfirmCloseAllTitle,
+        })
+      : t("dashboard.settings.security.recentActivity.confirm.closeTitle", {
+          defaultValue: fallbackCopy.securityConfirmCloseTitle,
+        });
+  const confirmationDescription =
+    confirmation?.type === "all"
+      ? t("dashboard.settings.security.recentActivity.confirm.closeAllBody", {
+          defaultValue: fallbackCopy.securityConfirmCloseAllBody,
+        })
+      : t("dashboard.settings.security.recentActivity.confirm.closeBody", {
+          defaultValue: fallbackCopy.securityConfirmCloseBody,
+          device: confirmation?.deviceLabel ?? "",
+        });
+  const executeConfirmedSessionAction = () => {
+    if (!confirmation) {
+      return;
+    }
+
+    startSessionActionTransition(() => {
+      void (async () => {
+        const result =
+          confirmation.type === "all"
+            ? await revokeOtherSessionsAction()
+            : await revokeSessionAction(confirmation.sessionId);
+
+        setSessionFeedbackKey(result.messageKey);
+        setConfirmation(null);
+
+        if (result.status === "success") {
+          router.refresh();
+        }
+      })();
+    });
+  };
+
+  return (
+    <div className="w-full max-w-[760px] text-left">
+      <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
+        {t("dashboard.settings.security.title", {
+          defaultValue: fallbackCopy.securityTitle,
+        })}
+      </h2>
+
+      <div className="mt-7 space-y-9">
+        <section
+          aria-labelledby="security-2fa-title"
+          className="rounded-xl border border-outline-variant bg-accent/55 p-4 text-on-surface sm:p-5"
+        >
+          <SettingsToggleRow
+            id="security-2fa"
+            title={t("dashboard.settings.security.twoFactor.title", {
+              defaultValue: fallbackCopy.securityTwoFactorTitle,
+            })}
+            description={t(
+              "dashboard.settings.security.twoFactor.description",
+              {
+                defaultValue: fallbackCopy.securityTwoFactorDescription,
+              },
+            )}
+            ariaLabel={t(
+              "dashboard.settings.security.twoFactor.enabledLabel",
+              {
+                defaultValue: fallbackCopy.securityTwoFactorEnabled,
+              },
+            )}
+            Icon={KeySquareIcon}
+            initiallyEnabled={true}
+          />
+        </section>
+
+        <div className="grid gap-9 lg:grid-cols-[minmax(0,1fr)_minmax(250px,300px)] lg:items-start">
+          <div className="space-y-9">
+            <section aria-labelledby="security-password-title">
+              <h3
+                id="security-password-title"
+                className="text-base font-bold leading-6 text-on-surface"
+              >
+                {t("dashboard.settings.security.password.title", {
+                  defaultValue: fallbackCopy.securityPasswordTitle,
+                })}
+              </h3>
+              <div className="mt-4 grid gap-4">
+                {passwordFields.map((field) => (
+                  <div key={field.id} className="min-w-0">
+                    <label
+                      htmlFor={field.id}
+                      className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+                    >
+                      {t(field.labelKey, { defaultValue: field.fallback })}
+                    </label>
+                    <input
+                      id={field.id}
+                      type="password"
+                      autoComplete={field.autoComplete}
+                      readOnly
+                      placeholder={passwordPlaceholder}
+                      className={fieldClassName}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section
+              aria-labelledby="security-danger-title"
+              className="rounded-xl border border-destructive/25 bg-destructive-container/35 p-5 text-on-surface"
+            >
+              <h3
+                id="security-danger-title"
+                className="text-base font-bold leading-6 text-destructive"
+              >
+                {t("dashboard.settings.security.dangerZone.title", {
+                  defaultValue: fallbackCopy.securityDangerTitle,
+                })}
+              </h3>
+              <p className="mt-3 max-w-[620px] text-sm leading-5 text-on-surface-variant">
+                {t("dashboard.settings.security.dangerZone.description", {
+                  defaultValue: fallbackCopy.securityDangerDescription,
+                })}
+              </p>
+              <button
+                type="button"
+                onFocus={() => deleteAccountIconRef.current?.startAnimation()}
+                onBlur={() => deleteAccountIconRef.current?.stopAnimation()}
+                onMouseEnter={() =>
+                  deleteAccountIconRef.current?.startAnimation()
+                }
+                onMouseLeave={() =>
+                  deleteAccountIconRef.current?.stopAnimation()
+                }
+                className={cn(
+                  destructiveActionClassName,
+                  "mt-5 min-h-11 gap-2 px-5 text-sm",
+                )}
+              >
+                <DeleteIcon
+                  ref={deleteAccountIconRef}
+                  aria-hidden="true"
+                  animateOnHover={false}
+                  size={17}
+                />
+                {t("dashboard.settings.security.dangerZone.action", {
+                  defaultValue: fallbackCopy.securityDangerAction,
+                })}
+              </button>
+            </section>
+          </div>
+
+          <section
+            aria-labelledby="security-activity-title"
+            className="lg:border-l lg:border-border lg:pl-8"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start">
+              <h3
+                id="security-activity-title"
+                className="text-base font-bold leading-6 text-on-surface"
+              >
+                {t("dashboard.settings.security.recentActivity.title", {
+                  defaultValue: fallbackCopy.securityRecentActivityTitle,
+                })}
+              </h3>
+              <button
+                type="button"
+                disabled={!hasOtherSessions || isSessionActionPending}
+                onClick={() => setConfirmation({ type: "all" })}
+                className="inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-xs font-bold text-on-surface transition hover:border-outline hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {t("dashboard.settings.security.recentActivity.closeAll", {
+                  defaultValue: fallbackCopy.securityCloseAllSessions,
+                })}
+              </button>
+            </div>
+
+            <div className="mt-4 divide-y divide-border">
+              {sessions.length > 0 ? (
+                sessions.map((session) => {
+                  const deviceLabel =
+                    session.deviceLabel === "Dispositivo desconocido"
+                      ? t(
+                          "dashboard.settings.security.recentActivity.unknownDevice",
+                          {
+                            defaultValue: fallbackCopy.securityUnknownDevice,
+                          },
+                        )
+                      : session.deviceLabel;
+                  const ActivityIcon = getSessionActivityIcon(
+                    deviceLabel,
+                  );
+
+                  return (
+                  <div
+                    key={session.id}
+                    className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <ActivityIcon
+                        aria-hidden="true"
+                        size={20}
+                        className="mt-0.5 shrink-0 text-on-surface-variant"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold leading-5 text-on-surface">
+                          {deviceLabel}
+                        </p>
+                        <p className="text-xs font-medium leading-4 text-on-surface-variant">
+                          {session.isCurrent
+                            ? t(
+                                "dashboard.settings.security.recentActivity.activeNow",
+                                {
+                                  defaultValue:
+                                    fallbackCopy.securityActiveNow,
+                                },
+                              )
+                            : formatSessionActivityTime(
+                                session.lastSeenAt,
+                                language,
+                              )}
+                        </p>
+                      </div>
+                    </div>
+                    {session.isCurrent ? (
+                      <span className="text-xs font-bold leading-4 text-chart-1">
+                        {t(
+                          "dashboard.settings.security.recentActivity.current",
+                          {
+                            defaultValue: fallbackCopy.securityCurrentSession,
+                          },
+                        )}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isSessionActionPending}
+                        onClick={() =>
+                          setConfirmation({
+                            type: "single",
+                            sessionId: session.id,
+                            deviceLabel,
+                          })
+                        }
+                        className={cn(
+                          signOutTextActionClassName,
+                          "self-start disabled:cursor-not-allowed disabled:opacity-45",
+                        )}
+                      >
+                        {t(
+                          "dashboard.settings.security.recentActivity.closeSession",
+                          {
+                            defaultValue: fallbackCopy.securitySignOut,
+                          },
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  );
+                })
+              ) : (
+                <p className="py-4 text-sm leading-5 text-on-surface-variant">
+                  {t("dashboard.settings.security.recentActivity.empty", {
+                    defaultValue: fallbackCopy.securityNoSessions,
+                  })}
+                </p>
+              )}
+            </div>
+
+            {sessionFeedbackKey ? (
+              <p
+                role="status"
+                className="mt-4 text-xs font-semibold text-on-surface-variant"
+              >
+                {t(sessionFeedbackKey, {
+                  defaultValue: fallbackCopy.securitySessionActionFeedback,
+                })}
+              </p>
+            ) : null}
+          </section>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {confirmation ? (
+          <motion.div
+            role="presentation"
+            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="session-confirmation-title"
+              aria-describedby="session-confirmation-description"
+              className="w-full max-w-[420px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
+              <h3
+                id="session-confirmation-title"
+                className="font-heading text-lg font-semibold leading-7 text-on-surface"
+              >
+                {confirmationTitle}
+              </h3>
+              <p
+                id="session-confirmation-description"
+                className="mt-2 text-sm leading-5 text-on-surface-variant"
+              >
+                {confirmationDescription}
+              </p>
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={isSessionActionPending}
+                  onClick={() => setConfirmation(null)}
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t("dashboard.settings.security.recentActivity.confirm.cancel", {
+                    defaultValue: fallbackCopy.securityConfirmCancel,
+                  })}
+                </button>
+                <button
+                  type="button"
+                  disabled={isSessionActionPending}
+                  onClick={executeConfirmedSessionAction}
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSessionActionPending
+                    ? t(
+                        "dashboard.settings.security.recentActivity.confirm.closing",
+                        {
+                          defaultValue: fallbackCopy.securityClosingSession,
+                        },
+                      )
+                    : t(
+                        "dashboard.settings.security.recentActivity.confirm.confirm",
+                        {
+                          defaultValue: fallbackCopy.securityConfirmAction,
+                        },
+                      )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export function ConfiguracionSettingsView({
+  sessions,
+  user,
+}: {
+  sessions: DashboardSessionActivity[];
+  user: DashboardSettingsProfile;
+}) {
   const { i18n, t } = useTranslation();
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
@@ -486,6 +1442,12 @@ export function ConfiguracionSettingsView() {
           >
             {activeSection.id === "general" ? (
               <ConfiguracionGeneralPanel />
+            ) : activeSection.id === "perfil" ? (
+              <ConfiguracionProfilePanel user={user} />
+            ) : activeSection.id === "notificaciones" ? (
+              <ConfiguracionNotificationsPanel />
+            ) : activeSection.id === "seguridad" ? (
+              <ConfiguracionSecurityPanel sessions={sessions} />
             ) : (
               <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface sm:text-3xl sm:leading-10">
                 {t("dashboard.settings.greeting", {
