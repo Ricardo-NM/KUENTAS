@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kuentas
 
-## Getting Started
+Kuentas es una aplicación web en desarrollo para administrar información financiera personal desde un panel privado. El sistema está construido con Next.js, React, Prisma y PostgreSQL, con autenticación propia, protección de sesiones y una interfaz preparada para español e inglés.
 
-First, run the development server:
+## Estado actual
+
+El proyecto ya cuenta con estas bases funcionales:
+
+- Registro e inicio de sesión con validaciones de formulario.
+- Hash de contraseñas con `bcryptjs`.
+- Sesiones persistidas en base de datos mediante tokens hasheados y cookies `httpOnly`.
+- Límite de intentos fallidos de acceso por correo/IP.
+- Recuperación de contraseña mediante tokens temporales hasheados.
+- Panel privado con navegación lateral y barra superior.
+- Vistas iniciales para inicio, pagos, calendario, estadísticas y configuración.
+- Cambio de idioma con `i18next` y recursos en `public/locales`.
+- Preferencia de tema claro/oscuro y transiciones visuales.
+- Pruebas unitarias con Vitest para autenticación, i18n, navegación y preferencias.
+
+## Tecnologías principales
+
+- Next.js 16 y React 19.
+- TypeScript.
+- Prisma 7 con PostgreSQL.
+- Docker Compose para levantar PostgreSQL en desarrollo.
+- Vitest para pruebas.
+- ESLint para revisión estática.
+- i18next y react-i18next para internacionalización.
+
+## Requisitos
+
+- Node.js compatible con el proyecto.
+- npm.
+- Docker Desktop o una instancia local/remota de PostgreSQL.
+
+## Configuración local
+
+1. Instala dependencias:
+
+```bash
+npm install
+```
+
+2. Crea tu archivo de variables de entorno:
+
+```bash
+copy .env.example .env
+```
+
+3. Cambia los valores de `.env` antes de usar datos reales. Como mínimo revisa:
+
+```env
+POSTGRES_PASSWORD="kuentas_dev_password"
+DATABASE_URL="postgresql://kuentas:kuentas_dev_password@localhost:5432/kuentas?schema=public"
+SESSION_SECRET="replace-with-at-least-32-random-characters"
+```
+
+`SESSION_SECRET` debe tener al menos 32 caracteres. Para producción usa valores únicos, aleatorios y gestionados fuera del repositorio.
+
+4. Levanta PostgreSQL local:
+
+```bash
+docker compose up -d
+```
+
+5. Ejecuta las migraciones y genera el cliente de Prisma:
+
+```bash
+npm run prisma:migrate
+npm run prisma:generate
+```
+
+6. Inicia el servidor de desarrollo:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+La aplicación queda disponible en `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts disponibles
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev              # Servidor de desarrollo
+npm run build            # Build de producción
+npm run start            # Servidor de producción después del build
+npm run lint             # Revisión con ESLint
+npm run test             # Pruebas unitarias con Vitest
+npm run prisma:migrate   # Migraciones de Prisma en desarrollo
+npm run prisma:generate  # Generación del cliente Prisma
+```
 
-## Learn More
+## Estructura del proyecto
 
-To learn more about Next.js, take a look at the following resources:
+- `app/`: rutas, layouts y vistas de la aplicación.
+- `app/(auth)/`: pantallas y acciones de login, registro y recuperación.
+- `app/(dashboard)/`: layout privado, navegación y páginas del panel.
+- `components/ui/`: componentes reutilizables de interfaz.
+- `lib/auth/`: reglas de autenticación, sesiones, rate limit y recuperación de contraseña.
+- `lib/dashboard/`: navegación, configuración, tema y datos de usuario.
+- `lib/i18n/`: registro y recursos de internacionalización.
+- `prisma/`: esquema y migraciones de base de datos.
+- `public/locales/`: traducciones en español e inglés.
+- `docs/`: notas y planes técnicos del proyecto.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Seguridad y manejo de secretos
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+El repositorio está configurado para no versionar archivos `.env`, builds locales, dependencias, cachés, certificados, llaves privadas ni bases de datos locales. Solo se versiona `.env.example` como plantilla.
 
-## Deploy on Vercel
+Antes de subir cambios al remoto:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+git status --short
+git ls-files --others --exclude-standard
+git log --all --oneline -- .env .env.local .env.development .env.production .env.test
+```

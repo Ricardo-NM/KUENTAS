@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: kuentas
-      POSTGRES_PASSWORD: kuentas_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kuentas_dev_password}
       POSTGRES_DB: kuentas
     ports:
       - "5432:5432"
