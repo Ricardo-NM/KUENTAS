@@ -155,3 +155,42 @@ The design system adopts a **Rounded** profile. This softens the high-contrast c
 - **Status Chips:** Small, condensed labels using `label-caps` typography. Background colors for chips should be high-transparency versions of the status color (e.g., Success is 10% opacity green).
 - **Data Visualizations:** Line charts use a 2px stroke width with smooth interpolation. Grid lines within charts must be faint (`#F1F5F9`) to keep the focus on the data trend.
 - **Sidebar:** Fixed width with a light gray border on the right. Active states are indicated by a subtle background fill or a vertical bar on the left.
+
+## Theme System
+
+The dashboard supports two visual themes: **light** and **dark**. Components must use semantic Tailwind tokens instead of raw hex colors so both themes remain consistent.
+
+### Light Theme Tokens
+
+Light mode is the default dashboard theme and maps to the original palette above.
+
+- **Canvas:** `bg-background` / `text-on-surface` -> `#FFFFFF` / `#191C1E`.
+- **Primary surface:** `bg-card` or `bg-surface` -> `#F7F9FB`.
+- **Nested surface:** `bg-surface-container` -> `#ECEEF0`.
+- **Raised or hover surface:** `bg-surface-container-highest` -> `#E0E3E5`.
+- **Primary action:** `bg-primary` / `text-primary-foreground` -> `#0D0D12` / `#FFFFFF`.
+- **Secondary text:** `text-on-surface-variant` -> `#47464B`.
+- **Borders:** `border-border` for structural borders and `border-outline-variant` for controls.
+- **Focus:** `outline-ring`, `ring-primary/15`, or `focus-visible:outline-ring`.
+
+### Dark Theme Tokens
+
+Dark mode is an inverted tonal system, not a pure color negative. It preserves hierarchy and contrast while reducing light emission.
+
+- **Canvas:** `bg-background` / `text-on-surface` -> `#0D0F12` / `#EFF1F3`.
+- **Primary surface:** `bg-card` or `bg-surface` -> `#12161A`.
+- **Nested surface:** `bg-surface-container` -> `#191D22`.
+- **Raised or hover surface:** `bg-surface-container-highest` -> `#2A3036`.
+- **Primary action:** `bg-primary` / `text-primary-foreground` -> `#EFF1F3` / `#0D0D12`.
+- **Secondary text:** `text-on-surface-variant` -> `#C8C5CB`.
+- **Borders:** `border-border` -> `#343A40`; use `border-outline-variant` for controls that need clearer separation.
+- **Focus:** `outline-ring` uses the inverted primary/focus tone and must remain visible on dark surfaces.
+
+### Component Rules For Both Themes
+
+- Use semantic tokens (`bg-card`, `text-on-surface`, `border-border`, `bg-primary`) instead of raw hex colors in dashboard components.
+- Page-level dashboard containers use `bg-background`; repeated panels and cards use `bg-card`; nested inputs and search fields use `bg-surface-container`.
+- Active navigation and primary actions use `bg-primary text-primary-foreground`; inactive navigation uses `text-on-surface-variant` and `hover:bg-surface-container-highest`.
+- Text hierarchy must use `text-on-surface` for headings/body and `text-on-surface-variant` or `text-outline` for supporting labels.
+- Controls must define visible focus states with `focus-visible:outline-ring` or `focus-visible:ring-primary/15`.
+- New components should be validated in both themes before shipping. Do not add new hex values unless they become named tokens in `app/globals.css` and are documented here.

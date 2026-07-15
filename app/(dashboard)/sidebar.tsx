@@ -84,17 +84,17 @@ function SidebarNavItem({
       onMouseLeave={stopAnimation}
       className={cn(
         "group relative flex min-h-11 items-center gap-3 overflow-hidden rounded-lg px-3 text-sm font-semibold transition-colors",
-        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d12]",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         isActive
-          ? "text-white shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)]"
-          : "text-[#47464b] hover:bg-[#e0e3e5] hover:text-[#191c1e]",
+          ? "text-primary-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)]"
+          : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface",
       )}
     >
       <AnimatePresence initial={false}>
         {isActive ? (
           <motion.span
             aria-hidden="true"
-            className="absolute inset-0 rounded-lg bg-[#0d0d12]"
+            className="absolute inset-0 rounded-lg bg-primary"
             initial={dashboardActiveIndicatorSweepStates.initial}
             animate={dashboardActiveIndicatorSweepStates.animate}
             exit={dashboardActiveIndicatorSweepStates.exit}
@@ -106,7 +106,9 @@ function SidebarNavItem({
         aria-hidden="true"
         className={cn(
           "absolute left-0 top-2 z-10 h-7 w-1 rounded-r-full transition-opacity",
-          isActive ? "bg-white opacity-100" : "bg-transparent opacity-0",
+          isActive
+            ? "bg-primary-foreground opacity-100"
+            : "bg-transparent opacity-0",
         )}
       />
       <Icon
@@ -136,7 +138,7 @@ function LogoutSubmitButton() {
       onBlur={stopAnimation}
       onMouseEnter={startAnimation}
       onMouseLeave={stopAnimation}
-      className="flex min-h-11 w-full items-center justify-center gap-3 rounded-lg bg-[#0d0d12] px-3 text-sm font-semibold text-white shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)] transition-colors hover:bg-[#2d3133] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d12] disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)] transition-colors hover:bg-inverse-surface hover:text-inverse-on-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
     >
       <LogoutIcon
         ref={iconRef}
@@ -154,9 +156,9 @@ export function DashboardSidebar() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
 
   return (
-    <aside className="flex min-h-dvh w-full flex-col border-r border-[#d8dadc] bg-[#f7f9fb] px-4 py-5 text-[#191c1e] shadow-[8px_0_24px_-22px_rgb(13_13_18/0.55)] lg:sticky lg:top-0 lg:w-[260px]">
+    <aside className="flex min-h-dvh w-full flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground shadow-[8px_0_24px_-22px_rgb(13_13_18/0.55)] lg:sticky lg:top-0 lg:w-[260px]">
       <div className="mb-8 flex items-center gap-3 px-2">
-        <div className="grid size-9 place-items-center rounded-lg bg-[#0d0d12] font-heading text-sm font-bold text-white">
+        <div className="grid size-9 place-items-center rounded-lg bg-primary font-heading text-sm font-bold text-primary-foreground">
           K
         </div>
         <span className="font-heading text-base font-bold tracking-normal">
@@ -170,10 +172,10 @@ export function DashboardSidebar() {
             {index > 0 ? (
               <div
                 aria-hidden="true"
-                className="mx-3 h-px rounded-full bg-[#78767b]/35"
+                className="mx-3 h-px rounded-full bg-outline/35"
               />
             ) : null}
-            <p className="px-3 text-[11px] font-semibold uppercase leading-4 tracking-normal text-[#78767b]">
+            <p className="px-3 text-[11px] font-semibold uppercase leading-4 tracking-normal text-outline">
               {t(`dashboard.groups.${group.id}`, {
                 defaultValue: dashboardNavGroupFallbackLabels[group.id][language],
               })}

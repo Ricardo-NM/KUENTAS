@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Plus_Jakarta_Sans, Geist } from "next/font/googl
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { I18nProvider } from "./i18n-provider";
+import { getDashboardThemeInitScript } from "@/lib/dashboard/theme-preference";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -35,7 +36,15 @@ export default function RootLayout({
     <html
       lang="es"
       className={cn("h-full", "antialiased", plusJakarta.variable, inter.variable, jetBrainsMono.variable, "font-sans", geist.variable)}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: getDashboardThemeInitScript(),
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <I18nProvider>{children}</I18nProvider>
       </body>

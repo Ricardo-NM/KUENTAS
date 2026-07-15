@@ -31,8 +31,13 @@ import { isSupportedLanguage } from "@/lib/i18n/resources";
 import {
   dashboardActiveIndicatorSweepStates,
   dashboardActiveIndicatorSweepTransition,
-  dashboardSettingsPanelColor,
 } from "@/lib/dashboard/theme";
+import {
+  applyDashboardTheme,
+  dashboardThemeStorageKey,
+  resolveDashboardTheme,
+  type DashboardTheme,
+} from "@/lib/dashboard/theme-preference";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -93,14 +98,14 @@ function SettingsSelect({
         aria-expanded={isOpen}
         aria-label={ariaLabel}
         onClick={() => setIsOpen((current) => !current)}
-        className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-[#c8c5cb] bg-white py-2 pl-3.5 pr-3 text-left text-sm font-semibold text-[#191c1e] shadow-[0_1px_2px_rgb(13_13_18/0.04)] outline-none transition hover:border-[#78767b] hover:bg-[#f7f9fb] focus-visible:border-[#0d0d12] focus-visible:ring-2 focus-visible:ring-[#0d0d12]/15"
+        className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest py-2 pl-3.5 pr-3 text-left text-sm font-semibold text-on-surface shadow-[0_1px_2px_rgb(13_13_18/0.04)] outline-none transition hover:border-outline hover:bg-surface focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
       >
         <span className="min-w-0 truncate">{selectedOption.label}</span>
         <ChevronDownIcon
           aria-hidden="true"
           animateOnHover={false}
           className={cn(
-            "shrink-0 text-[#47464b] transition-transform",
+            "shrink-0 text-on-surface-variant transition-transform",
             isOpen ? "rotate-180" : "rotate-0",
           )}
           size={17}
@@ -112,7 +117,7 @@ function SettingsSelect({
           <motion.div
             role="listbox"
             aria-labelledby={id}
-            className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-lg border border-[#c8c5cb] bg-white p-1 shadow-[0_18px_40px_rgb(13_13_18/0.16)]"
+            className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-lg border border-outline-variant bg-popover p-1 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.16)]"
             initial={{ opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
@@ -132,10 +137,10 @@ function SettingsSelect({
                     setIsOpen(false);
                   }}
                   className={cn(
-                    "flex min-h-10 w-full cursor-pointer items-center rounded-md px-3 text-left text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0d0d12]",
+                    "flex min-h-10 w-full cursor-pointer items-center rounded-md px-3 text-left text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
                     isSelected
-                      ? "bg-[#0d0d12] text-white"
-                      : "text-[#191c1e] hover:bg-[#eceef0]",
+                      ? "bg-primary text-primary-foreground"
+                      : "text-on-surface hover:bg-surface-container",
                   )}
                 >
                   <span className="truncate">{option.label}</span>
@@ -180,17 +185,17 @@ function SettingsNavItem({
       onMouseLeave={stopAnimation}
       className={cn(
         "group relative flex min-h-11 w-full cursor-pointer items-center gap-3 overflow-hidden rounded-lg px-3 text-left text-sm font-semibold transition-colors",
-        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d12]",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         isActive
-          ? "text-white shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)]"
-          : "text-[#47464b] hover:bg-[#e0e3e5] hover:text-[#191c1e]",
+          ? "text-primary-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)]"
+          : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface",
       )}
     >
       <AnimatePresence initial={false}>
         {isActive ? (
           <motion.span
             aria-hidden="true"
-            className="absolute inset-0 rounded-lg bg-[#0d0d12]"
+            className="absolute inset-0 rounded-lg bg-primary"
             initial={dashboardActiveIndicatorSweepStates.initial}
             animate={dashboardActiveIndicatorSweepStates.animate}
             exit={dashboardActiveIndicatorSweepStates.exit}
@@ -202,7 +207,9 @@ function SettingsNavItem({
         aria-hidden="true"
         className={cn(
           "absolute left-0 top-2 z-10 h-7 w-1 rounded-r-full transition-opacity",
-          isActive ? "bg-white opacity-100" : "bg-transparent opacity-0",
+          isActive
+            ? "bg-primary-foreground opacity-100"
+            : "bg-transparent opacity-0",
         )}
       />
       <Icon
@@ -226,9 +233,19 @@ function ConfiguracionGeneralPanel() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
   const [selectedCurrency, setSelectedCurrency] = useState("MXN");
-  const [selectedTheme, setSelectedTheme] = useState<"light" | "dark">(
-    "light",
-  );
+  const [selectedTheme, setSelectedTheme] = useState<DashboardTheme>(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+
+    try {
+      return resolveDashboardTheme(
+        window.localStorage.getItem(dashboardThemeStorageKey),
+      );
+    } catch {
+      return "light";
+    }
+  });
   const sunIconRef = useRef<SunMediumIconHandle>(null);
   const moonIconRef = useRef<MoonIconHandle>(null);
 
@@ -238,15 +255,16 @@ function ConfiguracionGeneralPanel() {
     }
   };
 
-  const playThemeIconAnimation = (theme: "light" | "dark") => {
+  const playThemeIconAnimation = (theme: DashboardTheme) => {
     const iconRef = theme === "light" ? sunIconRef : moonIconRef;
 
     iconRef.current?.startAnimation();
     window.setTimeout(() => iconRef.current?.stopAnimation(), 650);
   };
 
-  const selectTheme = (theme: "light" | "dark") => {
+  const selectTheme = (theme: DashboardTheme) => {
     setSelectedTheme(theme);
+    applyDashboardTheme(theme);
     playThemeIconAnimation(theme);
   };
 
@@ -263,7 +281,7 @@ function ConfiguracionGeneralPanel() {
 
   return (
     <div className="w-full max-w-[760px] text-left">
-      <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-[#191c1e]">
+      <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
         {t("dashboard.settings.general.title", {
           defaultValue: fallbackCopy.generalTitle,
         })}
@@ -273,7 +291,7 @@ function ConfiguracionGeneralPanel() {
         <div className="block min-w-0">
           <label
             htmlFor="settings-interface-language"
-            className="mb-2 block text-sm font-medium leading-5 text-[#47464b]"
+            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
           >
             {t("dashboard.settings.general.interfaceLanguage.label", {
               defaultValue: fallbackCopy.interfaceLanguageLabel,
@@ -296,7 +314,7 @@ function ConfiguracionGeneralPanel() {
         <div className="block min-w-0">
           <label
             htmlFor="settings-primary-currency"
-            className="mb-2 block text-sm font-medium leading-5 text-[#47464b]"
+            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
           >
             {t("dashboard.settings.general.currency.label", {
               defaultValue: fallbackCopy.currencyLabel,
@@ -315,7 +333,7 @@ function ConfiguracionGeneralPanel() {
       </div>
 
       <div className="mt-8">
-        <p className="mb-2 text-sm font-medium leading-5 text-[#47464b]">
+        <p className="mb-2 text-sm font-medium leading-5 text-on-surface-variant">
           {t("dashboard.settings.general.theme.label", {
             defaultValue: fallbackCopy.visualThemeLabel,
           })}
@@ -325,12 +343,12 @@ function ConfiguracionGeneralPanel() {
           aria-label={t("dashboard.settings.general.theme.label", {
             defaultValue: fallbackCopy.visualThemeLabel,
           })}
-          className="relative inline-grid min-h-11 grid-cols-2 items-center gap-1.5 rounded-lg bg-[#e4e1e9] p-1 text-sm font-semibold text-[#47464b]"
+          className="relative inline-grid min-h-11 grid-cols-2 items-center gap-1.5 rounded-lg bg-accent p-1 text-sm font-semibold text-on-surface-variant"
         >
           <span
             aria-hidden="true"
             className={cn(
-              "absolute bottom-1 left-1 top-1 w-[calc((100%_-_0.875rem)_/_2)] rounded-md bg-white shadow-[0_1px_2px_rgb(0_0_0/0.08)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              "absolute bottom-1 left-1 top-1 w-[calc((100%_-_0.875rem)_/_2)] rounded-md bg-primary shadow-[0_1px_2px_rgb(0_0_0/0.08)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
               selectedTheme === "dark"
                 ? "translate-x-[calc(100%_+_0.375rem)]"
                 : "translate-x-0",
@@ -341,10 +359,10 @@ function ConfiguracionGeneralPanel() {
             aria-pressed={selectedTheme === "light"}
             onClick={() => selectTheme("light")}
             className={cn(
-              "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d12]",
+              "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               selectedTheme === "light"
-                ? "text-[#0d0d12]"
-                : "text-[#47464b] hover:bg-white/45",
+                ? "text-primary-foreground"
+                : "text-on-surface-variant hover:bg-surface-container-lowest/45",
             )}
           >
             <SunMediumIcon
@@ -363,10 +381,10 @@ function ConfiguracionGeneralPanel() {
             aria-pressed={selectedTheme === "dark"}
             onClick={() => selectTheme("dark")}
             className={cn(
-              "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d12]",
+              "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               selectedTheme === "dark"
-                ? "text-[#0d0d12]"
-                : "text-[#47464b] hover:bg-white/45",
+                ? "text-primary-foreground"
+                : "text-on-surface-variant hover:bg-surface-container-lowest/45",
             )}
           >
             <MoonIcon
@@ -410,11 +428,11 @@ export function ConfiguracionSettingsView() {
 
   return (
     <section className="grid gap-4 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-      <aside className="rounded-2xl border border-[#d8dadc] bg-[#f7f9fb] px-4 py-5 text-[#191c1e] shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:px-5">
-        <h1 className="px-1 font-heading text-2xl font-semibold leading-8 tracking-normal text-[#191c1e]">
+      <aside className="rounded-2xl border border-border bg-card px-4 py-5 text-card-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:px-5">
+        <h1 className="px-1 font-heading text-2xl font-semibold leading-8 tracking-normal text-card-foreground">
           {t("dashboard.settings.title", { defaultValue: fallbackCopy.title })}
         </h1>
-        <p className="mb-6 mt-2 px-1 text-sm leading-5 text-[#47464b]">
+        <p className="mb-6 mt-2 px-1 text-sm leading-5 text-on-surface-variant">
           {t("dashboard.settings.description", {
             defaultValue: fallbackCopy.description,
           })}
@@ -443,8 +461,7 @@ export function ConfiguracionSettingsView() {
         role="tabpanel"
         aria-labelledby={`settings-tab-${activeSection.id}`}
         aria-live="polite"
-        className="flex min-h-[320px] min-w-0 items-center justify-center overflow-hidden rounded-2xl border border-[#d8dadc] px-5 py-10 text-center shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:min-h-[420px] sm:px-8"
-        style={{ backgroundColor: dashboardSettingsPanelColor }}
+        className="flex min-h-[320px] min-w-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-card px-5 py-10 text-center shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:min-h-[420px] sm:px-8"
       >
         <AnimatePresence mode="wait">
           <motion.div
@@ -458,7 +475,7 @@ export function ConfiguracionSettingsView() {
             {activeSection.id === "general" ? (
               <ConfiguracionGeneralPanel />
             ) : (
-              <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-[#191c1e] sm:text-3xl sm:leading-10">
+              <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface sm:text-3xl sm:leading-10">
                 {t("dashboard.settings.greeting", {
                   defaultValue: fallbackCopy.greeting,
                   section: activeSectionLabel,

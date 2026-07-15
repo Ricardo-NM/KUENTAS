@@ -31,14 +31,14 @@ export function DashboardTopbar({ user }: { user: DashboardUser }) {
   const stopBellAnimation = () => bellIconRef.current?.stopAnimation();
 
   return (
-    <header className="mb-4 flex w-full flex-col gap-4 rounded-2xl border border-[#d8dadc] bg-[#f7f9fb] px-4 py-3 text-[#191c1e] shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:flex-row sm:items-center sm:justify-between sm:px-5">
-      <label className="group flex h-11 w-full items-center gap-3 rounded-xl bg-[#eceef0] px-4 text-[#47464b] transition-shadow focus-within:shadow-[0_0_0_2px_#0d0d12] sm:max-w-[380px]">
+    <header className="mb-4 flex w-full flex-col gap-4 rounded-2xl border border-border bg-card px-4 py-3 text-card-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <label className="group flex h-11 w-full items-center gap-3 rounded-xl bg-surface-container px-4 text-on-surface-variant transition-shadow focus-within:shadow-[0_0_0_2px_var(--ring)] sm:max-w-[380px]">
         <span className="sr-only">{searchLabel}</span>
         <SearchIcon
           ref={searchIconRef}
           aria-hidden="true"
           animateOnHover={false}
-          className="shrink-0 text-[#47464b]"
+          className="shrink-0 text-on-surface-variant"
           size={18}
         />
         <input
@@ -46,7 +46,7 @@ export function DashboardTopbar({ user }: { user: DashboardUser }) {
           placeholder={searchPlaceholder}
           onFocus={startSearchAnimation}
           onBlur={stopSearchAnimation}
-          className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[#191c1e] outline-none placeholder:text-[#78767b]"
+          className="min-w-0 flex-1 bg-transparent text-sm font-medium text-on-surface outline-none placeholder:text-outline"
         />
       </label>
 
@@ -58,7 +58,7 @@ export function DashboardTopbar({ user }: { user: DashboardUser }) {
           onBlur={stopBellAnimation}
           onMouseEnter={startBellAnimation}
           onMouseLeave={stopBellAnimation}
-          className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-[#eceef0] text-[#191c1e] transition-colors hover:bg-[#e0e3e5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d12]"
+          className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-surface-container text-on-surface transition-colors hover:bg-surface-container-highest focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <BellIcon
             ref={bellIconRef}
@@ -71,15 +71,15 @@ export function DashboardTopbar({ user }: { user: DashboardUser }) {
         <div className="flex min-w-0 items-center gap-3">
           <div
             aria-hidden="true"
-            className="grid size-12 shrink-0 place-items-center rounded-full border border-[#d8dadc] bg-[#eceef0] font-heading text-lg font-bold text-[#191c1e]"
+            className="grid size-12 shrink-0 place-items-center rounded-full border border-border bg-surface-container font-heading text-lg font-bold text-on-surface"
           >
             {user.initial}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold leading-5 text-[#191c1e]">
+            <p className="truncate text-sm font-bold leading-5 text-on-surface">
               {user.name}
             </p>
-            <p className="truncate text-xs leading-5 text-[#47464b]">
+            <p className="truncate text-xs leading-5 text-on-surface-variant">
               {user.email}
             </p>
           </div>
