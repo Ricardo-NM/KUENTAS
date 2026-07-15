@@ -53,9 +53,16 @@ export const passwordResetRequestSchema = z.object({
   email: emailSchema,
 });
 
+export const passwordResetCodeSchema = z.object({
+  email: emailSchema,
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Ingresa el código de 6 dígitos."),
+});
+
 export const passwordResetSchema = z
   .object({
-    token: z.string().trim().min(1, "El enlace de recuperación no es válido."),
     password: passwordSchema,
     repeatPassword: z.string(),
   })
@@ -69,4 +76,5 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type PasswordResetRequestInput = z.infer<
   typeof passwordResetRequestSchema
 >;
+export type PasswordResetCodeInput = z.infer<typeof passwordResetCodeSchema>;
 export type PasswordResetInput = z.infer<typeof passwordResetSchema>;

@@ -1,53 +1,55 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPrisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import {
-  buildPasswordResetUrl,
-  createPasswordResetToken,
-  verifyPasswordResetToken,
+  createPasswordResetOtp,
+  createPasswordResetSessionValue,
+  passwordResetSessionCookieName,
+  verifyPasswordResetOtp,
+  verifyPasswordResetSession,
 } from "@/lib/auth/password-reset";
+import { sendPasswordResetCodeEmail } from "@/lib/auth/password-reset-email";
 import {
+  passwordResetCodeSchema,
   passwordResetRequestSchema,
   passwordResetSchema,
 } from "@/lib/auth/validation";
 
-export type RecoveryActionState =
-  | {
-      status: "idle";
-      message?: string;
-      messageKey?: string;
-      devResetUrl?: string;
-      errors?: Record<string, string[] | undefined>;
-    }
-  | {
-      status: "success";
-      message?: string;
-      messageKey?: string;
-      devResetUrl?: string;
-      errors?: Record<string, string[] | undefined>;
-    }
-  | {
-      status: "error";
-      message?: string;
-      messageKey?: string;
-      devResetUrl?: string;
-      errors?: Record<string, string[] | undefined>;
-    };
+export type RecoveryActionState = {
+  status: "idle" | "success" | "error";
+  step?: "request" | "verify" | "reset";
+  email?: string;
+  message?: string;
+  messageKey?: string;
+  errors?: Record<string, string[] | undefined>;
+};
 
-const resetRequestSuccessMessage =
-  "Si el correo existe, enviaremos un enlace para restablecer tu contraseña.";
-const invalidResetTokenMessage =
-  "El enlace de recuperación no es válido o ya expiró.";
+const invalidVerificationCodeMessage =
+  "El codigo de verificacion no es valido o ya expiro.";
+const emailSendFailedMessage =
+  "No se pudo enviar el codigo de verificacion. Intenta nuevamente.";
 
-async function getRequestOrigin() {
-  const headersList = await headers();
-  const protocol = headersList.get("x-forwarded-proto") ?? "http";
-  const host = headersList.get("host") ?? "localhost:3000";
+function getPasswordResetCookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    maxAge,
+    path: "/recuperacion",
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+  };
+}
 
-  return `${protocol}://${host}`;
+async function clearPasswordResetSessionCookie() {
+  const cookieStore = await cookies();
+
+  cookieStore.set(
+    passwordResetSessionCookieName,
+    "",
+    getPasswordResetCookieOptions(0),
+  );
 }
 
 export async function requestPasswordResetAction(
@@ -57,10 +59,15 @@ export async function requestPasswordResetAction(
   const parsedInput = passwordResetRequestSchema.safeParse({
     email: formData.get("email"),
   });
+  const language =
+    typeof formData.get("language") === "string"
+      ? String(formData.get("language"))
+      : undefined;
 
   if (!parsedInput.success) {
     return {
       status: "error",
+      step: "request",
       errors: parsedInput.error.flatten().fieldErrors,
     };
   }
@@ -78,22 +85,93 @@ export async function requestPasswordResetAction(
   if (!user) {
     return {
       status: "success",
-      message: resetRequestSuccessMessage,
-      messageKey: "validation.resetRequestSuccess",
+      step: "verify",
+      email: parsedInput.data.email,
     };
   }
 
-  const resetToken = await createPasswordResetToken(user.id);
-  const resetUrl = buildPasswordResetUrl(
-    await getRequestOrigin(),
-    resetToken.token,
+  const resetOtp = await createPasswordResetOtp(user.id);
+
+  try {
+    await sendPasswordResetCodeEmail({
+      to: user.email,
+      code: resetOtp.code,
+      expiresAt: resetOtp.expiresAt,
+      language,
+    });
+  } catch {
+    return {
+      status: "error",
+      step: "request",
+      email: parsedInput.data.email,
+      message: emailSendFailedMessage,
+      messageKey: "validation.resetEmailSendFailed",
+    };
+  }
+
+  return {
+    status: "success",
+    step: "verify",
+    email: parsedInput.data.email,
+  };
+}
+
+export async function verifyPasswordResetCodeAction(
+  _prevState: RecoveryActionState | undefined,
+  formData: FormData,
+): Promise<RecoveryActionState> {
+  const parsedInput = passwordResetCodeSchema.safeParse({
+    email: formData.get("email"),
+    code: formData.get("code"),
+  });
+
+  if (!parsedInput.success) {
+    return {
+      status: "error",
+      step: "verify",
+      email:
+        typeof formData.get("email") === "string"
+          ? String(formData.get("email"))
+          : undefined,
+      errors: parsedInput.error.flatten().fieldErrors,
+    };
+  }
+
+  const verifiedOtp = await verifyPasswordResetOtp(
+    parsedInput.data.email,
+    parsedInput.data.code,
+  );
+
+  if (!verifiedOtp) {
+    return {
+      status: "error",
+      step: "verify",
+      email: parsedInput.data.email,
+      message: invalidVerificationCodeMessage,
+      messageKey: "validation.invalidVerificationCode",
+    };
+  }
+
+  const cookieStore = await cookies();
+  const maxAge = Math.max(
+    0,
+    Math.floor((verifiedOtp.expiresAt.getTime() - Date.now()) / 1000),
+  );
+
+  cookieStore.set(
+    passwordResetSessionCookieName,
+    createPasswordResetSessionValue({
+      id: verifiedOtp.id,
+      userId: verifiedOtp.userId,
+      expiresAt: verifiedOtp.expiresAt.toISOString(),
+    }),
+    getPasswordResetCookieOptions(maxAge),
   );
 
   return {
     status: "success",
-    message: resetRequestSuccessMessage,
-    messageKey: "validation.resetRequestSuccess",
-    devResetUrl: process.env.NODE_ENV === "production" ? undefined : resetUrl,
+    step: "reset",
+    email: parsedInput.data.email,
   };
 }
 
@@ -102,7 +180,6 @@ export async function resetPasswordAction(
   formData: FormData,
 ): Promise<RecoveryActionState> {
   const parsedInput = passwordResetSchema.safeParse({
-    token: formData.get("token"),
     password: formData.get("password"),
     repeatPassword: formData.get("repeatPassword"),
   });
@@ -110,17 +187,22 @@ export async function resetPasswordAction(
   if (!parsedInput.success) {
     return {
       status: "error",
+      step: "reset",
       errors: parsedInput.error.flatten().fieldErrors,
     };
   }
 
-  const resetToken = await verifyPasswordResetToken(parsedInput.data.token);
+  const cookieStore = await cookies();
+  const resetSession = await verifyPasswordResetSession(
+    cookieStore.get(passwordResetSessionCookieName)?.value,
+  );
 
-  if (!resetToken) {
+  if (!resetSession) {
     return {
       status: "error",
-      message: invalidResetTokenMessage,
-      messageKey: "validation.invalidResetToken",
+      step: "reset",
+      message: invalidVerificationCodeMessage,
+      messageKey: "validation.invalidVerificationCode",
     };
   }
 
@@ -130,7 +212,7 @@ export async function resetPasswordAction(
   await prisma.$transaction([
     prisma.user.update({
       where: {
-        id: resetToken.userId,
+        id: resetSession.userId,
       },
       data: {
         passwordHash,
@@ -138,12 +220,12 @@ export async function resetPasswordAction(
     }),
     prisma.session.deleteMany({
       where: {
-        userId: resetToken.userId,
+        userId: resetSession.userId,
       },
     }),
     prisma.passwordResetToken.update({
       where: {
-        id: resetToken.id,
+        id: resetSession.id,
       },
       data: {
         usedAt: new Date(),
@@ -151,5 +233,6 @@ export async function resetPasswordAction(
     }),
   ]);
 
+  await clearPasswordResetSessionCookie();
   redirect("/login");
 }

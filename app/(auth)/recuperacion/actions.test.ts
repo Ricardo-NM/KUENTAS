@@ -2,23 +2,28 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   requestPasswordResetAction,
   resetPasswordAction,
+  verifyPasswordResetCodeAction,
 } from "./actions";
 
 const mocks = vi.hoisted(() => ({
-  headers: vi.fn(),
+  cookies: vi.fn(),
+  cookieGet: vi.fn(),
+  cookieSet: vi.fn(),
   userFindUnique: vi.fn(),
   userUpdate: vi.fn(),
   sessionDeleteMany: vi.fn(),
   passwordResetTokenUpdate: vi.fn(),
   transaction: vi.fn(),
-  createPasswordResetToken: vi.fn(),
-  verifyPasswordResetToken: vi.fn(),
+  createPasswordResetOtp: vi.fn(),
+  verifyPasswordResetOtp: vi.fn(),
+  verifyPasswordResetSession: vi.fn(),
   hashPassword: vi.fn(),
   redirect: vi.fn(),
+  sendPasswordResetCodeEmail: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
-  headers: mocks.headers,
+  cookies: mocks.cookies,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -46,10 +51,15 @@ vi.mock("@/lib/auth/password", () => ({
 }));
 
 vi.mock("@/lib/auth/password-reset", () => ({
-  buildPasswordResetUrl: (origin: string, token: string) =>
-    `${origin}/recuperacion?token=${token}`,
-  createPasswordResetToken: mocks.createPasswordResetToken,
-  verifyPasswordResetToken: mocks.verifyPasswordResetToken,
+  createPasswordResetOtp: mocks.createPasswordResetOtp,
+  createPasswordResetSessionValue: () => "signed-reset-session",
+  passwordResetSessionCookieName: "kuentas_password_reset",
+  verifyPasswordResetOtp: mocks.verifyPasswordResetOtp,
+  verifyPasswordResetSession: mocks.verifyPasswordResetSession,
+}));
+
+vi.mock("@/lib/auth/password-reset-email", () => ({
+  sendPasswordResetCodeEmail: mocks.sendPasswordResetCodeEmail,
 }));
 
 function formData(input: Record<string, string>) {
@@ -65,21 +75,23 @@ function formData(input: Record<string, string>) {
 describe("password recovery actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.headers.mockResolvedValue(
-      new Headers({
-        host: "localhost:3000",
-        "x-forwarded-proto": "http",
-      }),
-    );
-    mocks.createPasswordResetToken.mockResolvedValue({
-      token: "raw-token",
-      expiresAt: new Date("2030-01-01T00:30:00.000Z"),
+    mocks.cookies.mockResolvedValue({
+      get: mocks.cookieGet,
+      set: mocks.cookieSet,
+    });
+    mocks.createPasswordResetOtp.mockResolvedValue({
+      code: "123456",
+      expiresAt: new Date("2030-01-01T00:10:00.000Z"),
     });
     mocks.hashPassword.mockResolvedValue("new-hashed-password");
     mocks.transaction.mockResolvedValue([]);
+    mocks.sendPasswordResetCodeEmail.mockResolvedValue(undefined);
+    mocks.cookieGet.mockReturnValue({
+      value: "signed-reset-session",
+    });
   });
 
-  it("returns a generic success message when requesting reset for an unknown email", async () => {
+  it("shows the verification step when requesting reset for an unknown email", async () => {
     mocks.userFindUnique.mockResolvedValue(null);
 
     const result = await requestPasswordResetAction(
@@ -89,13 +101,16 @@ describe("password recovery actions", () => {
       }),
     );
 
-    expect(result.status).toBe("success");
-    expect(result.message).toContain("Si el correo existe");
-    expect(result.messageKey).toBe("validation.resetRequestSuccess");
-    expect(mocks.createPasswordResetToken).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      status: "success",
+      step: "verify",
+      email: "missing@example.com",
+    });
+    expect(mocks.createPasswordResetOtp).not.toHaveBeenCalled();
+    expect(mocks.sendPasswordResetCodeEmail).not.toHaveBeenCalled();
   });
 
-  it("creates a reset token for an existing user", async () => {
+  it("creates and emails an OTP for an existing user", async () => {
     mocks.userFindUnique.mockResolvedValue({
       id: "user_123",
       email: "user@example.com",
@@ -105,34 +120,72 @@ describe("password recovery actions", () => {
       undefined,
       formData({
         email: "USER@example.com",
+        language: "en",
       }),
     );
 
-    expect(result.status).toBe("success");
-    expect(result.messageKey).toBe("validation.resetRequestSuccess");
-    expect(mocks.createPasswordResetToken).toHaveBeenCalledWith("user_123");
-    expect(result.devResetUrl).toBe(
-      process.env.NODE_ENV === "production"
-        ? undefined
-        : "http://localhost:3000/recuperacion?token=raw-token",
+    expect(result).toMatchObject({
+      status: "success",
+      step: "verify",
+      email: "user@example.com",
+    });
+    expect(mocks.createPasswordResetOtp).toHaveBeenCalledWith("user_123");
+    expect(mocks.sendPasswordResetCodeEmail).toHaveBeenCalledWith({
+      to: "user@example.com",
+      code: "123456",
+      expiresAt: new Date("2030-01-01T00:10:00.000Z"),
+      language: "en",
+    });
+  });
+
+  it("verifies an OTP and stores a short lived reset session cookie", async () => {
+    mocks.verifyPasswordResetOtp.mockResolvedValue({
+      id: "reset_123",
+      userId: "user_123",
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+
+    const result = await verifyPasswordResetCodeAction(
+      undefined,
+      formData({
+        email: "user@example.com",
+        code: "123456",
+      }),
+    );
+
+    expect(result).toMatchObject({
+      status: "success",
+      step: "reset",
+      email: "user@example.com",
+    });
+    expect(mocks.cookieSet).toHaveBeenCalledWith(
+      "kuentas_password_reset",
+      "signed-reset-session",
+      expect.objectContaining({
+        httpOnly: true,
+        path: "/recuperacion",
+        sameSite: "lax",
+      }),
     );
   });
 
-  it("resets password with a valid token, clears sessions, and redirects to login", async () => {
-    mocks.verifyPasswordResetToken.mockResolvedValue({
-      id: "token_123",
+  it("resets password after a valid OTP session, clears sessions, and redirects to login", async () => {
+    mocks.verifyPasswordResetSession.mockResolvedValue({
+      id: "reset_123",
       userId: "user_123",
     });
 
     await resetPasswordAction(
       undefined,
       formData({
-        token: "raw-token",
         password: "Password1!",
         repeatPassword: "Password1!",
       }),
     );
 
+    expect(mocks.verifyPasswordResetSession).toHaveBeenCalledWith(
+      "signed-reset-session",
+    );
     expect(mocks.userUpdate).toHaveBeenCalledWith({
       where: {
         id: "user_123",
@@ -148,7 +201,7 @@ describe("password recovery actions", () => {
     });
     expect(mocks.passwordResetTokenUpdate).toHaveBeenCalledWith({
       where: {
-        id: "token_123",
+        id: "reset_123",
       },
       data: {
         usedAt: expect.any(Date),
@@ -159,6 +212,14 @@ describe("password recovery actions", () => {
       undefined,
       undefined,
     ]);
+    expect(mocks.cookieSet).toHaveBeenCalledWith(
+      "kuentas_password_reset",
+      "",
+      expect.objectContaining({
+        maxAge: 0,
+        path: "/recuperacion",
+      }),
+    );
     expect(mocks.redirect).toHaveBeenCalledWith("/login");
   });
 });

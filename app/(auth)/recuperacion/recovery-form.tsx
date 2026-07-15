@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import {
+  KeyIcon,
+  type KeyIconHandle,
   LockIcon,
   type LockIconHandle,
   MailCheckIcon,
@@ -17,6 +19,7 @@ import {
 import {
   requestPasswordResetAction,
   resetPasswordAction,
+  verifyPasswordResetCodeAction,
   type RecoveryActionState,
 } from "./actions";
 import { AnimatedFormMessage } from "../animated-form-message";
@@ -29,6 +32,7 @@ const errorInputClass =
   "field-error-pulse border-[#ff453a] bg-[#ba1a1a]/10 focus:border-[#ff453a] focus:ring-[#ff453a]/20";
 const initialState: RecoveryActionState = {
   status: "idle",
+  step: "request",
 };
 
 function VisibilityButton({
@@ -87,7 +91,7 @@ function RequirementItem({ isMet, label }: { isMet: boolean; label: string }) {
 }
 
 function RequestResetForm() {
-  const { t } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [state, formAction, isPending] = useActionState(
     requestPasswordResetAction,
     initialState,
@@ -98,7 +102,16 @@ function RequestResetForm() {
   const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const emailError = state.errors?.email?.[0];
   const showEmailError = (emailTouched && !emailIsValid) || Boolean(emailError);
-  const formMessage = state.messageKey ? t(state.messageKey) : state.message;
+  const formMessage =
+    state.status === "error"
+      ? state.messageKey
+        ? t(state.messageKey)
+        : state.message
+      : undefined;
+
+  if (state.step === "verify" && state.email) {
+    return <VerifyCodeForm email={state.email} />;
+  }
 
   return (
     <form
@@ -115,6 +128,12 @@ function RequestResetForm() {
       <h1 className="auth-form-reveal auth-form-delay-1 font-heading text-2xl font-bold leading-8 text-white">
         {t("recovery.requestTitle")}
       </h1>
+
+      <input
+        type="hidden"
+        name="language"
+        value={i18n.resolvedLanguage ?? i18n.language}
+      />
 
       <div className="auth-form-reveal auth-form-delay-2 mt-7">
         <label
@@ -166,25 +185,17 @@ function RequestResetForm() {
       <AnimatedFormMessage
         id="recovery-message"
         message={formMessage}
-        tone={state.status === "error" ? "error" : "success"}
+        tone="error"
         align="center"
         spacingClassName="pt-5"
       />
-      {state.devResetUrl ? (
-        <Link
-          href={state.devResetUrl}
-          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-white/16 bg-white/8 px-5 text-sm font-bold text-white transition hover:bg-white/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb]"
-        >
-          {t("recovery.openResetLink")}
-        </Link>
-      ) : null}
 
       <button
         type="submit"
         disabled={isPending || !emailIsValid}
         className="auth-form-reveal auth-form-delay-3 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
       >
-        {isPending ? t("recovery.submittingRequest") : t("recovery.sendLink")}
+        {isPending ? t("recovery.submittingRequest") : t("recovery.sendCode")}
       </button>
 
       <Link
@@ -197,7 +208,117 @@ function RequestResetForm() {
   );
 }
 
-function ResetPasswordForm({ token }: { token: string }) {
+function VerifyCodeForm({ email }: { email: string }) {
+  const { t } = useTranslation();
+  const [state, formAction, isPending] = useActionState(
+    verifyPasswordResetCodeAction,
+    {
+      ...initialState,
+      step: "verify",
+      email,
+    },
+  );
+  const [code, setCode] = useState("");
+  const codeIconRef = useRef<KeyIconHandle>(null);
+  const normalizedCode = code.replace(/\D/g, "").slice(0, 6);
+  const codeIsValid = normalizedCode.length === 6;
+  const codeError = state.errors?.code?.[0];
+  const formMessage =
+    state.status === "error"
+      ? state.messageKey
+        ? t(state.messageKey)
+        : state.message ?? codeError
+      : undefined;
+
+  if (state.step === "reset") {
+    return <ResetPasswordForm />;
+  }
+
+  return (
+    <form
+      action={formAction}
+      onSubmit={(event) => {
+        if (!codeIsValid) {
+          event.preventDefault();
+        }
+      }}
+      className="auth-form-reveal mb-2 w-full rounded-2xl border border-white/12 bg-white/10 px-6 py-8 shadow-[0_24px_70px_rgb(0_0_0/0.32)] backdrop-blur-md sm:px-8 lg:mb-20"
+    >
+      <h1 className="auth-form-reveal auth-form-delay-1 font-heading text-2xl font-bold leading-8 text-white">
+        {t("recovery.verificationTitle")}
+      </h1>
+
+      <input type="hidden" name="email" value={email} />
+
+      <div className="auth-form-reveal auth-form-delay-2 mt-7">
+        <label
+          htmlFor="verificationCode"
+          className="text-sm font-semibold text-[#eff1f3]"
+        >
+          {t("recovery.verificationCode")}
+        </label>
+        <div className="relative mt-2">
+          <input
+            id="verificationCode"
+            name="code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder={t("recovery.verificationCodePlaceholder")}
+            value={normalizedCode}
+            required
+            maxLength={6}
+            aria-invalid={Boolean(codeError)}
+            aria-describedby={codeError ? "verification-code-error" : undefined}
+            onChange={(event) => setCode(event.target.value)}
+            onFocus={() => codeIconRef.current?.startAnimation()}
+            onBlur={() => codeIconRef.current?.stopAnimation()}
+            className={`${inputBaseClass} ${
+              codeError ? errorInputClass : normalInputClass
+            } font-mono tracking-[0.16em]`}
+          />
+          <KeyIcon
+            ref={codeIconRef}
+            aria-hidden="true"
+            size={18}
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#d0e1fb]"
+          />
+        </div>
+        <AnimatedFormMessage
+          id="verification-code-error"
+          message={codeError}
+          tone="error"
+          spacingClassName="pt-2"
+        />
+      </div>
+
+      <AnimatedFormMessage
+        id="verification-message"
+        message={formMessage}
+        tone="error"
+        align="center"
+        spacingClassName="pt-5"
+      />
+
+      <button
+        type="submit"
+        disabled={isPending || !codeIsValid}
+        className="auth-form-reveal auth-form-delay-3 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
+      >
+        {isPending ? t("recovery.verifyingCode") : t("recovery.verifyCode")}
+      </button>
+
+      <Link
+        href="/login"
+        className="auth-form-reveal auth-form-delay-4 mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-white/16 bg-white/8 px-5 text-sm font-bold text-white transition hover:bg-white/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb]"
+      >
+        {t("recovery.backToLogin")}
+      </Link>
+    </form>
+  );
+}
+
+function ResetPasswordForm() {
   const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(
     resetPasswordAction,
@@ -244,8 +365,6 @@ function ResetPasswordForm({ token }: { token: string }) {
       <h1 className="auth-form-reveal auth-form-delay-1 font-heading text-2xl font-bold leading-8 text-white">
         {t("recovery.resetTitle")}
       </h1>
-
-      <input type="hidden" name="token" value={token} />
 
       <div className="mt-7 space-y-5">
         <div className="auth-form-reveal auth-form-delay-2 space-y-2">
@@ -381,6 +500,6 @@ function ResetPasswordForm({ token }: { token: string }) {
   );
 }
 
-export function RecoveryForm({ token }: { token?: string }) {
-  return token ? <ResetPasswordForm token={token} /> : <RequestResetForm />;
+export function RecoveryForm() {
+  return <RequestResetForm />;
 }

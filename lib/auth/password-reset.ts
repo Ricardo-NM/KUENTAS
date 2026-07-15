@@ -1,7 +1,16 @@
 import crypto from "node:crypto";
+import * as OTPAuth from "otpauth";
 import { getPrisma } from "@/lib/prisma";
+import { normalizeEmail } from "./validation";
 
-export const passwordResetTokenExpiresMs = 30 * 60 * 1000;
+export const passwordResetOtpExpiresMs = 10 * 60 * 1000;
+export const passwordResetSessionCookieName = "kuentas_password_reset";
+
+type PasswordResetSessionPayload = {
+  id: string;
+  userId: string;
+  expiresAt: string;
+};
 
 function getPasswordResetSecret() {
   const configuredSecret = process.env.SESSION_SECRET;
@@ -17,31 +26,63 @@ function getPasswordResetSecret() {
   return "development-session-secret-at-least-32-chars";
 }
 
-function generatePasswordResetToken() {
-  return crypto.randomBytes(32).toString("base64url");
+function base64UrlEncode(value: string) {
+  return Buffer.from(value, "utf8").toString("base64url");
 }
 
-export function hashPasswordResetToken(token: string) {
+function base64UrlDecode(value: string) {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function signPayload(payload: string) {
   return crypto
     .createHmac("sha256", getPasswordResetSecret())
-    .update(token)
+    .update(payload)
+    .digest("base64url");
+}
+
+function timingSafeEqual(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    crypto.timingSafeEqual(leftBuffer, rightBuffer)
+  );
+}
+
+function normalizeOtp(code: string) {
+  return code.replace(/\s+/g, "").trim();
+}
+
+function generatePasswordResetOtp() {
+  const secret = OTPAuth.Secret.fromHex(crypto.randomBytes(20).toString("hex"));
+  const otp = new OTPAuth.TOTP({
+    issuer: "Kuentas",
+    label: "Recuperacion de contrasena",
+    algorithm: "SHA1",
+    digits: 6,
+    period: passwordResetOtpExpiresMs / 1000,
+    secret,
+  });
+
+  return otp.generate();
+}
+
+export function hashPasswordResetOtp(code: string) {
+  return crypto
+    .createHmac("sha256", getPasswordResetSecret())
+    .update(normalizeOtp(code))
     .digest("hex");
 }
 
-export function isPasswordResetTokenExpired(expiresAt: Date, now = new Date()) {
+export function isPasswordResetOtpExpired(expiresAt: Date, now = new Date()) {
   return expiresAt <= now;
 }
 
-export function buildPasswordResetUrl(origin: string, token: string) {
-  const url = new URL("/recuperacion", origin);
-  url.searchParams.set("token", token);
-
-  return url.toString();
-}
-
-export async function createPasswordResetToken(userId: string) {
-  const token = generatePasswordResetToken();
-  const expiresAt = new Date(Date.now() + passwordResetTokenExpiresMs);
+export async function createPasswordResetOtp(userId: string) {
+  const code = generatePasswordResetOtp();
+  const expiresAt = new Date(Date.now() + passwordResetOtpExpiresMs);
   const prisma = getPrisma();
 
   await prisma.$transaction([
@@ -54,7 +95,7 @@ export async function createPasswordResetToken(userId: string) {
     prisma.passwordResetToken.create({
       data: {
         userId,
-        tokenHash: hashPasswordResetToken(token),
+        tokenHash: hashPasswordResetOtp(code),
         expiresAt,
       },
       select: {
@@ -64,16 +105,125 @@ export async function createPasswordResetToken(userId: string) {
   ]);
 
   return {
-    token,
+    code,
     expiresAt,
   };
 }
 
-export async function verifyPasswordResetToken(token: string) {
+export async function verifyPasswordResetOtp(email: string, code: string) {
   const prisma = getPrisma();
-  const resetToken = await prisma.passwordResetToken.findUnique({
+  const user = await prisma.user.findUnique({
     where: {
-      tokenHash: hashPasswordResetToken(token),
+      email: normalizeEmail(email),
+    },
+    select: {
+      id: true,
+      passwordResetTokens: {
+        where: {
+          usedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+        select: {
+          id: true,
+          tokenHash: true,
+          expiresAt: true,
+          usedAt: true,
+        },
+      },
+    },
+  });
+  const resetOtp = user?.passwordResetTokens[0];
+
+  if (
+    !user ||
+    !resetOtp ||
+    resetOtp.usedAt ||
+    isPasswordResetOtpExpired(resetOtp.expiresAt) ||
+    !timingSafeEqual(resetOtp.tokenHash, hashPasswordResetOtp(code))
+  ) {
+    return null;
+  }
+
+  const usedAt = new Date();
+
+  await prisma.passwordResetToken.update({
+    where: {
+      id: resetOtp.id,
+    },
+    data: {
+      usedAt,
+    },
+  });
+
+  return {
+    id: resetOtp.id,
+    userId: user.id,
+    expiresAt: resetOtp.expiresAt,
+    usedAt,
+  };
+}
+
+export function createPasswordResetSessionValue(
+  payload: PasswordResetSessionPayload,
+) {
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const signature = signPayload(encodedPayload);
+
+  return `${encodedPayload}.${signature}`;
+}
+
+export function parsePasswordResetSessionValue(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const [encodedPayload, signature, ...extraParts] = value.split(".");
+
+  if (!encodedPayload || !signature || extraParts.length > 0) {
+    return null;
+  }
+
+  if (!timingSafeEqual(signature, signPayload(encodedPayload))) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(
+      base64UrlDecode(encodedPayload),
+    ) as PasswordResetSessionPayload;
+    const expiresAt = new Date(payload.expiresAt);
+
+    if (
+      !payload.id ||
+      !payload.userId ||
+      Number.isNaN(expiresAt.getTime()) ||
+      isPasswordResetOtpExpired(expiresAt)
+    ) {
+      return null;
+    }
+
+    return {
+      ...payload,
+      expiresAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function verifyPasswordResetSession(value: string | undefined) {
+  const payload = parsePasswordResetSessionValue(value);
+
+  if (!payload) {
+    return null;
+  }
+
+  const resetOtp = await getPrisma().passwordResetToken.findUnique({
+    where: {
+      id: payload.id,
     },
     select: {
       id: true,
@@ -84,26 +234,16 @@ export async function verifyPasswordResetToken(token: string) {
   });
 
   if (
-    !resetToken ||
-    resetToken.usedAt ||
-    isPasswordResetTokenExpired(resetToken.expiresAt)
+    !resetOtp ||
+    resetOtp.userId !== payload.userId ||
+    !resetOtp.usedAt ||
+    isPasswordResetOtpExpired(resetOtp.expiresAt)
   ) {
     return null;
   }
 
   return {
-    id: resetToken.id,
-    userId: resetToken.userId,
+    id: resetOtp.id,
+    userId: resetOtp.userId,
   };
-}
-
-export async function markPasswordResetTokenUsed(tokenId: string) {
-  await getPrisma().passwordResetToken.update({
-    where: {
-      id: tokenId,
-    },
-    data: {
-      usedAt: new Date(),
-    },
-  });
 }

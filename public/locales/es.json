@@ -212,12 +212,37 @@
     "openResetLink": "Abrir enlace de recuperación",
     "submittingRequest": "Enviando...",
     "sendLink": "Enviar enlace",
+    "sendCode": "Enviar código",
     "backToLogin": "Volver a iniciar sesión",
+    "verificationTitle": "Código de verificación",
+    "verificationCode": "Código de verificación",
+    "verificationCodePlaceholder": "000000",
+    "verifyCode": "Verificar",
+    "verifyingCode": "Verificando...",
     "resetTitle": "Nueva contraseña",
     "updated": "Contraseña actualizada correctamente.",
     "repeatNewPassword": "Repetir contraseña",
     "submittingReset": "Actualizando...",
     "updatePassword": "Actualizar contraseña"
+  },
+  "email": {
+    "passwordReset": {
+      "subject": "Código de verificación para cambiar tu contraseña",
+      "title": "Código para cambiar tu contraseña",
+      "intro": "Usa este código de verificación en la pantalla de recuperación para confirmar el cambio de contraseña de tu cuenta.",
+      "codeLabel": "Código de verificación",
+      "expiration": "El código vence alrededor de las {{expirationTime}}.",
+      "ignore": "Si no solicitaste este cambio, puedes ignorar este correo.",
+      "textLines": [
+        "{{appName}}",
+        "",
+        "Código para cambiar tu contraseña",
+        "Tu código de verificación es: {{code}}",
+        "El código vence alrededor de las {{expirationTime}}.",
+        "",
+        "Si no solicitaste este cambio, puedes ignorar este correo."
+      ]
+    }
   },
   "validation": {
     "invalidEmail": "Ingresa un correo electrónico válido.",
@@ -226,8 +251,10 @@
     "tooManyLoginAttempts": "Demasiados intentos fallidos, espera un momento",
     "emailRegistered": "Este correo electrónico ya está registrado.",
     "createAccountFailed": "No se pudo crear la cuenta. Intenta nuevamente.",
-    "resetRequestSuccess": "Si el correo existe, enviaremos un enlace para restablecer tu contraseña.",
-    "invalidResetToken": "El enlace de recuperación no es válido o ya expiró.",
+    "resetRequestSuccess": "Código de verificación enviado.",
+    "invalidResetToken": "El código de verificación no es válido o ya expiró.",
+    "invalidVerificationCode": "El código de verificación no es válido o ya expiró.",
+    "resetEmailSendFailed": "No se pudo enviar el código de verificación. Intenta nuevamente.",
     "passwordUpdated": "Contraseña actualizada correctamente."
   },
   "passwordRequirements": {
