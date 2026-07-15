@@ -3,14 +3,16 @@ import {
   dashboardActiveIndicatorSweepStates,
   dashboardActiveIndicatorSweepTransition,
   dashboardCanvasColor,
+  dashboardSettingsPanelColor,
   dashboardSurfaceColor,
 } from "./theme";
 
 describe("dashboard theme", () => {
-  it("uses a darker canvas behind the sidebar and message cards", () => {
+  it("uses a white dashboard canvas with soft internal settings panels", () => {
     expect(dashboardSurfaceColor).toBe("#f7f9fb");
-    expect(dashboardCanvasColor).toBe("#eceef0");
-    expect(dashboardCanvasColor).not.toBe(dashboardSurfaceColor);
+    expect(dashboardCanvasColor).toBe("#ffffff");
+    expect(dashboardSettingsPanelColor).toBe("#f7f9fb");
+    expect(dashboardSettingsPanelColor).not.toBe(dashboardCanvasColor);
   });
 
   it("defines a perceptible sweep transition for active sidebar item changes", () => {

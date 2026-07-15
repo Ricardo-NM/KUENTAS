@@ -1,5 +1,5 @@
-import { DashboardPageMessage } from "../dashboard-page-message";
+import { ConfiguracionSettingsView } from "./settings-view";
 
 export default function ConfiguracionPage() {
-  return <DashboardPageMessage section="configuracion" />;
+  return <ConfiguracionSettingsView />;
 }

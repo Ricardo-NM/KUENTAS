@@ -42,6 +42,37 @@
       "searchPlaceholder": "Search...",
       "notifications": "Notifications"
     },
+    "settings": {
+      "title": "Settings",
+      "description": "Manage your profile, preferences, and account security.",
+      "navigationLabel": "Settings sections",
+      "sections": {
+        "general": "General",
+        "perfil": "User profile",
+        "notificaciones": "Notifications",
+        "seguridad": "Security"
+      },
+      "general": {
+        "title": "General settings",
+        "interfaceLanguage": {
+          "label": "Interface language"
+        },
+        "currency": {
+          "label": "Primary currency",
+          "options": {
+            "mxn": "MXN ($) - Peso Mexicano",
+            "usd": "USD ($) - US Dollar",
+            "eur": "EUR (€) - Euro"
+          }
+        },
+        "theme": {
+          "label": "Visual theme",
+          "light": "Light",
+          "dark": "Dark"
+        }
+      },
+      "greeting": "Greetings from {{section}}"
+    },
     "logout": "Log out",
     "loggingOut": "Logging out..."
   },

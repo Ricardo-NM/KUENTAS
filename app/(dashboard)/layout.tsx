@@ -1,5 +1,6 @@
 import { requireSession } from "@/lib/auth/session";
 import { getPrisma } from "@/lib/prisma";
+import { dashboardCanvasColor } from "@/lib/dashboard/theme";
 import { formatDashboardUser } from "@/lib/dashboard/user";
 import { DashboardSidebar } from "./sidebar";
 import { DashboardTopbar } from "./topbar";
@@ -26,7 +27,10 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-dvh bg-[#eceef0] text-[#191c1e] lg:grid lg:grid-cols-[260px_1fr]">
+    <div
+      className="min-h-dvh text-[#191c1e] lg:grid lg:grid-cols-[260px_1fr]"
+      style={{ backgroundColor: dashboardCanvasColor }}
+    >
       <DashboardSidebar />
       <main className="min-w-0 px-4 py-4 sm:px-6 lg:px-8">
         <DashboardTopbar user={formatDashboardUser(user)} />

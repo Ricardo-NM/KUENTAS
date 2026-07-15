@@ -1,5 +1,6 @@
 export const dashboardSurfaceColor = "#f7f9fb";
-export const dashboardCanvasColor = "#eceef0";
+export const dashboardCanvasColor = "#ffffff";
+export const dashboardSettingsPanelColor = "#f7f9fb";
 export const dashboardActiveIndicatorSweepTransition = {
   duration: 0.26,
   ease: "easeOut",

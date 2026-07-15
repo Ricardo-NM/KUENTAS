@@ -45,7 +45,7 @@ colors:
   tertiary-fixed-dim: '#cfc5ba'
   on-tertiary-fixed: '#1f1b14'
   on-tertiary-fixed-variant: '#4c463d'
-  background: '#f7f9fb'
+  background: '#ffffff'
   on-background: '#191c1e'
   surface-variant: '#e0e3e5'
 typography:
@@ -108,7 +108,7 @@ The palette is monochromatic and high-contrast, utilizing deep blacks against so
 
 - **Primario (Negro Intenso):** `#0D0D12`. Used for primary headings, call-to-action buttons, and active states. It provides the "anchor" for the interface.
 - **Secundario (Gris Pizarra):** `#64748B`. Used for supporting text, icons, and secondary labels to reduce visual noise.
-- **Superficie (Blanco y Gris Claro):** `#FFFFFF` for cards and `#F8FAFC` for the main canvas background. This creates a subtle "layered" effect.
+- **Superficie (Blanco y Gris Claro):** `#FFFFFF` for the main dashboard canvas and primary page background. Use `#F7F9FB` for internal setting/content panels that need separation from the canvas. This creates a subtle "layered" effect.
 - **Acento (Verde Éxito):** `#10B981`. Used sparingly for trend indicators, "in-stock" badges, and positive growth metrics.
 - **Borde (Gris Humo):** `#E2E8F0`. Ultra-thin lines to define structure without adding bulk.
 
@@ -132,8 +132,8 @@ A strict 8px-based spacing scale (4, 8, 16, 24, 32, 48, 64) ensures consistent a
 
 Hierarchy is established primarily through **Tonal Layers** rather than heavy shadows. 
 
-1. **Base Layer:** The background uses a subtle off-white (`#F8FAFC`).
-2. **Surface Layer:** Cards and containers are pure white (`#FFFFFF`) with a 1px solid border (`#E2E8F0`). 
+1. **Base Layer:** Dashboard pages use a pure white canvas (`#FFFFFF`).
+2. **Surface Layer:** Navigation cards and primary containers use soft off-white (`#F7F9FB`) with a 1px solid border (`#E2E8F0`). Internal settings/content panels also use `#F7F9FB` against the white page canvas.
 3. **Interactive Layer:** Active elements or modals may utilize a "High-Precision" shadow: `0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05)`.
 
 This creates a "flat-plus" appearance where depth is felt through contrast rather than artificial lighting effects.
@@ -150,7 +150,7 @@ The design system adopts a **Rounded** profile. This softens the high-contrast c
 ## Components
 
 - **Buttons:** Primary buttons are solid `#0D0D12` with white text. Secondary buttons use a ghost style with a `#E2E8F0` border.
-- **Cards:** White background, 16px padding, and 16px corner radius. Every card must have a 1px border to distinguish it from the background layer.
+- **Cards:** Primary cards use a soft off-white background, 16px padding, and 16px corner radius. Internal settings greeting/content cards use `#F7F9FB` against the white page canvas. Every card must have a 1px border to distinguish it from the background layer.
 - **Input Fields:** Minimalist design with a 1px border that thickens and darkens on focus. Use placeholder text in `#94A3B8`.
 - **Status Chips:** Small, condensed labels using `label-caps` typography. Background colors for chips should be high-transparency versions of the status color (e.g., Success is 10% opacity green).
 - **Data Visualizations:** Line charts use a 2px stroke width with smooth interpolation. Grid lines within charts must be faint (`#F1F5F9`) to keep the focus on the data trend.
