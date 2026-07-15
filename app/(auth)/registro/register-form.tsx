@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import {
   LockIcon,
   type LockIconHandle,
@@ -12,6 +12,12 @@ import {
   type UserIconHandle,
 } from "lucide-animated";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { getPasswordRequirements } from "@/lib/auth/password-requirements";
+import {
+  registerSuccessMessage,
+  registerSuccessRedirectDelayMs,
+} from "@/lib/auth/registration-feedback";
+import { AnimatedFormMessage } from "../animated-form-message";
 import { registerAction, type AuthActionState } from "../actions";
 
 const inputBaseClass =
@@ -105,28 +111,7 @@ export function RegisterForm() {
     repeatPasswordTouched && repeatPassword !== password;
 
   const passwordRequirements = useMemo(
-    () => [
-      {
-        label: "Al menos una letra mayúscula",
-        isMet: /[A-ZÁÉÍÓÚÑ]/.test(password),
-      },
-      {
-        label: "Al menos un número",
-        isMet: /\d/.test(password),
-      },
-      {
-        label: "Al menos 8 caracteres",
-        isMet: password.length >= 8,
-      },
-      {
-        label: "Al menos un carácter especial",
-        isMet: /[^A-Za-z0-9ÁÉÍÓÚáéíóúÑñ]/.test(password),
-      },
-      {
-        label: "Sin espacios",
-        isMet: password.length > 0 && !/\s/.test(password),
-      },
-    ],
+    () => getPasswordRequirements(password),
     [password],
   );
 
@@ -150,7 +135,7 @@ export function RegisterForm() {
 
     const timeout = window.setTimeout(() => {
       router.push("/login");
-    }, 3000);
+    }, registerSuccessRedirectDelayMs);
 
     return () => window.clearTimeout(timeout);
   }, [router, state.status]);
@@ -232,14 +217,14 @@ export function RegisterForm() {
             </div>
           </div>
 
-          <div className="auth-form-reveal auth-form-delay-3 space-y-2">
+          <div className="auth-form-reveal auth-form-delay-3">
             <label
               htmlFor="registerEmail"
               className="text-sm font-semibold text-[#eff1f3]"
             >
               Correo electrónico
             </label>
-            <div className="relative">
+            <div className="relative mt-2">
               <input
                 id="registerEmail"
                 name="email"
@@ -269,16 +254,16 @@ export function RegisterForm() {
                 className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#d0e1fb]"
               />
             </div>
-            <p
+            <AnimatedFormMessage
               id="registerEmail-error"
-              className={`text-xs font-medium text-[#ff453a] transition duration-200 ${
+              message={
                 showEmailError
-                  ? "translate-y-0 opacity-100"
-                  : "-translate-y-1 opacity-0"
-              }`}
-            >
-              {serverEmailError ?? "Ingresa un correo electrónico válido."}
-            </p>
+                  ? serverEmailError ?? "Ingresa un correo electrónico válido."
+                  : undefined
+              }
+              tone="error"
+              spacingClassName="pt-2"
+            />
           </div>
 
           <div className="auth-form-reveal auth-form-delay-4 space-y-2">
@@ -328,14 +313,14 @@ export function RegisterForm() {
             </ul>
           </div>
 
-          <div className="auth-form-reveal auth-form-delay-5 space-y-2">
+          <div className="auth-form-reveal auth-form-delay-5">
             <label
               htmlFor="repeatPassword"
               className="text-sm font-semibold text-[#eff1f3]"
             >
               Repetir contraseña
             </label>
-            <div className="relative">
+            <div className="relative mt-2">
               <input
                 id="repeatPassword"
                 name="repeatPassword"
@@ -378,28 +363,41 @@ export function RegisterForm() {
                 onClick={() => setShowRepeatPassword((current) => !current)}
               />
             </div>
-            <p
+            <AnimatedFormMessage
               id="repeatPassword-error"
-              className={`text-xs font-medium text-[#ff453a] transition duration-200 ${
+              message={
                 repeatPasswordDoesNotMatch
-                  ? "translate-y-0 opacity-100"
-                  : "-translate-y-1 opacity-0"
-              }`}
-            >
-              Las contraseñas no coinciden.
-            </p>
+                  ? "Las contraseñas no coinciden."
+                  : undefined
+              }
+              tone="error"
+              spacingClassName="pt-2"
+            />
           </div>
         </div>
 
-        {serverGeneralError ? (
-          <p className="mt-4 text-center text-sm font-semibold text-[#ff453a]">
-            {serverGeneralError}
-          </p>
-        ) : null}
+        <AnimatedFormMessage
+          message={serverGeneralError}
+          tone="error"
+          align="center"
+          spacingClassName="pt-4"
+          textClassName="text-sm font-semibold"
+        />
+
+        <AnimatedFormMessage
+          message={
+            state.status === "success" ? registerSuccessMessage : undefined
+          }
+          tone="success"
+          align="center"
+          spacingClassName="pt-4"
+          textClassName="text-sm font-semibold"
+          role="status"
+        />
 
         <button
           type="submit"
-          disabled={isPending || !canSubmit}
+          disabled={isPending || !canSubmit || state.status === "success"}
           className="auth-form-reveal auth-form-delay-6 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
         >
           {isPending ? "Creando cuenta..." : "Crear cuenta"}
@@ -416,23 +414,6 @@ export function RegisterForm() {
           Iniciar sesión
         </Link>
       </form>
-
-      {state.status === "success" ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed inset-0 z-50 grid place-items-center bg-black/55 px-6 backdrop-blur-sm"
-        >
-          <div className="grid w-full max-w-sm justify-items-center gap-4 rounded-2xl border border-white/12 bg-white/10 px-8 py-9 text-center shadow-[0_24px_70px_rgb(0_0_0/0.4)]">
-            <div className="grid size-16 place-items-center rounded-full bg-[#06b747]">
-              <Check aria-hidden="true" className="size-9 text-white" />
-            </div>
-            <p className="text-base font-bold text-white">
-              Cuenta creada correctamente
-            </p>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }

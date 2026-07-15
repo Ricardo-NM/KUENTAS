@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/validation";
 
 const mocks = vi.hoisted(() => ({
+  headers: vi.fn(),
   userCreate: vi.fn(),
   userFindUnique: vi.fn(),
   hashPassword: vi.fn(),
@@ -17,6 +18,10 @@ const mocks = vi.hoisted(() => ({
   clearFailedLoginAttempts: vi.fn(),
   isLoginBlocked: vi.fn(),
   recordFailedLoginAttempt: vi.fn(),
+}));
+
+vi.mock("next/headers", () => ({
+  headers: mocks.headers,
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -39,6 +44,10 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("@/lib/auth/rate-limit", () => ({
   clearFailedLoginAttempts: mocks.clearFailedLoginAttempts,
+  getClientIpFromHeaders: (headersList) =>
+    headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown",
+  hashClientIp: () =>
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   isLoginBlocked: mocks.isLoginBlocked,
   recordFailedLoginAttempt: mocks.recordFailedLoginAttempt,
 }));
@@ -63,6 +72,11 @@ describe("auth actions", () => {
       expiresAt: new Date("2030-01-01T00:00:00.000Z"),
     });
     mocks.isLoginBlocked.mockResolvedValue(false);
+    mocks.headers.mockResolvedValue(
+      new Headers({
+        "x-forwarded-for": "203.0.113.10",
+      }),
+    );
   });
 
   it("does not create users when registration input is invalid", async () => {
@@ -119,6 +133,7 @@ describe("auth actions", () => {
     });
     expect(mocks.recordFailedLoginAttempt).toHaveBeenCalledWith(
       "missing@example.com",
+      expect.stringMatching(/^[a-f0-9]{64}$/),
     );
     expect(mocks.createSession).not.toHaveBeenCalled();
   });
@@ -138,6 +153,10 @@ describe("auth actions", () => {
       status: "error",
       message: tooManyLoginAttemptsMessage,
     });
+    expect(mocks.isLoginBlocked).toHaveBeenCalledWith(
+      "blocked@example.com",
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+    );
     expect(mocks.userFindUnique).not.toHaveBeenCalled();
     expect(mocks.verifyPassword).not.toHaveBeenCalled();
     expect(mocks.recordFailedLoginAttempt).not.toHaveBeenCalled();
@@ -166,6 +185,7 @@ describe("auth actions", () => {
     expect(mocks.createSession).toHaveBeenCalledWith("user_123", true);
     expect(mocks.clearFailedLoginAttempts).toHaveBeenCalledWith(
       "user@example.com",
+      expect.stringMatching(/^[a-f0-9]{64}$/),
     );
   });
 });

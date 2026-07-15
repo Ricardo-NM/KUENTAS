@@ -49,5 +49,24 @@ export const loginSchema = z.object({
     .transform((value) => value === "on" || value === "true" || value === true),
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: emailSchema,
+});
+
+export const passwordResetSchema = z
+  .object({
+    token: z.string().trim().min(1, "El enlace de recuperación no es válido."),
+    password: passwordSchema,
+    repeatPassword: z.string(),
+  })
+  .refine((value) => value.password === value.repeatPassword, {
+    path: ["repeatPassword"],
+    message: "Las contraseñas no coinciden.",
+  });
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type PasswordResetRequestInput = z.infer<
+  typeof passwordResetRequestSchema
+>;
+export type PasswordResetInput = z.infer<typeof passwordResetSchema>;

@@ -5,6 +5,8 @@ import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import {
   clearFailedLoginAttempts,
+  getClientIpFromHeaders,
+  hashClientIp,
   isLoginBlocked,
   recordFailedLoginAttempt,
 } from "@/lib/auth/rate-limit";
@@ -14,6 +16,7 @@ import {
   registerSchema,
   tooManyLoginAttemptsMessage,
 } from "@/lib/auth/validation";
+import { headers } from "next/headers";
 
 export type AuthActionState =
   | {
@@ -114,8 +117,10 @@ export async function loginAction(
   }
 
   const { email, password, remember } = parsedInput.data;
+  const requestHeaders = await headers();
+  const ipHash = hashClientIp(getClientIpFromHeaders(requestHeaders));
 
-  if (await isLoginBlocked(email)) {
+  if (await isLoginBlocked(email, ipHash)) {
     return {
       status: "error",
       message: tooManyLoginAttemptsMessage,
@@ -133,7 +138,7 @@ export async function loginAction(
   });
 
   if (!user) {
-    await recordFailedLoginAttempt(email);
+    await recordFailedLoginAttempt(email, ipHash);
 
     return {
       status: "error",
@@ -147,7 +152,7 @@ export async function loginAction(
   );
 
   if (!passwordMatches) {
-    await recordFailedLoginAttempt(email);
+    await recordFailedLoginAttempt(email, ipHash);
 
     return {
       status: "error",
@@ -155,7 +160,7 @@ export async function loginAction(
     };
   }
 
-  await clearFailedLoginAttempts(email);
+  await clearFailedLoginAttempts(email, ipHash);
   await createSession(user.id, remember);
 
   return {

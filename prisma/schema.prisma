@@ -7,14 +7,15 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  firstName    String
-  lastName     String
-  passwordHash String
-  sessions     Session[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  firstName           String
+  lastName            String
+  passwordHash        String
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model Session {
@@ -31,11 +32,31 @@ model Session {
 
 model LoginAttempt {
   id           String    @id @default(cuid())
-  email        String    @unique
+  key          String    @unique
+  email        String?
+  ipHash       String?
+  scope        String
   failedCount  Int       @default(0)
   blockedUntil DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  @@index([email])
+  @@index([ipHash])
+  @@index([scope])
   @@index([blockedUntil])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
 }

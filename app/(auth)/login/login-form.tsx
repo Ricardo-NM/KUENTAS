@@ -10,6 +10,7 @@ import {
   type MailCheckIconHandle,
 } from "lucide-animated";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { AnimatedFormMessage } from "../animated-form-message";
 import { loginAction, type AuthActionState } from "../actions";
 
 const inputBaseClass =
@@ -174,23 +175,21 @@ export function LoginForm() {
           />
           <span>Recordar</span>
         </label>
-        <button
-          type="button"
-          className="min-h-11 text-right font-medium text-[#d0e1fb] transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb]"
+        <Link
+          href="/recuperacion"
+          className="inline-flex min-h-11 items-center text-right font-medium text-[#d0e1fb] transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb]"
         >
           ¿Olvidaste tu contraseña?
-        </button>
+        </Link>
       </div>
 
-      <p
+      <AnimatedFormMessage
         id="login-error"
-        className={`mt-3 min-h-4 text-center text-xs font-medium text-[#ff453a] transition duration-200 ${
-          loginMessage ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
-        }`}
-        aria-live="polite"
-      >
-        {loginMessage ?? " "}
-      </p>
+        message={loginMessage}
+        tone="error"
+        align="center"
+        spacingClassName="pt-3"
+      />
 
       <button
         type="submit"
