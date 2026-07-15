@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { createPortal } from "react-dom";
 import {
   KeyIcon,
   type KeyIconHandle,
@@ -10,7 +12,7 @@ import {
   MailCheckIcon,
   type MailCheckIconHandle,
 } from "lucide-animated";
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getPasswordRequirements,
@@ -90,6 +92,90 @@ function RequirementItem({ isMet, label }: { isMet: boolean; label: string }) {
   );
 }
 
+function useRemainingSeconds(until?: string) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!until) {
+      return;
+    }
+
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+
+    return () => window.clearInterval(interval);
+  }, [until]);
+
+  return until
+    ? Math.max(0, Math.ceil((new Date(until).getTime() - now) / 1000))
+    : 0;
+}
+
+function RecoveryNoticeModal({
+  isOpen,
+  title,
+  body,
+  actionLabel,
+  onClose,
+}: {
+  isOpen: boolean;
+  title: string;
+  body: string;
+  actionLabel: string;
+  onClose: () => void;
+}) {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen ? (
+        <motion.div
+          role="presentation"
+          className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16, ease: "easeOut" }}
+        >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="recovery-notice-title"
+            aria-describedby="recovery-notice-description"
+            className="w-full max-w-sm rounded-2xl border border-white/14 bg-[#eff1f3] p-6 text-[#0b1c30] shadow-[0_24px_70px_rgb(0_0_0/0.36)]"
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            <h2
+              id="recovery-notice-title"
+              className="font-heading text-xl font-bold leading-7"
+            >
+              {title}
+            </h2>
+            <p
+              id="recovery-notice-description"
+              className="mt-3 text-sm leading-6 text-[#38485d]"
+            >
+              {body}
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-5 inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-lg bg-[#0d0d12] px-4 text-sm font-bold text-white transition hover:bg-[#1b1b20] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d0d12]"
+            >
+              {actionLabel}
+            </button>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
 function RequestResetForm() {
   const { i18n, t } = useTranslation();
   const [state, formAction, isPending] = useActionState(
@@ -102,15 +188,33 @@ function RequestResetForm() {
   const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const emailError = state.errors?.email?.[0];
   const showEmailError = (emailTouched && !emailIsValid) || Boolean(emailError);
+  const remainingSeconds = useRemainingSeconds(state.cooldownUntil);
+  const cooldownIsActive = remainingSeconds > 0;
+  const [closedModalSignature, setClosedModalSignature] = useState("");
+  const modalSignature = [
+    state.modalMessageKey,
+    state.email,
+    state.cooldownUntil,
+  ].join(":");
+  const shouldShowModal = Boolean(
+    state.modalMessageKey && closedModalSignature !== modalSignature,
+  );
   const formMessage =
     state.status === "error"
-      ? state.messageKey
-        ? t(state.messageKey)
-        : state.message
+      ? state.messageKey === "validation.resetEmailCooldown"
+        ? undefined
+        : state.messageKey
+          ? t(state.messageKey, { seconds: remainingSeconds })
+          : state.message
       : undefined;
 
   if (state.step === "verify" && state.email) {
-    return <VerifyCodeForm email={state.email} />;
+    return (
+      <VerifyCodeForm
+        email={state.email}
+        initialModalMessageKey={state.modalMessageKey}
+      />
+    );
   }
 
   return (
@@ -192,10 +296,14 @@ function RequestResetForm() {
 
       <button
         type="submit"
-        disabled={isPending || !emailIsValid}
+        disabled={isPending || !emailIsValid || cooldownIsActive}
         className="auth-form-reveal auth-form-delay-3 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
       >
-        {isPending ? t("recovery.submittingRequest") : t("recovery.sendCode")}
+        {isPending
+          ? t("recovery.submittingRequest")
+          : cooldownIsActive
+            ? t("recovery.cooldownButton", { seconds: remainingSeconds })
+            : t("recovery.sendCode")}
       </button>
 
       <Link
@@ -204,11 +312,27 @@ function RequestResetForm() {
       >
         {t("recovery.backToLogin")}
       </Link>
+      <RecoveryNoticeModal
+        isOpen={shouldShowModal}
+        title={t("recovery.requestNoticeTitle")}
+        body={t(state.modalMessageKey ?? "recovery.requestNoticeBody", {
+          email: state.email ?? email,
+          seconds: remainingSeconds,
+        })}
+        actionLabel={t("recovery.requestNoticeAction")}
+        onClose={() => setClosedModalSignature(modalSignature)}
+      />
     </form>
   );
 }
 
-function VerifyCodeForm({ email }: { email: string }) {
+function VerifyCodeForm({
+  email,
+  initialModalMessageKey,
+}: {
+  email: string;
+  initialModalMessageKey?: string;
+}) {
   const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(
     verifyPasswordResetCodeAction,
@@ -223,6 +347,9 @@ function VerifyCodeForm({ email }: { email: string }) {
   const normalizedCode = code.replace(/\D/g, "").slice(0, 6);
   const codeIsValid = normalizedCode.length === 6;
   const codeError = state.errors?.code?.[0];
+  const [showInitialNotice, setShowInitialNotice] = useState(
+    Boolean(initialModalMessageKey),
+  );
   const formMessage =
     state.status === "error"
       ? state.messageKey
@@ -248,9 +375,13 @@ function VerifyCodeForm({ email }: { email: string }) {
         {t("recovery.verificationTitle")}
       </h1>
 
+      <p className="auth-form-reveal auth-form-delay-2 mt-3 rounded-lg border border-white/14 bg-white/8 px-4 py-3 text-sm font-medium leading-6 text-[#eff1f3]">
+        {t("recovery.codeSentMessage", { email })}
+      </p>
+
       <input type="hidden" name="email" value={email} />
 
-      <div className="auth-form-reveal auth-form-delay-2 mt-7">
+      <div className="auth-form-reveal auth-form-delay-2 mt-5">
         <label
           htmlFor="verificationCode"
           className="text-sm font-semibold text-[#eff1f3]"
@@ -314,6 +445,15 @@ function VerifyCodeForm({ email }: { email: string }) {
       >
         {t("recovery.backToLogin")}
       </Link>
+      <RecoveryNoticeModal
+        isOpen={showInitialNotice && Boolean(initialModalMessageKey)}
+        title={t("recovery.verificationTitle")}
+        body={t(initialModalMessageKey ?? "recovery.codeSentMessage", {
+          email,
+        })}
+        actionLabel={t("recovery.requestNoticeAction")}
+        onClose={() => setShowInitialNotice(false)}
+      />
     </form>
   );
 }

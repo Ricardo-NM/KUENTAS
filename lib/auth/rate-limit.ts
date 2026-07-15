@@ -3,6 +3,7 @@ import { getPrisma } from "@/lib/prisma";
 
 export const maxFailedLoginAttempts = 5;
 export const failedLoginBlockMs = 15 * 60 * 1000;
+export const passwordRecoveryEmailCooldownMs = 60 * 1000;
 
 type LoginAttemptState = {
   failedCount: number;
@@ -13,7 +14,13 @@ type LoginRateLimitTarget = {
   key: string;
   email: string | null;
   ipHash: string | null;
-  scope: "email" | "ip" | "email_ip";
+  scope:
+    | "email"
+    | "ip"
+    | "email_ip"
+    | "password_reset_email"
+    | "password_reset_ip"
+    | "password_reset_email_ip";
 };
 
 function getRateLimitSecret() {
@@ -73,6 +80,32 @@ export function getLoginRateLimitTargets(
       email,
       ipHash,
       scope: "email_ip",
+    },
+  ];
+}
+
+export function getPasswordRecoveryRateLimitTargets(
+  email: string,
+  ipHash: string,
+): LoginRateLimitTarget[] {
+  return [
+    {
+      key: `password-reset:email:${email}`,
+      email,
+      ipHash: null,
+      scope: "password_reset_email",
+    },
+    {
+      key: `password-reset:ip:${ipHash}`,
+      email: null,
+      ipHash,
+      scope: "password_reset_ip",
+    },
+    {
+      key: `password-reset:email-ip:${email}:${ipHash}`,
+      email,
+      ipHash,
+      scope: "password_reset_email_ip",
     },
   ];
 }
@@ -183,4 +216,90 @@ export async function clearFailedLoginAttempts(email: string, ipHash: string) {
       },
     },
   });
+}
+
+export async function getPasswordRecoveryEmailCooldown(
+  email: string,
+  ipHash: string,
+) {
+  const prisma = getPrisma();
+  const targets = getPasswordRecoveryRateLimitTargets(email, ipHash);
+  const attempts = await prisma.loginAttempt.findMany({
+    where: {
+      key: {
+        in: targets.map((target) => target.key),
+      },
+    },
+    select: {
+      key: true,
+      blockedUntil: true,
+    },
+  });
+  const activeCooldowns = attempts.filter((attempt) =>
+    isBlockedLoginAttempt(attempt),
+  );
+
+  if (activeCooldowns.length > 0) {
+    return activeCooldowns.reduce<Date | null>((latest, attempt) => {
+      if (!attempt.blockedUntil) {
+        return latest;
+      }
+
+      return !latest || attempt.blockedUntil > latest
+        ? attempt.blockedUntil
+        : latest;
+    }, null);
+  }
+
+  const expiredCooldownKeys = attempts
+    .filter((attempt) => attempt.blockedUntil)
+    .map((attempt) => attempt.key);
+
+  if (expiredCooldownKeys.length > 0) {
+    await prisma.loginAttempt.deleteMany({
+      where: {
+        key: {
+          in: expiredCooldownKeys,
+        },
+      },
+    });
+  }
+
+  return null;
+}
+
+export async function recordPasswordRecoveryEmailAttempt(
+  email: string,
+  ipHash: string,
+  now = new Date(),
+) {
+  const prisma = getPrisma();
+  const targets = getPasswordRecoveryRateLimitTargets(email, ipHash);
+  const blockedUntil = new Date(
+    now.getTime() + passwordRecoveryEmailCooldownMs,
+  );
+
+  await Promise.all(
+    targets.map((target) =>
+      prisma.loginAttempt.upsert({
+        where: {
+          key: target.key,
+        },
+        create: {
+          key: target.key,
+          email: target.email,
+          ipHash: target.ipHash,
+          scope: target.scope,
+          failedCount: 0,
+          blockedUntil,
+        },
+        update: {
+          failedCount: 0,
+          blockedUntil,
+        },
+      }),
+    ),
+  );
+
+  return blockedUntil;
 }

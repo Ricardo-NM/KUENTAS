@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -38,16 +39,15 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", plusJakarta.variable, inter.variable, jetBrainsMono.variable, "font-sans", geist.variable)}
       suppressHydrationWarning
     >
-      <head>
-        <script
-          suppressHydrationWarning
+      <body className="min-h-full flex flex-col">
+        <I18nProvider>{children}</I18nProvider>
+        <Script
+          id="dashboard-theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: getDashboardThemeInitScript(),
           }}
         />
-      </head>
-      <body className="min-h-full flex flex-col">
-        <I18nProvider>{children}</I18nProvider>
       </body>
     </html>
   );

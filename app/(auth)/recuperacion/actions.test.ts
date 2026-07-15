@@ -7,6 +7,7 @@ import {
 
 const mocks = vi.hoisted(() => ({
   cookies: vi.fn(),
+  headers: vi.fn(),
   cookieGet: vi.fn(),
   cookieSet: vi.fn(),
   userFindUnique: vi.fn(),
@@ -20,10 +21,15 @@ const mocks = vi.hoisted(() => ({
   hashPassword: vi.fn(),
   redirect: vi.fn(),
   sendPasswordResetCodeEmail: vi.fn(),
+  getClientIpFromHeaders: vi.fn(),
+  getPasswordRecoveryEmailCooldown: vi.fn(),
+  hashClientIp: vi.fn(),
+  recordPasswordRecoveryEmailAttempt: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
   cookies: mocks.cookies,
+  headers: mocks.headers,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -48,6 +54,13 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/auth/password", () => ({
   hashPassword: mocks.hashPassword,
+}));
+
+vi.mock("@/lib/auth/rate-limit", () => ({
+  getClientIpFromHeaders: mocks.getClientIpFromHeaders,
+  getPasswordRecoveryEmailCooldown: mocks.getPasswordRecoveryEmailCooldown,
+  hashClientIp: mocks.hashClientIp,
+  recordPasswordRecoveryEmailAttempt: mocks.recordPasswordRecoveryEmailAttempt,
 }));
 
 vi.mock("@/lib/auth/password-reset", () => ({
@@ -79,6 +92,13 @@ describe("password recovery actions", () => {
       get: mocks.cookieGet,
       set: mocks.cookieSet,
     });
+    mocks.headers.mockResolvedValue(new Headers());
+    mocks.getClientIpFromHeaders.mockReturnValue("203.0.113.10");
+    mocks.hashClientIp.mockReturnValue("iphash");
+    mocks.getPasswordRecoveryEmailCooldown.mockResolvedValue(null);
+    mocks.recordPasswordRecoveryEmailAttempt.mockResolvedValue(
+      new Date("2030-01-01T00:01:00.000Z"),
+    );
     mocks.createPasswordResetOtp.mockResolvedValue({
       code: "123456",
       expiresAt: new Date("2030-01-01T00:10:00.000Z"),
@@ -91,7 +111,7 @@ describe("password recovery actions", () => {
     });
   });
 
-  it("shows the verification step when requesting reset for an unknown email", async () => {
+  it("shows a generic notice and stays on request step for an unknown email", async () => {
     mocks.userFindUnique.mockResolvedValue(null);
 
     const result = await requestPasswordResetAction(
@@ -103,11 +123,17 @@ describe("password recovery actions", () => {
 
     expect(result).toMatchObject({
       status: "success",
-      step: "verify",
+      step: "request",
       email: "missing@example.com",
+      cooldownUntil: "2030-01-01T00:01:00.000Z",
+      modalMessageKey: "recovery.requestNoticeBody",
     });
     expect(mocks.createPasswordResetOtp).not.toHaveBeenCalled();
     expect(mocks.sendPasswordResetCodeEmail).not.toHaveBeenCalled();
+    expect(mocks.recordPasswordRecoveryEmailAttempt).toHaveBeenCalledWith(
+      "missing@example.com",
+      "iphash",
+    );
   });
 
   it("creates and emails an OTP for an existing user", async () => {
@@ -128,6 +154,7 @@ describe("password recovery actions", () => {
       status: "success",
       step: "verify",
       email: "user@example.com",
+      modalMessageKey: "recovery.codeSentMessage",
     });
     expect(mocks.createPasswordResetOtp).toHaveBeenCalledWith("user_123");
     expect(mocks.sendPasswordResetCodeEmail).toHaveBeenCalledWith({
@@ -136,6 +163,34 @@ describe("password recovery actions", () => {
       expiresAt: new Date("2030-01-01T00:10:00.000Z"),
       language: "en",
     });
+    expect(mocks.recordPasswordRecoveryEmailAttempt).toHaveBeenCalledWith(
+      "user@example.com",
+      "iphash",
+    );
+  });
+
+  it("blocks password reset email requests during an active cooldown", async () => {
+    mocks.getPasswordRecoveryEmailCooldown.mockResolvedValue(
+      new Date("2030-01-01T00:01:00.000Z"),
+    );
+
+    const result = await requestPasswordResetAction(
+      undefined,
+      formData({
+        email: "user@example.com",
+      }),
+    );
+
+    expect(result).toMatchObject({
+      status: "error",
+      step: "request",
+      email: "user@example.com",
+      cooldownUntil: "2030-01-01T00:01:00.000Z",
+      messageKey: "validation.resetEmailCooldown",
+      modalMessageKey: "recovery.requestNoticeBody",
+    });
+    expect(mocks.userFindUnique).not.toHaveBeenCalled();
+    expect(mocks.sendPasswordResetCodeEmail).not.toHaveBeenCalled();
   });
 
   it("verifies an OTP and stores a short lived reset session cookie", async () => {

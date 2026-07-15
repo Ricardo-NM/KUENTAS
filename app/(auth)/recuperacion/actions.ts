@@ -1,9 +1,15 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPrisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
+import {
+  getClientIpFromHeaders,
+  getPasswordRecoveryEmailCooldown,
+  hashClientIp,
+  recordPasswordRecoveryEmailAttempt,
+} from "@/lib/auth/rate-limit";
 import {
   createPasswordResetOtp,
   createPasswordResetSessionValue,
@@ -24,6 +30,8 @@ export type RecoveryActionState = {
   email?: string;
   message?: string;
   messageKey?: string;
+  modalMessageKey?: string;
+  cooldownUntil?: string;
   errors?: Record<string, string[] | undefined>;
 };
 
@@ -72,6 +80,24 @@ export async function requestPasswordResetAction(
     };
   }
 
+  const requestHeaders = await headers();
+  const ipHash = hashClientIp(getClientIpFromHeaders(requestHeaders));
+  const cooldownUntil = await getPasswordRecoveryEmailCooldown(
+    parsedInput.data.email,
+    ipHash,
+  );
+
+  if (cooldownUntil) {
+    return {
+      status: "error",
+      step: "request",
+      email: parsedInput.data.email,
+      cooldownUntil: cooldownUntil.toISOString(),
+      messageKey: "validation.resetEmailCooldown",
+      modalMessageKey: "recovery.requestNoticeBody",
+    };
+  }
+
   const user = await getPrisma().user.findUnique({
     where: {
       email: parsedInput.data.email,
@@ -83,10 +109,17 @@ export async function requestPasswordResetAction(
   });
 
   if (!user) {
+    const nextCooldownUntil = await recordPasswordRecoveryEmailAttempt(
+      parsedInput.data.email,
+      ipHash,
+    );
+
     return {
       status: "success",
-      step: "verify",
+      step: "request",
       email: parsedInput.data.email,
+      cooldownUntil: nextCooldownUntil.toISOString(),
+      modalMessageKey: "recovery.requestNoticeBody",
     };
   }
 
@@ -99,6 +132,7 @@ export async function requestPasswordResetAction(
       expiresAt: resetOtp.expiresAt,
       language,
     });
+    await recordPasswordRecoveryEmailAttempt(parsedInput.data.email, ipHash);
   } catch {
     return {
       status: "error",
@@ -113,6 +147,7 @@ export async function requestPasswordResetAction(
     status: "success",
     step: "verify",
     email: parsedInput.data.email,
+    modalMessageKey: "recovery.codeSentMessage",
   };
 }
 

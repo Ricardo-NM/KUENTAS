@@ -5,6 +5,7 @@ import {
   getClientIpFromHeaders,
   getLoginRateLimitTargets,
   getNextFailedLoginState,
+  getPasswordRecoveryRateLimitTargets,
   hashClientIp,
   isBlockedLoginAttempt,
 } from "./rate-limit";
@@ -104,6 +105,31 @@ describe("login rate limit", () => {
         email: "user@example.com",
         ipHash: "iphash",
         scope: "email_ip",
+      },
+    ]);
+  });
+
+  it("builds password recovery cooldown targets for email, IP, and email plus IP", () => {
+    expect(
+      getPasswordRecoveryRateLimitTargets("user@example.com", "iphash"),
+    ).toEqual([
+      {
+        key: "password-reset:email:user@example.com",
+        email: "user@example.com",
+        ipHash: null,
+        scope: "password_reset_email",
+      },
+      {
+        key: "password-reset:ip:iphash",
+        email: null,
+        ipHash: "iphash",
+        scope: "password_reset_ip",
+      },
+      {
+        key: "password-reset:email-ip:user@example.com:iphash",
+        email: "user@example.com",
+        ipHash: "iphash",
+        scope: "password_reset_email_ip",
       },
     ]);
   });

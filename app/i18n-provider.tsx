@@ -7,7 +7,6 @@ import {
   defaultLanguage,
   getInitialLanguage,
   applyTranslationResources,
-  languageStorageKey,
   persistLanguage,
   resources,
   type SupportedLanguage,
@@ -16,15 +15,15 @@ import {
 function setupI18n() {
   if (i18n.isInitialized) {
     applyTranslationResources(i18n);
+    if (i18n.language !== defaultLanguage) {
+      i18n.changeLanguage(defaultLanguage);
+    }
     return i18n;
   }
 
   i18n.use(initReactI18next).init({
     resources,
-    lng:
-      typeof window === "undefined"
-        ? defaultLanguage
-        : getInitialLanguage(window.localStorage),
+    lng: defaultLanguage,
     fallbackLng: defaultLanguage,
     interpolation: {
       escapeValue: false,
@@ -55,7 +54,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, [instance]);
 
   useEffect(() => {
-    const storedLanguage = window.localStorage.getItem(languageStorageKey);
+    const storedLanguage = getInitialLanguage(window.localStorage);
 
     if (storedLanguage && storedLanguage !== instance.language) {
       instance.changeLanguage(storedLanguage);
