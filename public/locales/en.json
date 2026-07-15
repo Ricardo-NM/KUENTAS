@@ -134,6 +134,7 @@
             "closeAllBody": "All sessions except this one will be signed out. Other devices will need to log in again.",
             "cancel": "Cancel",
             "confirm": "Sign out",
+            "confirmAll": "Sign out sessions",
             "closing": "Signing out..."
           },
           "feedback": {

@@ -148,6 +148,10 @@ describe("i18n resources", () => {
     ).toBe("Cerrar sesión");
     expect(
       resources.es.translation.dashboard.settings.security.recentActivity
+        .confirm.confirmAll,
+    ).toBe("Cerrar sesiones");
+    expect(
+      resources.es.translation.dashboard.settings.security.recentActivity
         .feedback.closedAll,
     ).toBe("Todas las demás sesiones fueron cerradas.");
     expect(
@@ -215,6 +219,10 @@ describe("i18n resources", () => {
       resources.en.translation.dashboard.settings.security.recentActivity
         .confirm.confirm,
     ).toBe("Sign out");
+    expect(
+      resources.en.translation.dashboard.settings.security.recentActivity
+        .confirm.confirmAll,
+    ).toBe("Sign out sessions");
     expect(
       resources.en.translation.dashboard.settings.security.recentActivity
         .feedback.closedAll,

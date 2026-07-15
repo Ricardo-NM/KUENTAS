@@ -1445,9 +1445,14 @@ function ConfiguracionSecurityPanel({
                         },
                       )
                     : t(
-                        "dashboard.settings.security.recentActivity.confirm.confirm",
+                        confirmation.type === "all"
+                          ? "dashboard.settings.security.recentActivity.confirm.confirmAll"
+                          : "dashboard.settings.security.recentActivity.confirm.confirm",
                         {
-                          defaultValue: fallbackCopy.securityConfirmAction,
+                          defaultValue:
+                            confirmation.type === "all"
+                              ? fallbackCopy.securityConfirmAllAction
+                              : fallbackCopy.securityConfirmAction,
                         },
                       )}
                 </button>

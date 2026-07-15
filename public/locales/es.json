@@ -134,6 +134,7 @@
             "closeAllBody": "Se cerrarán todas las sesiones excepto esta. Los demás dispositivos tendrán que volver a iniciar sesión.",
             "cancel": "Cancelar",
             "confirm": "Cerrar sesión",
+            "confirmAll": "Cerrar sesiones",
             "closing": "Cerrando..."
           },
           "feedback": {
