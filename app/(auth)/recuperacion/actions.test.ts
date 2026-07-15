@@ -91,6 +91,7 @@ describe("password recovery actions", () => {
 
     expect(result.status).toBe("success");
     expect(result.message).toContain("Si el correo existe");
+    expect(result.messageKey).toBe("validation.resetRequestSuccess");
     expect(mocks.createPasswordResetToken).not.toHaveBeenCalled();
   });
 
@@ -108,6 +109,7 @@ describe("password recovery actions", () => {
     );
 
     expect(result.status).toBe("success");
+    expect(result.messageKey).toBe("validation.resetRequestSuccess");
     expect(mocks.createPasswordResetToken).toHaveBeenCalledWith("user_123");
     expect(result.devResetUrl).toBe(
       process.env.NODE_ENV === "production"

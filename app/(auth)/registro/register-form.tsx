@@ -12,9 +12,10 @@ import {
   type UserIconHandle,
 } from "lucide-animated";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getPasswordRequirements } from "@/lib/auth/password-requirements";
 import {
-  registerSuccessMessage,
+  registerSuccessMessageKey,
   registerSuccessRedirectDelayMs,
 } from "@/lib/auth/registration-feedback";
 import { AnimatedFormMessage } from "../animated-form-message";
@@ -87,6 +88,7 @@ function VisibilityButton({
 }
 
 export function RegisterForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     registerAction,
@@ -118,8 +120,14 @@ export function RegisterForm() {
   const passwordIsValid = passwordRequirements.every(
     (requirement) => requirement.isMet,
   );
-  const serverEmailError = state.errors?.email?.[0];
-  const serverGeneralError = state.message;
+  const serverEmailError =
+    state.messageKey === "validation.emailRegistered"
+      ? t(state.messageKey)
+      : state.errors?.email?.[0];
+  const serverGeneralError =
+    state.messageKey && state.messageKey !== "validation.emailRegistered"
+      ? t(state.messageKey)
+      : state.message;
   const showEmailError =
     (emailTouched && !emailIsValid) || Boolean(serverEmailError);
   const canSubmit =
@@ -155,7 +163,7 @@ export function RegisterForm() {
         className="auth-form-reveal mb-2 w-full rounded-2xl border border-white/12 bg-white/10 px-6 py-7 shadow-[0_24px_70px_rgb(0_0_0/0.32)] backdrop-blur-md sm:px-8 lg:mb-12"
       >
         <h1 className="auth-form-reveal auth-form-delay-1 font-heading text-2xl font-bold leading-8 text-white">
-          Crear cuenta
+          {t("register.title")}
         </h1>
 
         <div className="mt-6 space-y-4">
@@ -165,7 +173,7 @@ export function RegisterForm() {
                 htmlFor="firstName"
                 className="text-sm font-semibold text-[#eff1f3]"
               >
-                Nombre
+                {t("register.firstName")}
               </label>
               <div className="relative">
                 <input
@@ -173,7 +181,7 @@ export function RegisterForm() {
                   name="firstName"
                   type="text"
                   autoComplete="given-name"
-                  placeholder="Tu nombre"
+                  placeholder={t("register.firstNamePlaceholder")}
                   required
                   onFocus={() => firstNameIconRef.current?.startAnimation()}
                   onBlur={() => firstNameIconRef.current?.stopAnimation()}
@@ -193,7 +201,7 @@ export function RegisterForm() {
                 htmlFor="lastName"
                 className="text-sm font-semibold text-[#eff1f3]"
               >
-                Apellidos
+                {t("register.lastName")}
               </label>
               <div className="relative">
                 <input
@@ -201,7 +209,7 @@ export function RegisterForm() {
                   name="lastName"
                   type="text"
                   autoComplete="family-name"
-                  placeholder="Tus apellidos"
+                  placeholder={t("register.lastNamePlaceholder")}
                   required
                   onFocus={() => lastNameIconRef.current?.startAnimation()}
                   onBlur={() => lastNameIconRef.current?.stopAnimation()}
@@ -222,7 +230,7 @@ export function RegisterForm() {
               htmlFor="registerEmail"
               className="text-sm font-semibold text-[#eff1f3]"
             >
-              Correo electrónico
+              {t("common.email")}
             </label>
             <div className="relative mt-2">
               <input
@@ -230,7 +238,7 @@ export function RegisterForm() {
                 name="email"
                 type="email"
                 autoComplete="email"
-                placeholder="correo@kuentas.com"
+                placeholder={t("common.submitEmailPlaceholder")}
                 value={email}
                 required
                 aria-invalid={showEmailError}
@@ -258,7 +266,7 @@ export function RegisterForm() {
               id="registerEmail-error"
               message={
                 showEmailError
-                  ? serverEmailError ?? "Ingresa un correo electrónico válido."
+                  ? serverEmailError ?? t("validation.invalidEmail")
                   : undefined
               }
               tone="error"
@@ -271,7 +279,7 @@ export function RegisterForm() {
               htmlFor="registerPassword"
               className="text-sm font-semibold text-[#eff1f3]"
             >
-              Contraseña
+              {t("common.password")}
             </label>
             <div className="relative">
               <input
@@ -279,7 +287,7 @@ export function RegisterForm() {
                 name="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
-                placeholder="••••••••••••"
+                placeholder={t("common.passwordPlaceholder")}
                 value={password}
                 required
                 onChange={(event) => setPassword(event.target.value)}
@@ -296,7 +304,9 @@ export function RegisterForm() {
               <VisibilityButton
                 isVisible={showPassword}
                 label={
-                  showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  showPassword
+                    ? t("common.hidePassword")
+                    : t("common.showPassword")
                 }
                 onClick={() => setShowPassword((current) => !current)}
               />
@@ -305,9 +315,9 @@ export function RegisterForm() {
             <ul className="grid gap-2 pt-1 text-xs font-medium sm:grid-cols-2">
               {passwordRequirements.map((requirement) => (
                 <RequirementItem
-                  key={requirement.label}
+                  key={requirement.labelKey}
                   isMet={requirement.isMet}
-                  label={requirement.label}
+                  label={t(requirement.labelKey)}
                 />
               ))}
             </ul>
@@ -318,7 +328,7 @@ export function RegisterForm() {
               htmlFor="repeatPassword"
               className="text-sm font-semibold text-[#eff1f3]"
             >
-              Repetir contraseña
+              {t("register.repeatPassword")}
             </label>
             <div className="relative mt-2">
               <input
@@ -326,7 +336,7 @@ export function RegisterForm() {
                 name="repeatPassword"
                 type={showRepeatPassword ? "text" : "password"}
                 autoComplete="new-password"
-                placeholder="••••••••••••"
+                placeholder={t("common.passwordPlaceholder")}
                 value={repeatPassword}
                 required
                 aria-invalid={repeatPasswordDoesNotMatch}
@@ -357,8 +367,8 @@ export function RegisterForm() {
                 isVisible={showRepeatPassword}
                 label={
                   showRepeatPassword
-                    ? "Ocultar repetir contraseña"
-                    : "Mostrar repetir contraseña"
+                    ? t("register.hideRepeatPassword")
+                    : t("register.showRepeatPassword")
                 }
                 onClick={() => setShowRepeatPassword((current) => !current)}
               />
@@ -367,7 +377,7 @@ export function RegisterForm() {
               id="repeatPassword-error"
               message={
                 repeatPasswordDoesNotMatch
-                  ? "Las contraseñas no coinciden."
+                  ? t("validation.passwordMismatch")
                   : undefined
               }
               tone="error"
@@ -386,7 +396,7 @@ export function RegisterForm() {
 
         <AnimatedFormMessage
           message={
-            state.status === "success" ? registerSuccessMessage : undefined
+            state.status === "success" ? t(registerSuccessMessageKey) : undefined
           }
           tone="success"
           align="center"
@@ -400,18 +410,18 @@ export function RegisterForm() {
           disabled={isPending || !canSubmit || state.status === "success"}
           className="auth-form-reveal auth-form-delay-6 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
         >
-          {isPending ? "Creando cuenta..." : "Crear cuenta"}
+          {isPending ? t("register.submitting") : t("register.submit")}
         </button>
 
         <p className="auth-form-reveal auth-form-delay-7 mt-5 text-center text-xs font-medium text-[#eff1f3]/75">
-          ¿Ya tienes cuenta?
+          {t("register.alreadyAccount")}
         </p>
 
         <Link
           href="/login"
           className="auth-form-reveal auth-form-delay-7 mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-white/16 bg-white/8 px-5 text-sm font-bold text-white transition hover:bg-white/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb]"
         >
-          Iniciar sesión
+          {t("common.login")}
         </Link>
       </form>
     </>

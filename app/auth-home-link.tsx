@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { HomeIcon, type HomeIconHandle } from "lucide-animated";
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 export function HomeLink() {
+  const { t } = useTranslation();
   const homeIconRef = useRef<HomeIconHandle>(null);
 
   return (
     <Link
       href="/"
-      aria-label="Volver al inicio"
+      aria-label={t("home.aria")}
       onMouseEnter={() => homeIconRef.current?.startAnimation()}
       onMouseLeave={() => homeIconRef.current?.stopAnimation()}
       onFocus={() => homeIconRef.current?.startAnimation()}

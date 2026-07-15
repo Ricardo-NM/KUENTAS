@@ -1,0 +1,88 @@
+{
+  "common": {
+    "appName": "KUENTAS",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "submitEmailPlaceholder": "correo@kuentas.com",
+    "passwordPlaceholder": "••••••••",
+    "login": "Iniciar sesión"
+  },
+  "brand": {
+    "slogan": "Centraliza tus pagos y no pierdas detalle"
+  },
+  "home": {
+    "aria": "Volver al inicio",
+    "systemLabel": "Sistema de cuentas",
+    "loginCta": "Iniciar sesión",
+    "registerCta": "Registrarse"
+  },
+  "inicio": {
+    "title": "Aquí ira el inicio",
+    "logout": "Cerrar sesión",
+    "loggingOut": "Cerrando sesión..."
+  },
+  "language": {
+    "button": "Idioma",
+    "aria": "Cambiar idioma",
+    "menuLabel": "Seleccionar idioma",
+    "spanish": "Español",
+    "english": "Ingles"
+  },
+  "login": {
+    "title": "Inicia sesión",
+    "remember": "Recordar",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "submitting": "Iniciando sesión...",
+    "submit": "Iniciar sesión",
+    "noAccount": "¿No tienes cuenta?",
+    "register": "Registrarse"
+  },
+  "register": {
+    "title": "Crear cuenta",
+    "firstName": "Nombre",
+    "lastName": "Apellidos",
+    "firstNamePlaceholder": "Tu nombre",
+    "lastNamePlaceholder": "Tus apellidos",
+    "repeatPassword": "Repetir contraseña",
+    "showRepeatPassword": "Mostrar repetir contraseña",
+    "hideRepeatPassword": "Ocultar repetir contraseña",
+    "submitting": "Creando cuenta...",
+    "submit": "Crear cuenta",
+    "alreadyAccount": "¿Ya tienes cuenta?"
+  },
+  "recovery": {
+    "requestTitle": "Recuperar contraseña",
+    "openResetLink": "Abrir enlace de recuperación",
+    "submittingRequest": "Enviando...",
+    "sendLink": "Enviar enlace",
+    "backToLogin": "Volver a iniciar sesión",
+    "resetTitle": "Nueva contraseña",
+    "updated": "Contraseña actualizada correctamente.",
+    "repeatNewPassword": "Repetir contraseña",
+    "submittingReset": "Actualizando...",
+    "updatePassword": "Actualizar contraseña"
+  },
+  "validation": {
+    "invalidEmail": "Ingresa un correo electrónico válido.",
+    "passwordMismatch": "Las contraseñas no coinciden.",
+    "invalidCredentials": "Alguno de los campos es incorrecto",
+    "tooManyLoginAttempts": "Demasiados intentos fallidos, espera un momento",
+    "emailRegistered": "Este correo electrónico ya está registrado.",
+    "createAccountFailed": "No se pudo crear la cuenta. Intenta nuevamente.",
+    "resetRequestSuccess": "Si el correo existe, enviaremos un enlace para restablecer tu contraseña.",
+    "invalidResetToken": "El enlace de recuperación no es válido o ya expiró.",
+    "passwordUpdated": "Contraseña actualizada correctamente."
+  },
+  "passwordRequirements": {
+    "uppercase": "Al menos una letra mayúscula",
+    "number": "Al menos un número",
+    "length": "Al menos 8 caracteres",
+    "special": "Al menos un carácter especial",
+    "noSpaces": "Sin espacios"
+  },
+  "registration": {
+    "success": "Cuenta creada correctamente, inicia sesión"
+  }
+}

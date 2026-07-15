@@ -44,7 +44,7 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("@/lib/auth/rate-limit", () => ({
   clearFailedLoginAttempts: mocks.clearFailedLoginAttempts,
-  getClientIpFromHeaders: (headersList) =>
+  getClientIpFromHeaders: (headersList: Headers) =>
     headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown",
   hashClientIp: () =>
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -130,6 +130,7 @@ describe("auth actions", () => {
     expect(result).toEqual({
       status: "error",
       message: invalidCredentialsMessage,
+      messageKey: "validation.invalidCredentials",
     });
     expect(mocks.recordFailedLoginAttempt).toHaveBeenCalledWith(
       "missing@example.com",
@@ -152,6 +153,7 @@ describe("auth actions", () => {
     expect(result).toEqual({
       status: "error",
       message: tooManyLoginAttemptsMessage,
+      messageKey: "validation.tooManyLoginAttempts",
     });
     expect(mocks.isLoginBlocked).toHaveBeenCalledWith(
       "blocked@example.com",

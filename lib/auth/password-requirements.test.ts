@@ -9,11 +9,31 @@ describe("getPasswordRequirements", () => {
     const requirements = getPasswordRequirements("Password1!");
 
     expect(requirements).toEqual([
-      { label: "Al menos una letra mayúscula", isMet: true },
-      { label: "Al menos un número", isMet: true },
-      { label: "Al menos 8 caracteres", isMet: true },
-      { label: "Al menos un carácter especial", isMet: true },
-      { label: "Sin espacios", isMet: true },
+      {
+        label: "Al menos una letra mayúscula",
+        labelKey: "passwordRequirements.uppercase",
+        isMet: true,
+      },
+      {
+        label: "Al menos un número",
+        labelKey: "passwordRequirements.number",
+        isMet: true,
+      },
+      {
+        label: "Al menos 8 caracteres",
+        labelKey: "passwordRequirements.length",
+        isMet: true,
+      },
+      {
+        label: "Al menos un carácter especial",
+        labelKey: "passwordRequirements.special",
+        isMet: true,
+      },
+      {
+        label: "Sin espacios",
+        labelKey: "passwordRequirements.noSpaces",
+        isMet: true,
+      },
     ]);
   });
 

@@ -18,18 +18,21 @@ export type RecoveryActionState =
   | {
       status: "idle";
       message?: string;
+      messageKey?: string;
       devResetUrl?: string;
       errors?: Record<string, string[] | undefined>;
     }
   | {
       status: "success";
       message?: string;
+      messageKey?: string;
       devResetUrl?: string;
       errors?: Record<string, string[] | undefined>;
     }
   | {
       status: "error";
       message?: string;
+      messageKey?: string;
       devResetUrl?: string;
       errors?: Record<string, string[] | undefined>;
     };
@@ -76,6 +79,7 @@ export async function requestPasswordResetAction(
     return {
       status: "success",
       message: resetRequestSuccessMessage,
+      messageKey: "validation.resetRequestSuccess",
     };
   }
 
@@ -88,6 +92,7 @@ export async function requestPasswordResetAction(
   return {
     status: "success",
     message: resetRequestSuccessMessage,
+    messageKey: "validation.resetRequestSuccess",
     devResetUrl: process.env.NODE_ENV === "production" ? undefined : resetUrl,
   };
 }
@@ -115,6 +120,7 @@ export async function resetPasswordAction(
     return {
       status: "error",
       message: invalidResetTokenMessage,
+      messageKey: "validation.invalidResetToken",
     };
   }
 

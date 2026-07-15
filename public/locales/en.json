@@ -1,0 +1,88 @@
+{
+  "common": {
+    "appName": "KUENTAS",
+    "email": "Email address",
+    "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "submitEmailPlaceholder": "email@kuentas.com",
+    "passwordPlaceholder": "••••••••",
+    "login": "Log in"
+  },
+  "brand": {
+    "slogan": "Centralize your payments and never miss a detail"
+  },
+  "home": {
+    "aria": "Back to home",
+    "systemLabel": "Accounts system",
+    "loginCta": "Log in",
+    "registerCta": "Sign up"
+  },
+  "inicio": {
+    "title": "This is where home goes",
+    "logout": "Log out",
+    "loggingOut": "Logging out..."
+  },
+  "language": {
+    "button": "Language",
+    "aria": "Change language",
+    "menuLabel": "Select language",
+    "spanish": "Spanish",
+    "english": "English"
+  },
+  "login": {
+    "title": "Log in",
+    "remember": "Remember me",
+    "forgotPassword": "Forgot your password?",
+    "submitting": "Logging in...",
+    "submit": "Log in",
+    "noAccount": "Don't have an account?",
+    "register": "Sign up"
+  },
+  "register": {
+    "title": "Create account",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "firstNamePlaceholder": "Your first name",
+    "lastNamePlaceholder": "Your last name",
+    "repeatPassword": "Repeat password",
+    "showRepeatPassword": "Show repeated password",
+    "hideRepeatPassword": "Hide repeated password",
+    "submitting": "Creating account...",
+    "submit": "Create account",
+    "alreadyAccount": "Already have an account?"
+  },
+  "recovery": {
+    "requestTitle": "Recover password",
+    "openResetLink": "Open recovery link",
+    "submittingRequest": "Sending...",
+    "sendLink": "Send link",
+    "backToLogin": "Back to login",
+    "resetTitle": "New password",
+    "updated": "Password updated successfully.",
+    "repeatNewPassword": "Repeat password",
+    "submittingReset": "Updating...",
+    "updatePassword": "Update password"
+  },
+  "validation": {
+    "invalidEmail": "Enter a valid email address.",
+    "passwordMismatch": "Passwords do not match.",
+    "invalidCredentials": "One of the fields is incorrect",
+    "tooManyLoginAttempts": "Too many failed attempts, wait a moment",
+    "emailRegistered": "This email address is already registered.",
+    "createAccountFailed": "We couldn't create the account. Try again.",
+    "resetRequestSuccess": "If the email exists, we will send a link to reset your password.",
+    "invalidResetToken": "The recovery link is invalid or has expired.",
+    "passwordUpdated": "Password updated successfully."
+  },
+  "passwordRequirements": {
+    "uppercase": "At least one uppercase letter",
+    "number": "At least one number",
+    "length": "At least 8 characters",
+    "special": "At least one special character",
+    "noSpaces": "No spaces"
+  },
+  "registration": {
+    "success": "Account created successfully, log in"
+  }
+}

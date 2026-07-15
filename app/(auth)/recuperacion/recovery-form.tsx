@@ -9,6 +9,7 @@ import {
   type MailCheckIconHandle,
 } from "lucide-animated";
 import { useActionState, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getPasswordRequirements,
   shouldShowPasswordMismatch,
@@ -86,6 +87,7 @@ function RequirementItem({ isMet, label }: { isMet: boolean; label: string }) {
 }
 
 function RequestResetForm() {
+  const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(
     requestPasswordResetAction,
     initialState,
@@ -96,6 +98,7 @@ function RequestResetForm() {
   const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const emailError = state.errors?.email?.[0];
   const showEmailError = (emailTouched && !emailIsValid) || Boolean(emailError);
+  const formMessage = state.messageKey ? t(state.messageKey) : state.message;
 
   return (
     <form
@@ -110,7 +113,7 @@ function RequestResetForm() {
       className="auth-form-reveal mb-2 w-full rounded-2xl border border-white/12 bg-white/10 px-6 py-8 shadow-[0_24px_70px_rgb(0_0_0/0.32)] backdrop-blur-md sm:px-8 lg:mb-20"
     >
       <h1 className="auth-form-reveal auth-form-delay-1 font-heading text-2xl font-bold leading-8 text-white">
-        Recuperar contraseña
+        {t("recovery.requestTitle")}
       </h1>
 
       <div className="auth-form-reveal auth-form-delay-2 mt-7">
@@ -118,7 +121,7 @@ function RequestResetForm() {
           htmlFor="recoveryEmail"
           className="text-sm font-semibold text-[#eff1f3]"
         >
-          Correo electrónico
+          {t("common.email")}
         </label>
         <div className="relative mt-2">
           <input
@@ -126,7 +129,7 @@ function RequestResetForm() {
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="correo@kuentas.com"
+            placeholder={t("common.submitEmailPlaceholder")}
             value={email}
             required
             aria-invalid={showEmailError}
@@ -152,7 +155,7 @@ function RequestResetForm() {
           id="recovery-email-error"
           message={
             showEmailError
-              ? emailError ?? "Ingresa un correo electrónico válido."
+              ? emailError ?? t("validation.invalidEmail")
               : undefined
           }
           tone="error"
@@ -162,7 +165,7 @@ function RequestResetForm() {
 
       <AnimatedFormMessage
         id="recovery-message"
-        message={state.message}
+        message={formMessage}
         tone={state.status === "error" ? "error" : "success"}
         align="center"
         spacingClassName="pt-5"
@@ -172,7 +175,7 @@ function RequestResetForm() {
           href={state.devResetUrl}
           className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-white/16 bg-white/8 px-5 text-sm font-bold text-white transition hover:bg-white/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb]"
         >
-          Abrir enlace de recuperación
+          {t("recovery.openResetLink")}
         </Link>
       ) : null}
 
@@ -181,20 +184,21 @@ function RequestResetForm() {
         disabled={isPending || !emailIsValid}
         className="auth-form-reveal auth-form-delay-3 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
       >
-        {isPending ? "Enviando..." : "Enviar enlace"}
+        {isPending ? t("recovery.submittingRequest") : t("recovery.sendLink")}
       </button>
 
       <Link
         href="/login"
         className="auth-form-reveal auth-form-delay-4 mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-white/16 bg-white/8 px-5 text-sm font-bold text-white transition hover:bg-white/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb]"
       >
-        Volver a iniciar sesión
+        {t("recovery.backToLogin")}
       </Link>
     </form>
   );
 }
 
 function ResetPasswordForm({ token }: { token: string }) {
+  const { t } = useTranslation();
   const [state, formAction, isPending] = useActionState(
     resetPasswordAction,
     initialState,
@@ -220,10 +224,12 @@ function ResetPasswordForm({ token }: { token: string }) {
     passwordIsValid && repeatPassword.length > 0 && repeatPassword === password;
   const formMessage =
     state.status === "success"
-      ? "Contraseña actualizada correctamente."
-      : state.message ??
-        state.errors?.repeatPassword?.[0] ??
-        state.errors?.password?.[0];
+      ? t("validation.passwordUpdated")
+      : state.messageKey
+        ? t(state.messageKey)
+        : state.message ??
+          state.errors?.repeatPassword?.[0] ??
+          state.errors?.password?.[0];
 
   return (
     <form
@@ -236,7 +242,7 @@ function ResetPasswordForm({ token }: { token: string }) {
       className="auth-form-reveal mb-2 w-full rounded-2xl border border-white/12 bg-white/10 px-6 py-8 shadow-[0_24px_70px_rgb(0_0_0/0.32)] backdrop-blur-md sm:px-8 lg:mb-20"
     >
       <h1 className="auth-form-reveal auth-form-delay-1 font-heading text-2xl font-bold leading-8 text-white">
-        Nueva contraseña
+        {t("recovery.resetTitle")}
       </h1>
 
       <input type="hidden" name="token" value={token} />
@@ -247,7 +253,7 @@ function ResetPasswordForm({ token }: { token: string }) {
             htmlFor="newPassword"
             className="text-sm font-semibold text-[#eff1f3]"
           >
-            Contraseña
+            {t("common.password")}
           </label>
           <div className="relative">
             <input
@@ -255,7 +261,7 @@ function ResetPasswordForm({ token }: { token: string }) {
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
-              placeholder="••••••••••••"
+              placeholder={t("common.passwordPlaceholder")}
               value={password}
               required
               onChange={(event) => setPassword(event.target.value)}
@@ -271,7 +277,11 @@ function ResetPasswordForm({ token }: { token: string }) {
             />
             <VisibilityButton
               isVisible={showPassword}
-              label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              label={
+                showPassword
+                  ? t("common.hidePassword")
+                  : t("common.showPassword")
+              }
               onClick={() => setShowPassword((current) => !current)}
             />
           </div>
@@ -279,9 +289,9 @@ function ResetPasswordForm({ token }: { token: string }) {
           <ul className="grid gap-2 pt-1 text-xs font-medium sm:grid-cols-2">
             {passwordRequirements.map((requirement) => (
               <RequirementItem
-                key={requirement.label}
+                key={requirement.labelKey}
                 isMet={requirement.isMet}
-                label={requirement.label}
+                label={t(requirement.labelKey)}
               />
             ))}
           </ul>
@@ -292,7 +302,7 @@ function ResetPasswordForm({ token }: { token: string }) {
             htmlFor="repeatNewPassword"
             className="text-sm font-semibold text-[#eff1f3]"
           >
-            Repetir contraseña
+            {t("recovery.repeatNewPassword")}
           </label>
           <div className="relative mt-2">
             <input
@@ -300,7 +310,7 @@ function ResetPasswordForm({ token }: { token: string }) {
               name="repeatPassword"
               type={showRepeatPassword ? "text" : "password"}
               autoComplete="new-password"
-              placeholder="••••••••••••"
+              placeholder={t("common.passwordPlaceholder")}
               value={repeatPassword}
               required
               aria-invalid={repeatPasswordDoesNotMatch}
@@ -326,8 +336,8 @@ function ResetPasswordForm({ token }: { token: string }) {
               isVisible={showRepeatPassword}
               label={
                 showRepeatPassword
-                  ? "Ocultar repetir contraseña"
-                  : "Mostrar repetir contraseña"
+                  ? t("register.hideRepeatPassword")
+                  : t("register.showRepeatPassword")
               }
               onClick={() => setShowRepeatPassword((current) => !current)}
             />
@@ -336,7 +346,7 @@ function ResetPasswordForm({ token }: { token: string }) {
             id="repeatNewPassword-error"
             message={
               repeatPasswordDoesNotMatch
-                ? "Las contraseñas no coinciden."
+                ? t("validation.passwordMismatch")
                 : undefined
             }
             tone="error"
@@ -346,26 +356,26 @@ function ResetPasswordForm({ token }: { token: string }) {
       </div>
 
       <AnimatedFormMessage
-          id="reset-message"
-          message={formMessage}
-          tone={state.status === "success" ? "success" : "error"}
-          align="center"
-          spacingClassName="pt-5"
-        />
+        id="reset-message"
+        message={formMessage}
+        tone={state.status === "success" ? "success" : "error"}
+        align="center"
+        spacingClassName="pt-5"
+      />
 
       <button
         type="submit"
         disabled={isPending || !canSubmit || state.status === "success"}
         className="auth-form-reveal auth-form-delay-4 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
       >
-        {isPending ? "Actualizando..." : "Actualizar contraseña"}
+        {isPending ? t("recovery.submittingReset") : t("recovery.updatePassword")}
       </button>
 
       <Link
         href="/login"
         className="auth-form-reveal auth-form-delay-5 mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-white/16 bg-white/8 px-5 text-sm font-bold text-white transition hover:bg-white/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb]"
       >
-        Volver a iniciar sesión
+        {t("recovery.backToLogin")}
       </Link>
     </form>
   );

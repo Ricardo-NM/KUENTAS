@@ -22,16 +22,19 @@ export type AuthActionState =
   | {
       status: "idle";
       message?: string;
+      messageKey?: string;
       errors?: Record<string, string[] | undefined>;
     }
   | {
       status: "success";
       message?: string;
+      messageKey?: string;
       errors?: Record<string, string[] | undefined>;
     }
   | {
       status: "error";
       message?: string;
+      messageKey?: string;
       errors?: Record<string, string[] | undefined>;
     };
 
@@ -85,12 +88,14 @@ export async function registerAction(
         errors: {
           email: ["Este correo electrónico ya está registrado."],
         },
+        messageKey: "validation.emailRegistered",
       };
     }
 
     return {
       status: "error",
       message: "No se pudo crear la cuenta. Intenta nuevamente.",
+      messageKey: "validation.createAccountFailed",
     };
   }
 
@@ -113,6 +118,7 @@ export async function loginAction(
     return {
       status: "error",
       message: invalidCredentialsMessage,
+      messageKey: "validation.invalidCredentials",
     };
   }
 
@@ -124,6 +130,7 @@ export async function loginAction(
     return {
       status: "error",
       message: tooManyLoginAttemptsMessage,
+      messageKey: "validation.tooManyLoginAttempts",
     };
   }
 
@@ -143,13 +150,11 @@ export async function loginAction(
     return {
       status: "error",
       message: invalidCredentialsMessage,
+      messageKey: "validation.invalidCredentials",
     };
   }
 
-  const passwordMatches = await verifyPassword(
-    password,
-    user.passwordHash,
-  );
+  const passwordMatches = await verifyPassword(password, user.passwordHash);
 
   if (!passwordMatches) {
     await recordFailedLoginAttempt(email, ipHash);
@@ -157,6 +162,7 @@ export async function loginAction(
     return {
       status: "error",
       message: invalidCredentialsMessage,
+      messageKey: "validation.invalidCredentials",
     };
   }
 
