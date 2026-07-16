@@ -78,7 +78,25 @@
           "help": "PNG or JPG up to 5MB.",
           "upload": "Upload new",
           "delete": "Remove",
-          "avatarLabel": "Change profile photo"
+          "deleting": "Removing...",
+          "avatarLabel": "Change profile photo",
+          "crop": {
+            "title": "Crop profile photo",
+            "description": "Adjust the image inside the circle before saving it.",
+            "zoom": "Zoom",
+            "cancel": "Cancel",
+            "save": "Save",
+            "saving": "Saving..."
+          },
+          "feedback": {
+            "tooLarge": "The file is larger than 5MB.",
+            "invalidType": "You can only upload PNG or JPG images.",
+            "invalidFile": "Select a valid image.",
+            "saved": "Profile photo updated.",
+            "deleted": "Profile photo removed.",
+            "saveFailed": "We could not save the profile photo.",
+            "deleteFailed": "We could not remove the profile photo."
+          }
         },
         "fields": {
           "firstName": "First name",

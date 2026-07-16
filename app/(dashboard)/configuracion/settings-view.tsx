@@ -36,7 +36,9 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
+  type ChangeEvent,
   type ComponentPropsWithoutRef,
+  type DragEvent,
   type ForwardRefExoticComponent,
   type MouseEvent,
   type RefAttributes,
@@ -47,7 +49,9 @@ import {
   useState,
   useTransition,
 } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Cropper, { type Area } from "react-easy-crop";
 import {
   cancelAccountDeletionAction,
   cancelPasswordChangeAction,
@@ -90,6 +94,7 @@ import {
   getPasswordRequirements,
   shouldShowPasswordMismatch,
 } from "@/lib/auth/password-requirements";
+import { maskEmailForDisplay } from "@/lib/dashboard/user";
 import { AnimatedFormMessage } from "../../(auth)/animated-form-message";
 import { useTranslation } from "react-i18next";
 
@@ -122,6 +127,7 @@ type DashboardSettingsProfile = {
   firstName: string;
   lastName: string;
   email: string;
+  profileImagePath: string | null;
 };
 
 type DashboardSessionActivity = {
@@ -146,6 +152,76 @@ type SessionConfirmation =
 const initialProfileActionState: DashboardProfileActionState = {
   status: "idle",
 };
+
+const profilePhotoMaxSize = 5 * 1024 * 1024;
+const profilePhotoAcceptedTypes = new Set(["image/png", "image/jpeg"]);
+const profilePhotoOutputSize = 512;
+
+type ProfilePhotoToastState = {
+  id: string;
+  message: string;
+  variant: "success" | "error";
+};
+
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+async function createCircularProfilePhotoBlob(
+  imageSrc: string,
+  cropArea: Area,
+) {
+  const image = await loadImage(imageSrc);
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Canvas context is not available.");
+  }
+
+  canvas.width = profilePhotoOutputSize;
+  canvas.height = profilePhotoOutputSize;
+  context.clearRect(0, 0, profilePhotoOutputSize, profilePhotoOutputSize);
+  context.save();
+  context.beginPath();
+  context.arc(
+    profilePhotoOutputSize / 2,
+    profilePhotoOutputSize / 2,
+    profilePhotoOutputSize / 2,
+    0,
+    Math.PI * 2,
+  );
+  context.closePath();
+  context.clip();
+  context.drawImage(
+    image,
+    cropArea.x,
+    cropArea.y,
+    cropArea.width,
+    cropArea.height,
+    0,
+    0,
+    profilePhotoOutputSize,
+    profilePhotoOutputSize,
+  );
+  context.restore();
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+
+      reject(new Error("Cropped image could not be created."));
+    }, "image/png");
+  });
+}
 
 function isMobileSessionDevice(deviceLabel: string) {
   const normalizedLabel = deviceLabel.toLowerCase();
@@ -696,23 +772,42 @@ function ConfiguracionProfilePanel({
   user: DashboardSettingsProfile;
 }) {
   const { i18n, t } = useTranslation();
+  const router = useRouter();
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
   const [state, formAction, isPending] = useActionState(
     updateUserProfileAction,
     initialProfileActionState,
   );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const profilePhotoDragDepthRef = useRef(0);
   const avatarIconRef = useRef<AnimatedIconHandle>(null);
   const uploadIconRef = useRef<AnimatedIconHandle>(null);
   const deleteIconRef = useRef<AnimatedIconHandle>(null);
   const cancelIconRef = useRef<AnimatedIconHandle>(null);
   const saveIconRef = useRef<AnimatedIconHandle>(null);
+  const cropModalIconRef = useRef<AnimatedIconHandle>(null);
+  const cropCancelIconRef = useRef<AnimatedIconHandle>(null);
+  const cropSaveIconRef = useRef<AnimatedIconHandle>(null);
   const shouldReduceMotion = useReducedMotion();
   const [hiddenSavedMessageId, setHiddenSavedMessageId] = useState<
     string | null
   >(null);
   const [firstNameValue, setFirstNameValue] = useState(user.firstName);
   const [lastNameValue, setLastNameValue] = useState(user.lastName);
+  const [profileImagePath, setProfileImagePath] = useState(
+    user.profileImagePath,
+  );
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isPhotoSaving, setIsPhotoSaving] = useState(false);
+  const [isPhotoDeleting, setIsPhotoDeleting] = useState(false);
+  const [isProfilePhotoDragActive, setIsProfilePhotoDragActive] =
+    useState(false);
+  const [profilePhotoToast, setProfilePhotoToast] =
+    useState<ProfilePhotoToastState | null>(null);
   const firstNameError = state.errors?.firstName?.[0];
   const lastNameError = state.errors?.lastName?.[0];
   const savedFirstName =
@@ -747,13 +842,250 @@ function ConfiguracionProfilePanel({
     return () => window.clearTimeout(timeout);
   }, [savedMessageId]);
 
+  useEffect(() => {
+    if (!selectedImageSrc) {
+      return;
+    }
+
+    return () => URL.revokeObjectURL(selectedImageSrc);
+  }, [selectedImageSrc]);
+
+  useEffect(() => {
+    if (!profilePhotoToast) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setProfilePhotoToast((current) =>
+        current?.id === profilePhotoToast.id ? null : current,
+      );
+    }, 3000);
+
+    return () => window.clearTimeout(timeout);
+  }, [profilePhotoToast]);
+
+  const showProfilePhotoToast = (
+    messageKey: string,
+    defaultValue: string,
+    variant: ProfilePhotoToastState["variant"],
+  ) => {
+    setProfilePhotoToast({
+      id: crypto.randomUUID(),
+      message: t(messageKey, { defaultValue }),
+      variant,
+    });
+  };
+
+  const openProfilePhotoSelector = () => {
+    fileInputRef.current?.click();
+  };
+
+  const closeCropModal = () => {
+    setSelectedImageSrc(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+  };
+
+  const loadProfilePhotoFile = (file: File | undefined) => {
+    if (!file) {
+      return;
+    }
+
+    if (!profilePhotoAcceptedTypes.has(file.type)) {
+      showProfilePhotoToast(
+        "dashboard.settings.profile.photo.feedback.invalidType",
+        fallbackCopy.profilePhotoInvalidType,
+        "error",
+      );
+      return;
+    }
+
+    if (file.size > profilePhotoMaxSize) {
+      showProfilePhotoToast(
+        "dashboard.settings.profile.photo.feedback.tooLarge",
+        fallbackCopy.profilePhotoTooLarge,
+        "error",
+      );
+      return;
+    }
+
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setSelectedImageSrc(URL.createObjectURL(file));
+  };
+
+  const handleProfilePhotoFile = (event: ChangeEvent<HTMLInputElement>) => {
+    loadProfilePhotoFile(event.target.files?.[0]);
+    event.target.value = "";
+  };
+
+  const handleProfilePhotoDragEnter = (
+    event: DragEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    profilePhotoDragDepthRef.current += 1;
+
+    if (profilePhotoDragDepthRef.current === 1) {
+      setIsProfilePhotoDragActive(true);
+      avatarIconRef.current?.startAnimation();
+    }
+  };
+
+  const handleProfilePhotoDragOver = (
+    event: DragEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleProfilePhotoDragLeave = (
+    event: DragEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault();
+    profilePhotoDragDepthRef.current = Math.max(
+      profilePhotoDragDepthRef.current - 1,
+      0,
+    );
+
+    if (profilePhotoDragDepthRef.current === 0) {
+      setIsProfilePhotoDragActive(false);
+      avatarIconRef.current?.stopAnimation();
+    }
+  };
+
+  const handleProfilePhotoDrop = (event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    profilePhotoDragDepthRef.current = 0;
+    setIsProfilePhotoDragActive(false);
+    avatarIconRef.current?.stopAnimation();
+    loadProfilePhotoFile(event.dataTransfer.files?.[0]);
+  };
+
+  const saveProfilePhoto = async () => {
+    if (!selectedImageSrc || !croppedAreaPixels) {
+      return;
+    }
+
+    setIsPhotoSaving(true);
+
+    try {
+      const croppedBlob = await createCircularProfilePhotoBlob(
+        selectedImageSrc,
+        croppedAreaPixels,
+      );
+
+      if (croppedBlob.size > profilePhotoMaxSize) {
+        showProfilePhotoToast(
+          "dashboard.settings.profile.photo.feedback.tooLarge",
+          fallbackCopy.profilePhotoTooLarge,
+          "error",
+        );
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", croppedBlob, "profile.png");
+
+      const response = await fetch("/api/profile-photo", {
+        method: "POST",
+        body: formData,
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        profileImagePath?: string | null;
+        messageKey?: string;
+      };
+
+      if (!response.ok) {
+        showProfilePhotoToast(
+          result.messageKey ??
+            "dashboard.settings.profile.photo.feedback.saveFailed",
+          fallbackCopy.profilePhotoSaveFailed,
+          "error",
+        );
+        return;
+      }
+
+      setProfileImagePath(result.profileImagePath ?? null);
+      closeCropModal();
+      showProfilePhotoToast(
+        "dashboard.settings.profile.photo.feedback.saved",
+        fallbackCopy.profilePhotoSaved,
+        "success",
+      );
+      router.refresh();
+    } catch {
+      showProfilePhotoToast(
+        "dashboard.settings.profile.photo.feedback.saveFailed",
+        fallbackCopy.profilePhotoSaveFailed,
+        "error",
+      );
+    } finally {
+      setIsPhotoSaving(false);
+    }
+  };
+
+  const deleteProfilePhoto = async () => {
+    if (!profileImagePath || isPhotoDeleting) {
+      return;
+    }
+
+    setIsPhotoDeleting(true);
+
+    try {
+      const response = await fetch("/api/profile-photo", {
+        method: "DELETE",
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        messageKey?: string;
+      };
+
+      if (!response.ok) {
+        showProfilePhotoToast(
+          result.messageKey ??
+            "dashboard.settings.profile.photo.feedback.deleteFailed",
+          fallbackCopy.profilePhotoDeleteFailed,
+          "error",
+        );
+        return;
+      }
+
+      setProfileImagePath(null);
+      showProfilePhotoToast(
+        "dashboard.settings.profile.photo.feedback.deleted",
+        fallbackCopy.profilePhotoDeleted,
+        "success",
+      );
+      router.refresh();
+    } catch {
+      showProfilePhotoToast(
+        "dashboard.settings.profile.photo.feedback.deleteFailed",
+        fallbackCopy.profilePhotoDeleteFailed,
+        "error",
+      );
+    } finally {
+      setIsPhotoDeleting(false);
+    }
+  };
+
   return (
-    <form action={formAction} className="w-full max-w-[760px] text-left">
+    <>
+      <form action={formAction} className="w-full max-w-[760px] text-left">
       <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
         {t("dashboard.settings.profile.title", {
           defaultValue: fallbackCopy.profileTitle,
         })}
       </h2>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg"
+        className="sr-only"
+        onChange={handleProfilePhotoFile}
+      />
 
       <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-center">
         <button
@@ -761,18 +1093,42 @@ function ConfiguracionProfilePanel({
           aria-label={t("dashboard.settings.profile.photo.avatarLabel", {
             defaultValue: fallbackCopy.profileAvatarLabel,
           })}
+          onClick={openProfilePhotoSelector}
+          onDragEnter={handleProfilePhotoDragEnter}
+          onDragOver={handleProfilePhotoDragOver}
+          onDragLeave={handleProfilePhotoDragLeave}
+          onDrop={handleProfilePhotoDrop}
           onFocus={() => avatarIconRef.current?.startAnimation()}
           onBlur={() => avatarIconRef.current?.stopAnimation()}
           onMouseEnter={() => avatarIconRef.current?.startAnimation()}
           onMouseLeave={() => avatarIconRef.current?.stopAnimation()}
-          className="group relative inline-flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-outline-variant bg-surface-container-highest text-xl font-bold text-on-surface shadow-[inset_0_0_0_1px_rgb(255_255_255/0.16)] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className={cn(
+            "group relative inline-flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border bg-surface-container-highest text-xl font-bold text-on-surface shadow-[inset_0_0_0_1px_rgb(255_255_255/0.16)] transition-[border-color,box-shadow,background-color] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            isProfilePhotoDragActive
+              ? "border-primary bg-surface-container-low shadow-[0_0_0_4px_rgb(13_13_18/0.10)]"
+              : "border-outline-variant",
+          )}
         >
-          <span aria-hidden="true">
-            {(user.firstName || user.email).trim().charAt(0).toUpperCase()}
-          </span>
+          {profileImagePath ? (
+            <Image
+              src={profileImagePath}
+              alt=""
+              width={96}
+              height={96}
+              unoptimized
+              className="size-full object-cover"
+            />
+          ) : (
+            <span aria-hidden="true">
+              {(user.firstName || user.email).trim().charAt(0).toUpperCase()}
+            </span>
+          )}
           <span
             aria-hidden="true"
-            className="absolute inset-0 flex items-center justify-center bg-primary/72 text-primary-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+            className={cn(
+              "absolute inset-0 flex items-center justify-center bg-primary/72 text-primary-foreground transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100",
+              isProfilePhotoDragActive ? "opacity-100" : "opacity-0",
+            )}
           >
             <SwitchCameraIcon
               ref={avatarIconRef}
@@ -796,6 +1152,7 @@ function ConfiguracionProfilePanel({
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
+              onClick={openProfilePhotoSelector}
               onFocus={() => uploadIconRef.current?.startAnimation()}
               onBlur={() => uploadIconRef.current?.stopAnimation()}
               onMouseEnter={() => uploadIconRef.current?.startAnimation()}
@@ -814,11 +1171,18 @@ function ConfiguracionProfilePanel({
             </button>
             <button
               type="button"
+              disabled={!profileImagePath || isPhotoDeleting}
+              onClick={deleteProfilePhoto}
               onFocus={() => deleteIconRef.current?.startAnimation()}
               onBlur={() => deleteIconRef.current?.stopAnimation()}
               onMouseEnter={() => deleteIconRef.current?.startAnimation()}
               onMouseLeave={() => deleteIconRef.current?.stopAnimation()}
-              className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 text-sm font-bold text-accent-foreground"
+              className={cn(
+                "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                profileImagePath && !isPhotoDeleting
+                  ? "cursor-pointer bg-accent text-accent-foreground hover:bg-surface-container-highest"
+                  : "cursor-not-allowed bg-surface-container text-on-surface-variant opacity-70",
+              )}
             >
               <DeleteIcon
                 ref={deleteIconRef}
@@ -826,9 +1190,13 @@ function ConfiguracionProfilePanel({
                 animateOnHover={false}
                 size={16}
               />
-              {t("dashboard.settings.profile.photo.delete", {
-                defaultValue: fallbackCopy.profileDelete,
-              })}
+              {isPhotoDeleting
+                ? t("dashboard.settings.profile.photo.deleting", {
+                    defaultValue: fallbackCopy.profilePhotoDeleting,
+                  })
+                : t("dashboard.settings.profile.photo.delete", {
+                    defaultValue: fallbackCopy.profileDelete,
+                  })}
             </button>
           </div>
         </div>
@@ -922,9 +1290,9 @@ function ConfiguracionProfilePanel({
           </label>
           <input
             id="profile-email"
-            type="email"
-            autoComplete="email"
-            value={user.email}
+            type="text"
+            autoComplete="off"
+            value={maskEmailForDisplay(user.email)}
             readOnly
             aria-readonly="true"
             className="min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container px-4 text-sm font-medium text-on-surface-variant outline-none"
@@ -1009,7 +1377,200 @@ function ConfiguracionProfilePanel({
           </motion.p>
         ) : null}
       </AnimatePresence>
-    </form>
+      </form>
+
+      <AnimatePresence>
+        {selectedImageSrc ? (
+          <motion.div
+            role="presentation"
+            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="profile-photo-crop-title"
+              aria-describedby="profile-photo-crop-description"
+              className="w-full max-w-[480px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+              initial={
+                shouldReduceMotion
+                  ? { opacity: 1, y: 0, scale: 1 }
+                  : { opacity: 0, y: 8, scale: 0.98 }
+              }
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={
+                shouldReduceMotion
+                  ? { opacity: 0, y: 0, scale: 1 }
+                  : { opacity: 0, y: 8, scale: 0.98 }
+              }
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: 0.18, ease: "easeOut" }
+              }
+            >
+              <div className="flex min-w-0 items-center gap-3 text-left">
+                <span
+                  aria-hidden="true"
+                  onMouseEnter={() => cropModalIconRef.current?.startAnimation()}
+                  onMouseLeave={() => cropModalIconRef.current?.stopAnimation()}
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-container text-on-surface"
+                >
+                  <SwitchCameraIcon
+                    ref={cropModalIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={20}
+                  />
+                </span>
+                <div className="min-w-0">
+                  <h3
+                    id="profile-photo-crop-title"
+                    className="break-words text-sm font-bold leading-5 text-on-surface"
+                  >
+                    {t("dashboard.settings.profile.photo.crop.title", {
+                      defaultValue: fallbackCopy.profilePhotoCropTitle,
+                    })}
+                  </h3>
+                  <p
+                    id="profile-photo-crop-description"
+                    className="mt-0.5 text-xs leading-[18px] text-on-surface-variant"
+                  >
+                    {t("dashboard.settings.profile.photo.crop.description", {
+                      defaultValue: fallbackCopy.profilePhotoCropDescription,
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative mt-5 h-[320px] overflow-hidden rounded-xl border border-border bg-surface-container">
+                <Cropper
+                  image={selectedImageSrc}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  cropShape="round"
+                  showGrid={false}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={(_, croppedAreaPixels) =>
+                    setCroppedAreaPixels(croppedAreaPixels)
+                  }
+                  classes={{
+                    containerClassName: "rounded-xl",
+                  }}
+                />
+              </div>
+
+              <div className="mt-5">
+                <label
+                  htmlFor="profile-photo-zoom"
+                  className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
+                >
+                  {t("dashboard.settings.profile.photo.crop.zoom", {
+                    defaultValue: fallbackCopy.profilePhotoCropZoom,
+                  })}
+                </label>
+                <input
+                  id="profile-photo-zoom"
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  value={zoom}
+                  onChange={(event) => setZoom(Number(event.target.value))}
+                  className="w-full accent-primary"
+                />
+              </div>
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={isPhotoSaving}
+                  onClick={closeCropModal}
+                  onFocus={() => cropCancelIconRef.current?.startAnimation()}
+                  onBlur={() => cropCancelIconRef.current?.stopAnimation()}
+                  onMouseEnter={() => cropCancelIconRef.current?.startAnimation()}
+                  onMouseLeave={() => cropCancelIconRef.current?.stopAnimation()}
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <XIcon
+                    ref={cropCancelIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
+                  {t("dashboard.settings.profile.photo.crop.cancel", {
+                    defaultValue: fallbackCopy.profilePhotoCropCancel,
+                  })}
+                </button>
+                <button
+                  type="button"
+                  disabled={isPhotoSaving || !croppedAreaPixels}
+                  onClick={saveProfilePhoto}
+                  onFocus={() => cropSaveIconRef.current?.startAnimation()}
+                  onBlur={() => cropSaveIconRef.current?.stopAnimation()}
+                  onMouseEnter={() => cropSaveIconRef.current?.startAnimation()}
+                  onMouseLeave={() => cropSaveIconRef.current?.stopAnimation()}
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <CircleCheckIcon
+                    ref={cropSaveIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={18}
+                  />
+                  {isPhotoSaving
+                    ? t("dashboard.settings.profile.photo.crop.saving", {
+                        defaultValue: fallbackCopy.profilePhotoCropSaving,
+                      })
+                    : t("dashboard.settings.profile.photo.crop.save", {
+                        defaultValue: fallbackCopy.profilePhotoCropSave,
+                      })}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {profilePhotoToast ? (
+          <motion.div
+            key={profilePhotoToast.id}
+            role="status"
+            aria-live="polite"
+            className="pointer-events-none fixed inset-x-0 bottom-5 z-[60] flex justify-center px-4 sm:bottom-6"
+            initial={
+              shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }
+            }
+            animate={{ opacity: 1, y: 0 }}
+            exit={
+              shouldReduceMotion ? { opacity: 0, y: 0 } : { opacity: 0, y: 12 }
+            }
+            transition={
+              shouldReduceMotion
+                ? { duration: 0 }
+                : { duration: 0.22, ease: "easeOut" }
+            }
+          >
+            <span
+              className={cn(
+                "w-full max-w-[420px] rounded-xl border px-4 py-3 text-center text-sm font-semibold shadow-[0_18px_40px_rgb(13_13_18/0.16)]",
+                profilePhotoToast.variant === "success"
+                  ? "border-chart-1/35 bg-chart-1/10 text-chart-1"
+                  : "border-destructive/35 bg-destructive/10 text-destructive",
+              )}
+            >
+              {profilePhotoToast.message}
+            </span>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </>
   );
 }
 

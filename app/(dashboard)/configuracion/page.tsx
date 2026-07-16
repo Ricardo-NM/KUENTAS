@@ -12,6 +12,7 @@ export default async function ConfiguracionPage() {
       firstName: true,
       lastName: true,
       email: true,
+      profileImagePath: true,
     },
   });
 

@@ -18,6 +18,7 @@ export default async function DashboardLayout({
       firstName: true,
       lastName: true,
       email: true,
+      profileImagePath: true,
     },
   });
 

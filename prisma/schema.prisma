@@ -11,6 +11,7 @@ model User {
   email                     String                     @unique
   firstName                 String
   lastName                  String
+  profileImagePath          String?
   passwordHash              String
   emailVerifiedAt           DateTime?
   sessions                  Session[]

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   BellIcon,
   SearchIcon,
@@ -71,9 +72,20 @@ export function DashboardTopbar({ user }: { user: DashboardUser }) {
         <div className="flex min-w-0 items-center gap-3">
           <div
             aria-hidden="true"
-            className="grid size-12 shrink-0 place-items-center rounded-full border border-border bg-surface-container font-heading text-lg font-bold text-on-surface"
+            className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-surface-container font-heading text-lg font-bold text-on-surface"
           >
-            {user.initial}
+            {user.profileImagePath ? (
+              <Image
+                src={user.profileImagePath}
+                alt=""
+                width={48}
+                height={48}
+                unoptimized
+                className="size-full object-cover"
+              />
+            ) : (
+              user.initial
+            )}
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold leading-5 text-on-surface">
