@@ -42,6 +42,7 @@ import {
   type ForwardRefExoticComponent,
   type MouseEvent,
   type RefAttributes,
+  type ReactNode,
   useActionState,
   useEffect,
   useMemo,
@@ -49,6 +50,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Cropper, { type Area } from "react-easy-crop";
@@ -122,6 +124,21 @@ const notificationIcons: Record<DashboardNotificationIcon, AnimatedIcon> = {
   "badge-alert": BadgeAlertIcon,
   mailbox: MailboxIcon,
 };
+
+const focusableSettingsSectionIds = [
+  "general",
+  "perfil",
+  "notificaciones",
+] as const;
+
+type FocusableSettingsSectionId =
+  (typeof focusableSettingsSectionIds)[number];
+
+function isFocusableSettingsSectionId(
+  id: DashboardSettingsSectionId,
+): id is FocusableSettingsSectionId {
+  return focusableSettingsSectionIds.includes(id as FocusableSettingsSectionId);
+}
 
 type DashboardSettingsProfile = {
   firstName: string;
@@ -259,6 +276,12 @@ function formatSessionActivityTime(lastSeenAt: string, language: "es" | "en") {
   return formatter.format(Math.round(diffMs / (24 * 60 * 60 * 1000)), "day");
 }
 
+function ViewportPortal({ children }: { children: ReactNode }) {
+  return typeof document === "undefined"
+    ? null
+    : createPortal(children, document.body);
+}
+
 type SelectOption = {
   value: string;
   label: string;
@@ -278,19 +301,86 @@ function SettingsSelect({
   value: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuRect, setMenuRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+  } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const listboxRef = useRef<HTMLDivElement>(null);
   const selectedOption =
     options.find((option) => option.value === value) ?? options[0];
 
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const updateMenuRect = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+
+      if (!rect) {
+        return;
+      }
+
+      setMenuRect({
+        left: rect.left,
+        top: rect.bottom + 8,
+        width: rect.width,
+      });
+    };
+
+    updateMenuRect();
+    window.addEventListener("resize", updateMenuRect);
+    window.addEventListener("scroll", updateMenuRect, true);
+
+    return () => {
+      window.removeEventListener("resize", updateMenuRect);
+      window.removeEventListener("scroll", updateMenuRect, true);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (
+        buttonRef.current?.contains(target) ||
+        listboxRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      setIsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer, true);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer, true);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
+
   return (
-    <div
-      className="relative"
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          setIsOpen(false);
-        }
-      }}
-    >
+    <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         id={id}
         aria-haspopup="listbox"
@@ -311,50 +401,59 @@ function SettingsSelect({
         />
       </button>
 
-      <AnimatePresence>
-        {isOpen ? (
-          <motion.div
-            role="listbox"
-            aria-labelledby={id}
-            className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-lg border border-outline-variant bg-popover p-1 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.16)]"
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
-            transition={{ duration: 0.14, ease: "easeOut" }}
-          >
-            {options.map((option) => {
-              const isSelected = option.value === value;
+      <ViewportPortal>
+        <AnimatePresence>
+          {isOpen && menuRect ? (
+            <motion.div
+              ref={listboxRef}
+              role="listbox"
+              aria-labelledby={id}
+              style={{
+                left: menuRect.left,
+                top: menuRect.top,
+                width: menuRect.width,
+              }}
+              className="fixed z-[80] overflow-hidden rounded-lg border border-outline-variant bg-popover p-1 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.16)]"
+              initial={{ opacity: 0, y: -4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.98 }}
+              transition={{ duration: 0.14, ease: "easeOut" }}
+            >
+              {options.map((option) => {
+                const isSelected = option.value === value;
 
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                  }}
-                  className={cn(
-                    "flex min-h-10 w-full cursor-pointer items-center rounded-md px-3 text-left text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
-                    isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "text-on-surface hover:bg-surface-container",
-                  )}
-                >
-                  <span className="truncate">{option.label}</span>
-                </button>
-              );
-            })}
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                    className={cn(
+                      "flex min-h-10 w-full cursor-pointer items-center rounded-md px-3 text-left text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "text-on-surface hover:bg-surface-container",
+                    )}
+                  >
+                    <span className="truncate">{option.label}</span>
+                  </button>
+                );
+              })}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </ViewportPortal>
     </div>
   );
 }
 
 function SettingsToggleRow({
   ariaLabel,
+  className,
   description,
   Icon,
   id,
@@ -362,6 +461,7 @@ function SettingsToggleRow({
   title,
 }: {
   ariaLabel: string;
+  className?: string;
   description: string;
   Icon: AnimatedIcon;
   id: string;
@@ -384,7 +484,12 @@ function SettingsToggleRow({
   };
 
   return (
-    <div className="flex min-w-0 items-center justify-between gap-4 py-4 text-left">
+    <div
+      className={cn(
+        "flex min-w-0 items-center justify-between gap-4 py-4 text-left",
+        className,
+      )}
+    >
       <div className="flex min-w-0 items-start gap-3">
         <span
           aria-hidden="true"
@@ -591,6 +696,50 @@ function SettingsNavItem({
   );
 }
 
+function SettingsFocusCard({
+  activeSectionId,
+  children,
+  className,
+  sectionId,
+  shouldReduceMotion,
+}: {
+  activeSectionId: FocusableSettingsSectionId;
+  children: ReactNode;
+  className?: string;
+  sectionId: FocusableSettingsSectionId;
+  shouldReduceMotion: boolean;
+}) {
+  const isActive = sectionId === activeSectionId;
+
+  return (
+    <motion.section
+      aria-hidden={isActive ? undefined : true}
+      inert={isActive ? undefined : true}
+      initial={false}
+      className={cn(
+        "relative min-w-0 overflow-x-hidden overflow-y-auto rounded-xl bg-background px-4 pb-5 pt-3 text-left text-on-surface shadow-[0_8px_22px_-18px_rgb(13_13_18/0.36),0_1px_2px_rgb(13_13_18/0.04)] outline-none will-change-[filter,opacity] [backface-visibility:hidden] [transform:translateZ(0)] lg:min-h-0",
+        "sm:px-5 sm:pb-6 sm:pt-4",
+        isActive ? "z-10" : "pointer-events-none z-0",
+        className,
+      )}
+      animate={{
+        opacity: isActive ? 1 : 0.52,
+        filter: isActive ? "blur(0px)" : "blur(2px)",
+      }}
+      transition={
+        shouldReduceMotion
+          ? { duration: 0 }
+          : {
+              opacity: { duration: 0.24, ease: "easeOut" },
+              filter: { duration: 0.34, ease: [0.22, 1, 0.36, 1] },
+            }
+      }
+    >
+      {children}
+    </motion.section>
+  );
+}
+
 function ConfiguracionGeneralPanel() {
   const { i18n, t } = useTranslation();
   const language = i18n.language?.startsWith("en") ? "en" : "es";
@@ -653,14 +802,14 @@ function ConfiguracionGeneralPanel() {
   }));
 
   return (
-    <div className="w-full max-w-[760px] text-left">
+    <div className="w-full max-w-[960px] text-left">
       <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
         {t("dashboard.settings.general.title", {
           defaultValue: fallbackCopy.generalTitle,
         })}
       </h2>
 
-      <div className="mt-7 grid gap-6 md:grid-cols-2">
+      <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
         <div className="block min-w-0">
           <label
             htmlFor="settings-interface-language"
@@ -700,66 +849,65 @@ function ConfiguracionGeneralPanel() {
             options={currencyOptions}
           />
         </div>
-      </div>
-
-      <div className="mt-8">
-        <p className="mb-2 text-sm font-medium leading-5 text-on-surface-variant">
-          {t("dashboard.settings.general.theme.label", {
-            defaultValue: fallbackCopy.visualThemeLabel,
-          })}
-        </p>
-        <div
-          role="group"
-          aria-label={t("dashboard.settings.general.theme.label", {
-            defaultValue: fallbackCopy.visualThemeLabel,
-          })}
-          className="relative inline-grid min-h-11 grid-cols-2 items-center gap-1.5 rounded-lg bg-accent p-1 text-sm font-semibold text-on-surface-variant"
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              "absolute bottom-1 left-1 top-1 w-[calc((100%_-_0.875rem)_/_2)] rounded-md bg-primary shadow-[0_1px_2px_rgb(0_0_0/0.08)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              selectedTheme === "dark"
-                ? "translate-x-[calc(100%_+_0.375rem)]"
-                : "translate-x-0",
-            )}
-          />
-          <button
-            type="button"
-            aria-pressed={selectedTheme === "light"}
-            onClick={(event) => selectTheme("light", event)}
-            className={cn(
-              "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              selectedTheme === "light"
-                ? "text-primary-foreground"
-                : "text-on-surface-variant hover:bg-surface-container-lowest/45",
-            )}
+        <div className="min-w-0">
+          <p className="mb-2 text-sm font-medium leading-5 text-on-surface-variant">
+            {t("dashboard.settings.general.theme.label", {
+              defaultValue: fallbackCopy.visualThemeLabel,
+            })}
+          </p>
+          <div
+            role="group"
+            aria-label={t("dashboard.settings.general.theme.label", {
+              defaultValue: fallbackCopy.visualThemeLabel,
+            })}
+            className="relative inline-grid min-h-11 grid-cols-2 items-center gap-1.5 rounded-lg bg-accent p-1 text-sm font-semibold text-on-surface-variant"
           >
-            <SunMediumIcon ref={sunIconRef} aria-hidden="true" size={16} />
-            <span>
-              {t("dashboard.settings.general.theme.light", {
-                defaultValue: fallbackCopy.lightTheme,
-              })}
-            </span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={selectedTheme === "dark"}
-            onClick={(event) => selectTheme("dark", event)}
-            className={cn(
-              "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              selectedTheme === "dark"
-                ? "text-primary-foreground"
-                : "text-on-surface-variant hover:bg-surface-container-lowest/45",
-            )}
-          >
-            <MoonIcon ref={moonIconRef} aria-hidden="true" size={16} />
-            <span>
-              {t("dashboard.settings.general.theme.dark", {
-                defaultValue: fallbackCopy.darkTheme,
-              })}
-            </span>
-          </button>
+            <span
+              aria-hidden="true"
+              className={cn(
+                "absolute bottom-1 left-1 top-1 w-[calc((100%_-_0.875rem)_/_2)] rounded-md bg-primary shadow-[0_1px_2px_rgb(0_0_0/0.08)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                selectedTheme === "dark"
+                  ? "translate-x-[calc(100%_+_0.375rem)]"
+                  : "translate-x-0",
+              )}
+            />
+            <button
+              type="button"
+              aria-pressed={selectedTheme === "light"}
+              onClick={(event) => selectTheme("light", event)}
+              className={cn(
+                "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                selectedTheme === "light"
+                  ? "text-primary-foreground"
+                  : "text-on-surface-variant hover:bg-surface-container-lowest/45",
+              )}
+            >
+              <SunMediumIcon ref={sunIconRef} aria-hidden="true" size={16} />
+              <span>
+                {t("dashboard.settings.general.theme.light", {
+                  defaultValue: fallbackCopy.lightTheme,
+                })}
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={selectedTheme === "dark"}
+              onClick={(event) => selectTheme("dark", event)}
+              className={cn(
+                "relative z-10 inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md px-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                selectedTheme === "dark"
+                  ? "text-primary-foreground"
+                  : "text-on-surface-variant hover:bg-surface-container-lowest/45",
+              )}
+            >
+              <MoonIcon ref={moonIconRef} aria-hidden="true" size={16} />
+              <span>
+                {t("dashboard.settings.general.theme.dark", {
+                  defaultValue: fallbackCopy.darkTheme,
+                })}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -824,23 +972,29 @@ function ConfiguracionProfilePanel({
         })
       : undefined;
   const savedMessageId = state.status === "success" ? state.successId : null;
-  const showSavedMessage =
-    Boolean(savedMessage && savedMessageId) &&
-    savedMessageId !== hiddenSavedMessageId;
   const fieldClassName =
     "min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-medium text-on-surface shadow-[0_1px_2px_rgb(13_13_18/0.04)] outline-none transition placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15";
 
   useEffect(() => {
-    if (!savedMessageId) {
+    if (
+      !savedMessage ||
+      !savedMessageId ||
+      savedMessageId === hiddenSavedMessageId
+    ) {
       return;
     }
 
     const timeout = window.setTimeout(() => {
+      setProfilePhotoToast({
+        id: savedMessageId,
+        message: savedMessage,
+        variant: "success",
+      });
       setHiddenSavedMessageId(savedMessageId);
-    }, 3000);
+    }, 0);
 
     return () => window.clearTimeout(timeout);
-  }, [savedMessageId]);
+  }, [hiddenSavedMessageId, savedMessage, savedMessageId]);
 
   useEffect(() => {
     if (!selectedImageSrc) {
@@ -1072,12 +1226,12 @@ function ConfiguracionProfilePanel({
 
   return (
     <>
-      <form action={formAction} className="w-full max-w-[760px] text-left">
-      <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
-        {t("dashboard.settings.profile.title", {
-          defaultValue: fallbackCopy.profileTitle,
-        })}
-      </h2>
+      <form action={formAction} className="w-full max-w-[960px] text-left">
+        <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
+          {t("dashboard.settings.profile.title", {
+            defaultValue: fallbackCopy.profileTitle,
+          })}
+        </h2>
 
       <input
         ref={fileInputRef}
@@ -1087,7 +1241,7 @@ function ConfiguracionProfilePanel({
         onChange={handleProfilePhotoFile}
       />
 
-      <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-center">
+      <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center">
         <button
           type="button"
           aria-label={t("dashboard.settings.profile.photo.avatarLabel", {
@@ -1202,7 +1356,7 @@ function ConfiguracionProfilePanel({
         </div>
       </div>
 
-      <div className="mt-8 grid gap-5 md:grid-cols-2">
+      <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,0.72fr)_auto] xl:items-end">
         <div className="min-w-0">
           <label
             htmlFor="profile-first-name"
@@ -1276,9 +1430,7 @@ function ConfiguracionProfilePanel({
             </p>
           ) : null}
         </div>
-      </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(260px,360px)_1fr] lg:items-end">
         <div className="min-w-0">
           <label
             htmlFor="profile-email"
@@ -1298,8 +1450,7 @@ function ConfiguracionProfilePanel({
             className="min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container px-4 text-sm font-medium text-on-surface-variant outline-none"
           />
         </div>
-
-        <div className="flex flex-col-reverse gap-3 sm:flex-row lg:justify-end">
+        <div className="mt-5 flex flex-col-reverse gap-3 md:col-span-2 sm:flex-row sm:justify-start lg:col-span-3 xl:col-span-1 xl:mt-0 xl:flex-nowrap xl:justify-end">
           <button
             type="reset"
             onClick={() => {
@@ -1310,7 +1461,7 @@ function ConfiguracionProfilePanel({
             onBlur={() => cancelIconRef.current?.stopAnimation()}
             onMouseEnter={() => cancelIconRef.current?.startAnimation()}
             onMouseLeave={() => cancelIconRef.current?.stopAnimation()}
-            className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="inline-flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-4"
           >
             <XIcon
               ref={cancelIconRef}
@@ -1331,7 +1482,7 @@ function ConfiguracionProfilePanel({
             onMouseEnter={() => saveIconRef.current?.startAnimation()}
             onMouseLeave={() => saveIconRef.current?.stopAnimation()}
             className={cn(
-              "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-bold transition-[background-color,color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              "inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 text-sm font-bold transition-[background-color,color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-4",
               hasProfileChanges && !isPending
                 ? "cursor-pointer bg-primary text-primary-foreground shadow-[0_8px_20px_rgb(13_13_18/0.16)] hover:bg-primary/90"
                 : "cursor-not-allowed bg-surface-container-high text-on-surface-variant shadow-none",
@@ -1354,31 +1505,9 @@ function ConfiguracionProfilePanel({
         </div>
       </div>
 
-      <AnimatePresence>
-        {savedMessage && showSavedMessage ? (
-          <motion.p
-            key={savedMessageId}
-            role="status"
-            className="mt-4 text-right text-sm font-semibold text-chart-1"
-            initial={
-              shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }
-            }
-            animate={{ opacity: 1, y: 0 }}
-            exit={
-              shouldReduceMotion ? { opacity: 0, y: 0 } : { opacity: 0, y: -8 }
-            }
-            transition={
-              shouldReduceMotion
-                ? { duration: 0 }
-                : { duration: 0.22, ease: "easeOut" }
-            }
-          >
-            {savedMessage}
-          </motion.p>
-        ) : null}
-      </AnimatePresence>
       </form>
 
+      <ViewportPortal>
       <AnimatePresence>
         {selectedImageSrc ? (
           <motion.div
@@ -1570,6 +1699,7 @@ function ConfiguracionProfilePanel({
           </motion.div>
         ) : null}
       </AnimatePresence>
+      </ViewportPortal>
     </>
   );
 }
@@ -1587,7 +1717,7 @@ function ConfiguracionNotificationsPanel() {
         })}
       </h2>
 
-      <div className="mt-5 divide-y divide-border">
+      <div className="mt-5 grid gap-4">
         {dashboardNotificationOptions.map((option) => {
           const title = t(option.titleKey, {
             defaultValue: option.fallbackTitles[language],
@@ -1601,6 +1731,7 @@ function ConfiguracionNotificationsPanel() {
             <SettingsToggleRow
               key={option.id}
               id={`notification-${option.id}`}
+              className="py-0"
               title={title}
               description={description}
               ariaLabel={title}
@@ -1684,7 +1815,7 @@ function ConfiguracionSecurityPanel({
   const fieldClassName =
     "min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-medium text-on-surface shadow-[0_1px_2px_rgb(13_13_18/0.04)] outline-none transition placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15";
   const destructiveActionClassName =
-    "inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg border border-destructive bg-[#ffffff] px-4 text-xs font-bold leading-4 text-destructive shadow-[0_1px_2px_rgb(13_13_18/0.04)] transition-colors duration-200 hover:bg-destructive hover:text-[#ffffff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+    "inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg border border-destructive bg-surface-container-lowest px-4 text-xs font-bold leading-4 text-destructive shadow-[0_1px_2px_rgb(13_13_18/0.04)] transition-colors duration-200 hover:bg-destructive hover:text-destructive-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
   const signOutTextActionClassName =
     "inline-flex cursor-pointer border-0 bg-transparent p-0 text-xs font-bold leading-4 text-destructive shadow-none transition-opacity duration-200 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
   const passwordPlaceholder = t("common.passwordPlaceholder", {
@@ -1975,17 +2106,18 @@ function ConfiguracionSecurityPanel({
 
   return (
     <div className="w-full text-left">
-      <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
-        {t("dashboard.settings.security.title", {
-          defaultValue: fallbackCopy.securityTitle,
-        })}
-      </h2>
+      <div className="rounded-xl bg-background px-4 pb-5 pt-3 text-on-surface shadow-[0_8px_22px_-18px_rgb(13_13_18/0.36),0_1px_2px_rgb(13_13_18/0.04)] sm:px-5 sm:pb-6 sm:pt-4">
+        <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
+          {t("dashboard.settings.security.title", {
+            defaultValue: fallbackCopy.securityTitle,
+          })}
+        </h2>
 
-      <div className="mt-7 grid gap-y-9 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(250px,300px)] lg:gap-x-8">
-        <section
-          aria-labelledby="security-2fa-title"
-          className="rounded-xl border border-outline-variant bg-accent/55 p-4 text-on-surface sm:p-5 lg:col-span-2"
-        >
+        <div className="mt-5 grid gap-y-9 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(250px,300px)] lg:gap-x-8">
+          <section
+            aria-labelledby="security-2fa-title"
+            className="rounded-xl border border-outline-variant bg-accent/55 p-4 text-on-surface sm:p-5 lg:col-span-2"
+          >
           <SettingsToggleRow
             id="security-2fa"
             title={t("dashboard.settings.security.twoFactor.title", {
@@ -2513,8 +2645,10 @@ function ConfiguracionSecurityPanel({
             </p>
           ) : null}
         </section>
+        </div>
       </div>
 
+      <ViewportPortal>
       <AnimatePresence>
         {confirmation ? (
           <motion.div
@@ -3194,6 +3328,7 @@ function ConfiguracionSecurityPanel({
           </motion.div>
         ) : null}
       </AnimatePresence>
+      </ViewportPortal>
     </div>
   );
 }
@@ -3215,21 +3350,33 @@ export function ConfiguracionSettingsView({
     dashboardSettingsSections.find(
       (section) => section.id === activeSectionId,
     ) ?? dashboardSettingsSections[0];
-  const contentMotion = {
-    initial: shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 },
-    animate: { opacity: 1, y: 0 },
-    exit: shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 },
+  const activeFocusSectionId = isFocusableSettingsSectionId(activeSection.id)
+    ? activeSection.id
+    : "general";
+  const focusCardsMotion = {
+    initial: shouldReduceMotion ? { opacity: 1 } : { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: shouldReduceMotion ? { opacity: 1 } : { opacity: 0 },
     transition: shouldReduceMotion
       ? { duration: 0 }
       : { duration: 0.18, ease: "easeOut" as const },
   };
-  const activeSectionLabel = t(activeSection.labelKey, {
-    defaultValue: activeSection.fallbackLabels[language],
-  });
+  const securityPanelMotion = {
+    initial: shouldReduceMotion
+      ? { opacity: 1, filter: "blur(0px) saturate(1)" }
+      : { opacity: 0, filter: "blur(2px) saturate(0.72)" },
+    animate: { opacity: 1, filter: "blur(0px) saturate(1)" },
+    exit: shouldReduceMotion
+      ? { opacity: 1, filter: "blur(0px) saturate(1)" }
+      : { opacity: 0, filter: "blur(2px) saturate(0.72)" },
+    transition: shouldReduceMotion
+      ? { duration: 0 }
+      : { duration: 0.18, ease: "easeOut" as const },
+  };
 
   return (
-    <section className="grid gap-4 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-      <aside className="rounded-2xl border border-border bg-card px-4 py-5 text-card-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:px-5">
+    <section className="grid gap-4 lg:h-[calc(100dvh-7.625rem)] lg:min-h-0 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+      <aside className="rounded-2xl border border-border bg-card px-4 py-5 text-card-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:px-5 lg:h-full lg:min-h-0 lg:self-start">
         <h1 className="px-1 font-heading text-2xl font-semibold leading-8 tracking-normal text-card-foreground">
           {t("dashboard.settings.title", { defaultValue: fallbackCopy.title })}
         </h1>
@@ -3262,37 +3409,56 @@ export function ConfiguracionSettingsView({
         role="tabpanel"
         aria-labelledby={`settings-tab-${activeSection.id}`}
         aria-live="polite"
-        className="flex min-h-[320px] min-w-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-card px-5 py-10 text-center shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:min-h-[420px] sm:px-8"
+        className="min-h-[320px] min-w-0 rounded-2xl border border-border bg-card p-4 text-left shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:min-h-[420px] sm:p-5 lg:h-full lg:min-h-0 lg:overflow-hidden lg:p-6"
       >
         <AnimatePresence mode="wait">
-          <motion.div
-            key={activeSection.id}
-            className="w-full"
-            initial={contentMotion.initial}
-            animate={contentMotion.animate}
-            exit={contentMotion.exit}
-            transition={contentMotion.transition}
-          >
-            {activeSection.id === "general" ? (
-              <ConfiguracionGeneralPanel />
-            ) : activeSection.id === "perfil" ? (
-              <ConfiguracionProfilePanel user={user} />
-            ) : activeSection.id === "notificaciones" ? (
-              <ConfiguracionNotificationsPanel />
-            ) : activeSection.id === "seguridad" ? (
+          {activeSection.id === "seguridad" ? (
+            <motion.div
+              key="seguridad"
+              className="w-full lg:h-full lg:min-h-0 lg:overflow-x-hidden lg:overflow-y-auto"
+              initial={securityPanelMotion.initial}
+              animate={securityPanelMotion.animate}
+              exit={securityPanelMotion.exit}
+              transition={securityPanelMotion.transition}
+            >
               <ConfiguracionSecurityPanel
                 userEmail={user.email}
                 sessions={sessions}
               />
-            ) : (
-              <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface sm:text-3xl sm:leading-10">
-                {t("dashboard.settings.greeting", {
-                  defaultValue: fallbackCopy.greeting,
-                  section: activeSectionLabel,
-                })}
-              </h2>
-            )}
-          </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="focus-cards"
+              className="grid gap-5 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:justify-between lg:overflow-x-hidden lg:overflow-y-auto"
+              initial={focusCardsMotion.initial}
+              animate={focusCardsMotion.animate}
+              exit={focusCardsMotion.exit}
+              transition={focusCardsMotion.transition}
+            >
+              <SettingsFocusCard
+                sectionId="general"
+                activeSectionId={activeFocusSectionId}
+                shouldReduceMotion={Boolean(shouldReduceMotion)}
+              >
+                <ConfiguracionGeneralPanel />
+              </SettingsFocusCard>
+              <SettingsFocusCard
+                sectionId="perfil"
+                activeSectionId={activeFocusSectionId}
+                shouldReduceMotion={Boolean(shouldReduceMotion)}
+              >
+                <ConfiguracionProfilePanel user={user} />
+              </SettingsFocusCard>
+              <SettingsFocusCard
+                sectionId="notificaciones"
+                activeSectionId={activeFocusSectionId}
+                className="pb-4 sm:pb-5"
+                shouldReduceMotion={Boolean(shouldReduceMotion)}
+              >
+                <ConfiguracionNotificationsPanel />
+              </SettingsFocusCard>
+            </motion.div>
+          )}
         </AnimatePresence>
       </section>
     </section>

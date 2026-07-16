@@ -156,7 +156,7 @@ export function DashboardSidebar() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
 
   return (
-    <aside className="flex min-h-dvh w-full flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground shadow-[8px_0_24px_-22px_rgb(13_13_18/0.55)] lg:sticky lg:top-0 lg:w-[260px]">
+    <aside className="flex min-h-dvh w-full flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground shadow-[8px_0_24px_-22px_rgb(13_13_18/0.55)] lg:sticky lg:top-0 lg:h-dvh lg:min-h-0 lg:w-[260px] lg:self-start lg:overflow-hidden">
       <div className="mb-8 flex items-center gap-3 px-2">
         <div className="grid size-9 place-items-center rounded-lg bg-primary font-heading text-sm font-bold text-primary-foreground">
           K
@@ -166,7 +166,10 @@ export function DashboardSidebar() {
         </span>
       </div>
 
-      <nav aria-label={t("dashboard.navigationLabel")} className="space-y-6">
+      <nav
+        aria-label={t("dashboard.navigationLabel")}
+        className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1"
+      >
         {dashboardNavGroups.map((group, index) => (
           <section key={group.id} className="space-y-3">
             {index > 0 ? (
@@ -193,7 +196,7 @@ export function DashboardSidebar() {
         ))}
       </nav>
 
-      <form action={logoutAction} className="mt-auto pt-6">
+      <form action={logoutAction} className="shrink-0 pt-6">
         <LogoutSubmitButton />
       </form>
     </aside>

@@ -49,10 +49,8 @@ describe("dashboard settings sections", () => {
     expect(dashboardSettingsFallbackCopy.en.greeting).toBe(
       "Greetings from {{section}}",
     );
-    expect(dashboardSettingsFallbackCopy.es.profileSave).toBe(
-      "Guardar cambios",
-    );
-    expect(dashboardSettingsFallbackCopy.en.profileSave).toBe("Save changes");
+    expect(dashboardSettingsFallbackCopy.es.profileSave).toBe("Guardar");
+    expect(dashboardSettingsFallbackCopy.en.profileSave).toBe("Save");
     expect(dashboardSettingsFallbackCopy.es.securityTitle).toBe(
       "Seguridad de la cuenta",
     );
@@ -160,7 +158,8 @@ describe("dashboard settings sections", () => {
     expect(dashboardNotificationOptions).toEqual([
       {
         id: "upcoming-payments",
-        titleKey: "dashboard.settings.notifications.options.upcomingPayments.title",
+        titleKey:
+          "dashboard.settings.notifications.options.upcomingPayments.title",
         descriptionKey:
           "dashboard.settings.notifications.options.upcomingPayments.description",
         icon: "calendar-days",
@@ -176,7 +175,8 @@ describe("dashboard settings sections", () => {
       },
       {
         id: "payment-alerts",
-        titleKey: "dashboard.settings.notifications.options.paymentAlerts.title",
+        titleKey:
+          "dashboard.settings.notifications.options.paymentAlerts.title",
         descriptionKey:
           "dashboard.settings.notifications.options.paymentAlerts.description",
         icon: "badge-alert",
@@ -192,7 +192,8 @@ describe("dashboard settings sections", () => {
       },
       {
         id: "weekly-summary",
-        titleKey: "dashboard.settings.notifications.options.weeklySummary.title",
+        titleKey:
+          "dashboard.settings.notifications.options.weeklySummary.title",
         descriptionKey:
           "dashboard.settings.notifications.options.weeklySummary.description",
         icon: "mailbox",

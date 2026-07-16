@@ -105,7 +105,7 @@
         },
         "actions": {
           "cancel": "Cancel",
-          "save": "Save changes",
+          "save": "Save",
           "saving": "Saving..."
         },
         "feedback": {
@@ -122,7 +122,7 @@
             "confirm": "Confirm password"
           },
           "actions": {
-            "save": "Save changes",
+            "save": "Save",
             "sending": "Sending...",
             "cancel": "Cancel",
             "verify": "Verify",
