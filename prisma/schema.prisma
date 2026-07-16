@@ -15,6 +15,7 @@ model User {
   emailVerifiedAt           DateTime?
   sessions                  Session[]
   passwordResetTokens       PasswordResetToken[]
+  passwordChangeTokens      PasswordChangeToken[]
   accountVerificationTokens AccountVerificationToken[]
   accountDeletionTokens     AccountDeletionToken[]
   createdAt                 DateTime                   @default(now())
@@ -56,6 +57,20 @@ model LoginAttempt {
 }
 
 model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
+}
+
+model PasswordChangeToken {
   id        String    @id @default(cuid())
   userId    String
   tokenHash String    @unique

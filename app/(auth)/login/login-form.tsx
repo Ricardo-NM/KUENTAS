@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import {
-  LockIcon,
+  LockKeyholeIcon,
   type LockIconHandle,
   MailCheckIcon,
   type MailCheckIconHandle,
@@ -143,7 +143,7 @@ export function LoginForm() {
                 credentialsAreInvalid ? errorInputClass : normalInputClass
               } pr-14`}
             />
-            <LockIcon
+            <LockKeyholeIcon
               ref={passwordIconRef}
               aria-hidden="true"
               size={18}

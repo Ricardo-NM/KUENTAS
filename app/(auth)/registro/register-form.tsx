@@ -6,7 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 import {
   KeyIcon,
   type KeyIconHandle,
-  LockIcon,
+  LockKeyholeIcon,
   type LockIconHandle,
   MailCheckIcon,
   type MailCheckIconHandle,
@@ -254,9 +254,7 @@ function VerifyRegistrationCodeForm({
       <AuthNoticeModal
         isOpen={verifiedModalIsOpen}
         title={t("register.accountVerifiedTitle")}
-        body={t(
-          state.modalMessageKey ?? "register.accountVerifiedMessage",
-        )}
+        body={t(state.modalMessageKey ?? "register.accountVerifiedMessage")}
         actionLabel={t("register.accountVerifiedAction")}
         onClose={() => router.push("/login")}
       />
@@ -452,7 +450,7 @@ export function RegisterForm() {
             id="registerEmail-error"
             message={
               showEmailError
-                ? serverEmailError ?? t("validation.invalidEmail")
+                ? (serverEmailError ?? t("validation.invalidEmail"))
                 : undefined
             }
             tone="error"
@@ -481,7 +479,7 @@ export function RegisterForm() {
               onBlur={() => passwordIconRef.current?.stopAnimation()}
               className={`${inputBaseClass} ${normalInputClass} pr-14`}
             />
-            <LockIcon
+            <LockKeyholeIcon
               ref={passwordIconRef}
               aria-hidden="true"
               size={18}
@@ -539,7 +537,7 @@ export function RegisterForm() {
                 repeatPasswordDoesNotMatch ? errorInputClass : normalInputClass
               } pr-14`}
             />
-            <LockIcon
+            <LockKeyholeIcon
               ref={repeatPasswordIconRef}
               aria-hidden="true"
               size={18}

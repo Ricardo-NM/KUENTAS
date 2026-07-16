@@ -3,10 +3,14 @@
 import {
   BadgeAlertIcon,
   CalendarDaysIcon,
+  CheckCheckIcon,
   ChevronDownIcon,
   CircleCheckIcon,
   DeleteIcon,
+  KeyIcon,
   KeySquareIcon,
+  LockKeyholeIcon,
+  LockKeyholeOpenIcon,
   LogoutIcon,
   MailboxIcon,
   MoonIcon,
@@ -22,6 +26,8 @@ import {
   UserRoundCogIcon,
 } from "lucide-animated";
 import {
+  Eye,
+  EyeOff,
   Laptop,
   MonitorSmartphone,
   Smartphone,
@@ -36,6 +42,7 @@ import {
   type RefAttributes,
   useActionState,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useTransition,
@@ -43,13 +50,19 @@ import {
 import { useRouter } from "next/navigation";
 import {
   cancelAccountDeletionAction,
+  cancelPasswordChangeAction,
   confirmAccountDeletionAction,
+  confirmPasswordChangeAction,
+  completePasswordChangeSessionAction,
+  requestPasswordChangeCodeAction,
   requestAccountDeletionCodeAction,
   revokeOtherSessionsAction,
   revokeSessionAction,
   updateUserProfileAction,
   type DeleteAccountActionState,
   type DashboardProfileActionState,
+  type PasswordChangeActionState,
+  type PasswordChangeSessionMode,
 } from "./actions";
 import {
   dashboardCurrencyOptions,
@@ -73,6 +86,11 @@ import {
   type DashboardTheme,
 } from "@/lib/dashboard/theme-preference";
 import { cn } from "@/lib/utils";
+import {
+  getPasswordRequirements,
+  shouldShowPasswordMismatch,
+} from "@/lib/auth/password-requirements";
+import { AnimatedFormMessage } from "../../(auth)/animated-form-message";
 import { useTranslation } from "react-i18next";
 
 type AnimatedIconHandle = {
@@ -132,21 +150,18 @@ const initialProfileActionState: DashboardProfileActionState = {
 function isMobileSessionDevice(deviceLabel: string) {
   const normalizedLabel = deviceLabel.toLowerCase();
 
-  return normalizedLabel.includes("iphone") ||
+  return (
+    normalizedLabel.includes("iphone") ||
     normalizedLabel.includes("ipad") ||
-    normalizedLabel.includes("android");
+    normalizedLabel.includes("android")
+  );
 }
 
 function getSessionActivityIcon(deviceLabel: string): LucideIcon {
-  return isMobileSessionDevice(deviceLabel)
-    ? Smartphone
-    : Laptop;
+  return isMobileSessionDevice(deviceLabel) ? Smartphone : Laptop;
 }
 
-function formatSessionActivityTime(
-  lastSeenAt: string,
-  language: "es" | "en",
-) {
+function formatSessionActivityTime(lastSeenAt: string, language: "es" | "en") {
   const diffMs = new Date(lastSeenAt).getTime() - Date.now();
   const absoluteDiffMs = Math.abs(diffMs);
   const formatter = new Intl.RelativeTimeFormat(language, {
@@ -187,8 +202,8 @@ function SettingsSelect({
   value: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedOption = options.find((option) => option.value === value) ??
-    options[0];
+  const selectedOption =
+    options.find((option) => option.value === value) ?? options[0];
 
   return (
     <div
@@ -358,6 +373,74 @@ function SettingsToggleRow({
   );
 }
 
+function PasswordRequirementItem({
+  isMet,
+  label,
+}: {
+  isMet: boolean;
+  label: string;
+}) {
+  return (
+    <li
+      className={cn(
+        "flex items-center gap-2 transition-colors duration-200",
+        isMet ? "text-chart-1" : "text-on-surface-variant",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 rounded-full transition-colors duration-200",
+          isMet ? "bg-chart-1" : "bg-outline",
+        )}
+      />
+      <span>{label}</span>
+    </li>
+  );
+}
+
+function PasswordVisibilityToggle({
+  isVisible,
+  onToggle,
+  showLabel,
+  hideLabel,
+}: {
+  isVisible: boolean;
+  onToggle: () => void;
+  showLabel: string;
+  hideLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={isVisible ? hideLabel : showLabel}
+      onClick={onToggle}
+      className="absolute right-2 top-1/2 inline-flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-on-surface-variant transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    >
+      <span className="relative size-[18px]">
+        <Eye
+          aria-hidden="true"
+          size={18}
+          strokeWidth={1.8}
+          className={cn(
+            "absolute inset-0 transition duration-200 ease-out",
+            isVisible ? "scale-75 opacity-0" : "scale-100 opacity-100",
+          )}
+        />
+        <EyeOff
+          aria-hidden="true"
+          size={18}
+          strokeWidth={1.8}
+          className={cn(
+            "absolute inset-0 transition duration-200 ease-out",
+            isVisible ? "scale-100 opacity-100" : "scale-75 opacity-0",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
 function SettingsNavItem({
   section,
   isActive,
@@ -513,12 +596,9 @@ function ConfiguracionGeneralPanel() {
           </label>
           <SettingsSelect
             id="settings-interface-language"
-            ariaLabel={t(
-              "dashboard.settings.general.interfaceLanguage.label",
-              {
-                defaultValue: fallbackCopy.interfaceLanguageLabel,
-              },
-            )}
+            ariaLabel={t("dashboard.settings.general.interfaceLanguage.label", {
+              defaultValue: fallbackCopy.interfaceLanguageLabel,
+            })}
             value={language}
             onChange={changeLanguage}
             options={languageOptions}
@@ -579,11 +659,7 @@ function ConfiguracionGeneralPanel() {
                 : "text-on-surface-variant hover:bg-surface-container-lowest/45",
             )}
           >
-            <SunMediumIcon
-              ref={sunIconRef}
-              aria-hidden="true"
-              size={16}
-            />
+            <SunMediumIcon ref={sunIconRef} aria-hidden="true" size={16} />
             <span>
               {t("dashboard.settings.general.theme.light", {
                 defaultValue: fallbackCopy.lightTheme,
@@ -601,11 +677,7 @@ function ConfiguracionGeneralPanel() {
                 : "text-on-surface-variant hover:bg-surface-container-lowest/45",
             )}
           >
-            <MoonIcon
-              ref={moonIconRef}
-              aria-hidden="true"
-              size={16}
-            />
+            <MoonIcon ref={moonIconRef} aria-hidden="true" size={16} />
             <span>
               {t("dashboard.settings.general.theme.dark", {
                 defaultValue: fallbackCopy.darkTheme,
@@ -618,7 +690,11 @@ function ConfiguracionGeneralPanel() {
   );
 }
 
-function ConfiguracionProfilePanel({ user }: { user: DashboardSettingsProfile }) {
+function ConfiguracionProfilePanel({
+  user,
+}: {
+  user: DashboardSettingsProfile;
+}) {
   const { i18n, t } = useTranslation();
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
@@ -781,7 +857,9 @@ function ConfiguracionProfilePanel({ user }: { user: DashboardSettingsProfile })
             }
             className={cn(
               fieldClassName,
-              firstNameError ? "border-destructive focus:border-destructive" : "",
+              firstNameError
+                ? "border-destructive focus:border-destructive"
+                : "",
             )}
           />
           {firstNameError ? (
@@ -816,7 +894,9 @@ function ConfiguracionProfilePanel({ user }: { user: DashboardSettingsProfile })
             }
             className={cn(
               fieldClassName,
-              lastNameError ? "border-destructive focus:border-destructive" : "",
+              lastNameError
+                ? "border-destructive focus:border-destructive"
+                : "",
             )}
           />
           {lastNameError ? (
@@ -939,7 +1019,7 @@ function ConfiguracionNotificationsPanel() {
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
 
   return (
-    <div className="w-full max-w-[760px] text-left">
+    <div className="w-full max-w-[1120px] text-left">
       <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
         {t("dashboard.settings.notifications.title", {
           defaultValue: fallbackCopy.notificationsTitle,
@@ -991,6 +1071,17 @@ function ConfiguracionSecurityPanel({
   const cancelSessionIconRef = useRef<AnimatedIconHandle>(null);
   const deleteAccountIconRef = useRef<AnimatedIconHandle>(null);
   const logoutSessionIconRef = useRef<AnimatedIconHandle>(null);
+  const savePasswordIconRef = useRef<AnimatedIconHandle>(null);
+  const cancelPasswordChangeIconRef = useRef<AnimatedIconHandle>(null);
+  const verifyPasswordChangeIconRef = useRef<AnimatedIconHandle>(null);
+  const passwordChangeCodeIconRef = useRef<AnimatedIconHandle>(null);
+  const passwordChangeNoticeIconRef = useRef<AnimatedIconHandle>(null);
+  const closeCurrentPasswordSessionIconRef = useRef<AnimatedIconHandle>(null);
+  const closeAllPasswordSessionsIconRef = useRef<AnimatedIconHandle>(null);
+  const currentPasswordIconRef = useRef<AnimatedIconHandle>(null);
+  const newPasswordIconRef = useRef<AnimatedIconHandle>(null);
+  const confirmPasswordIconRef = useRef<AnimatedIconHandle>(null);
+  const deleteAccountPasswordIconRef = useRef<AnimatedIconHandle>(null);
   const [isDeleteAccountConfirmationOpen, setIsDeleteAccountConfirmationOpen] =
     useState(false);
   const [isDeleteAccountCodeOpen, setIsDeleteAccountCodeOpen] = useState(false);
@@ -998,6 +1089,25 @@ function ConfiguracionSecurityPanel({
   const [deleteAccountCode, setDeleteAccountCode] = useState("");
   const [deleteAccountState, setDeleteAccountState] =
     useState<DeleteAccountActionState | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showDeleteAccountPassword, setShowDeleteAccountPassword] =
+    useState(false);
+  const [passwordChangeCode, setPasswordChangeCode] = useState("");
+  const [passwordChangeState, setPasswordChangeState] =
+    useState<PasswordChangeActionState | null>(null);
+  const [isPasswordChangeChallengeActive, setIsPasswordChangeChallengeActive] =
+    useState(false);
+  const [isPasswordChangeNoticeOpen, setIsPasswordChangeNoticeOpen] =
+    useState(false);
+  const [
+    isPasswordChangeSessionChoiceOpen,
+    setIsPasswordChangeSessionChoiceOpen,
+  ] = useState(false);
   const [confirmation, setConfirmation] = useState<SessionConfirmation | null>(
     null,
   );
@@ -1007,6 +1117,8 @@ function ConfiguracionSecurityPanel({
   const [isSessionActionPending, startSessionActionTransition] =
     useTransition();
   const [isDeleteAccountActionPending, startDeleteAccountActionTransition] =
+    useTransition();
+  const [isPasswordChangeActionPending, startPasswordChangeActionTransition] =
     useTransition();
   const fieldClassName =
     "min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-medium text-on-surface shadow-[0_1px_2px_rgb(13_13_18/0.04)] outline-none transition placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15";
@@ -1020,21 +1132,42 @@ function ConfiguracionSecurityPanel({
   const passwordFields = [
     {
       id: "security-current-password",
+      name: "currentPassword",
       labelKey: "dashboard.settings.security.password.fields.current",
       fallback: fallbackCopy.securityCurrentPassword,
       autoComplete: "current-password",
+      value: currentPassword,
+      onChange: setCurrentPassword,
+      icon: LockKeyholeIcon,
+      iconRef: currentPasswordIconRef,
+      isVisible: showCurrentPassword,
+      onToggleVisibility: () => setShowCurrentPassword((current) => !current),
     },
     {
       id: "security-new-password",
+      name: "newPassword",
       labelKey: "dashboard.settings.security.password.fields.new",
       fallback: fallbackCopy.securityNewPassword,
       autoComplete: "new-password",
+      value: newPassword,
+      onChange: setNewPassword,
+      icon: LockKeyholeOpenIcon,
+      iconRef: newPasswordIconRef,
+      isVisible: showNewPassword,
+      onToggleVisibility: () => setShowNewPassword((current) => !current),
     },
     {
       id: "security-confirm-password",
+      name: "confirmPassword",
       labelKey: "dashboard.settings.security.password.fields.confirm",
       fallback: fallbackCopy.securityConfirmPassword,
       autoComplete: "new-password",
+      value: confirmPassword,
+      onChange: setConfirmPassword,
+      icon: LockKeyholeOpenIcon,
+      iconRef: confirmPasswordIconRef,
+      isVisible: showConfirmPassword,
+      onToggleVisibility: () => setShowConfirmPassword((current) => !current),
     },
   ];
   const hasOtherSessions = sessions.some((session) => !session.isCurrent);
@@ -1093,11 +1226,7 @@ function ConfiguracionSecurityPanel({
       })();
     });
   };
-  const normalizedDeleteAccountCode = deleteAccountCode
-    .replace(/\D/g, "")
-    .slice(0, 6);
-  const deleteAccountCodeIsValid = normalizedDeleteAccountCode.length === 6;
-  const getMaskedDeleteAccountEmail = (email: string) => {
+  const getMaskedEmail = (email: string) => {
     const [localPart, domain] = email.split("@");
 
     if (!localPart || !domain) {
@@ -1108,18 +1237,129 @@ function ConfiguracionSecurityPanel({
       Math.max(localPart.length - 2, 1),
     )}@${domain}`;
   };
+  const normalizedPasswordChangeCode = passwordChangeCode
+    .replace(/\D/g, "")
+    .slice(0, 6);
+  const passwordChangeCodeIsValid = normalizedPasswordChangeCode.length === 6;
+  const passwordChangeFieldsAreComplete =
+    currentPassword.length > 0 &&
+    newPassword.length > 0 &&
+    confirmPassword.length > 0;
+  const passwordRequirements = useMemo(
+    () => getPasswordRequirements(newPassword),
+    [newPassword],
+  );
+  const confirmPasswordDoesNotMatch = shouldShowPasswordMismatch(
+    newPassword,
+    confirmPassword,
+  );
+  const confirmPasswordMatches =
+    confirmPassword.length > 0 && confirmPassword === newPassword;
+  const passwordFieldsAreDisabled =
+    isPasswordChangeChallengeActive ||
+    isPasswordChangeActionPending ||
+    isPasswordChangeSessionChoiceOpen;
+  const passwordChangeMaskedEmail =
+    passwordChangeState?.maskedEmail ?? getMaskedEmail(userEmail);
+  const getPasswordChangeFieldError = (
+    field: "currentPassword" | "newPassword" | "confirmPassword" | "code",
+  ) =>
+    passwordChangeState?.status === "error" &&
+    passwordChangeState.errors?.[field]
+      ? passwordChangeState.errors[field]
+      : null;
+  const requestPasswordChangeCode = () => {
+    if (!passwordChangeFieldsAreComplete || isPasswordChangeChallengeActive) {
+      return;
+    }
+
+    startPasswordChangeActionTransition(() => {
+      void (async () => {
+        const formData = new FormData();
+        formData.set("currentPassword", currentPassword);
+        formData.set("newPassword", newPassword);
+        formData.set("confirmPassword", confirmPassword);
+        formData.set("language", i18n.resolvedLanguage ?? i18n.language);
+        const result = await requestPasswordChangeCodeAction(formData);
+
+        setPasswordChangeState(result);
+
+        if (result.status === "success") {
+          setPasswordChangeCode("");
+          setShowCurrentPassword(false);
+          setShowNewPassword(false);
+          setShowConfirmPassword(false);
+          setIsPasswordChangeChallengeActive(true);
+          setIsPasswordChangeNoticeOpen(true);
+        }
+      })();
+    });
+  };
+  const cancelPasswordChange = () => {
+    startPasswordChangeActionTransition(() => {
+      void (async () => {
+        await cancelPasswordChangeAction();
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
+        setPasswordChangeCode("");
+        setPasswordChangeState(null);
+        setIsPasswordChangeChallengeActive(false);
+        setIsPasswordChangeNoticeOpen(false);
+      })();
+    });
+  };
+  const confirmPasswordChange = () => {
+    if (!passwordChangeCodeIsValid) {
+      return;
+    }
+
+    startPasswordChangeActionTransition(() => {
+      void (async () => {
+        const formData = new FormData();
+        formData.set("code", normalizedPasswordChangeCode);
+        formData.set("newPassword", newPassword);
+        formData.set("confirmPassword", confirmPassword);
+        const result = await confirmPasswordChangeAction(formData);
+
+        setPasswordChangeState(result);
+
+        if (result.status === "success") {
+          setPasswordChangeCode("");
+          setIsPasswordChangeChallengeActive(false);
+          setIsPasswordChangeNoticeOpen(false);
+          setIsPasswordChangeSessionChoiceOpen(true);
+          router.refresh();
+        }
+      })();
+    });
+  };
+  const finishPasswordChangeSession = (mode: PasswordChangeSessionMode) => {
+    startPasswordChangeActionTransition(() => {
+      void completePasswordChangeSessionAction(mode);
+    });
+  };
+  const normalizedDeleteAccountCode = deleteAccountCode
+    .replace(/\D/g, "")
+    .slice(0, 6);
+  const deleteAccountCodeIsValid = normalizedDeleteAccountCode.length === 6;
   const deleteAccountMaskedEmail =
-    deleteAccountState?.maskedEmail ?? getMaskedDeleteAccountEmail(userEmail);
+    deleteAccountState?.maskedEmail ?? getMaskedEmail(userEmail);
   const openDeleteAccountConfirmation = () => {
     setDeleteAccountPassword("");
     setDeleteAccountCode("");
     setDeleteAccountState(null);
+    setShowDeleteAccountPassword(false);
     setIsDeleteAccountConfirmationOpen(true);
   };
   const closeDeleteAccountConfirmation = () => {
     setIsDeleteAccountConfirmationOpen(false);
     setDeleteAccountPassword("");
     setDeleteAccountState(null);
+    setShowDeleteAccountPassword(false);
   };
   const requestDeleteAccountCode = () => {
     if (!deleteAccountPassword) {
@@ -1137,6 +1377,7 @@ function ConfiguracionSecurityPanel({
 
         if (result.status === "success") {
           setIsDeleteAccountConfirmationOpen(false);
+          setShowDeleteAccountPassword(false);
           setDeleteAccountCode("");
           setIsDeleteAccountCodeOpen(true);
         }
@@ -1172,17 +1413,17 @@ function ConfiguracionSecurityPanel({
   };
 
   return (
-    <div className="w-full max-w-[760px] text-left">
+    <div className="w-full text-left">
       <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
         {t("dashboard.settings.security.title", {
           defaultValue: fallbackCopy.securityTitle,
         })}
       </h2>
 
-      <div className="mt-7 space-y-9">
+      <div className="mt-7 grid gap-y-9 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(250px,300px)] lg:gap-x-8">
         <section
           aria-labelledby="security-2fa-title"
-          className="rounded-xl border border-outline-variant bg-accent/55 p-4 text-on-surface sm:p-5"
+          className="rounded-xl border border-outline-variant bg-accent/55 p-4 text-on-surface sm:p-5 lg:col-span-2"
         >
           <SettingsToggleRow
             id="security-2fa"
@@ -1195,141 +1436,440 @@ function ConfiguracionSecurityPanel({
                 defaultValue: fallbackCopy.securityTwoFactorDescription,
               },
             )}
-            ariaLabel={t(
-              "dashboard.settings.security.twoFactor.enabledLabel",
-              {
-                defaultValue: fallbackCopy.securityTwoFactorEnabled,
-              },
-            )}
+            ariaLabel={t("dashboard.settings.security.twoFactor.enabledLabel", {
+              defaultValue: fallbackCopy.securityTwoFactorEnabled,
+            })}
             Icon={KeySquareIcon}
             initiallyEnabled={true}
           />
         </section>
 
-        <div className="grid gap-9 lg:grid-cols-[minmax(0,1fr)_minmax(250px,300px)] lg:items-start">
-          <div className="space-y-9">
-            <section aria-labelledby="security-password-title">
-              <h3
-                id="security-password-title"
-                className="text-base font-bold leading-6 text-on-surface"
-              >
-                {t("dashboard.settings.security.password.title", {
-                  defaultValue: fallbackCopy.securityPasswordTitle,
-                })}
-              </h3>
-              <div className="mt-4 grid gap-4">
-                {passwordFields.map((field) => (
-                  <div key={field.id} className="min-w-0">
-                    <label
-                      htmlFor={field.id}
-                      className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
-                    >
-                      {t(field.labelKey, { defaultValue: field.fallback })}
-                    </label>
+        <div className="lg:row-span-2 lg:border-l lg:border-border lg:pl-8">
+          <section
+            aria-labelledby="security-danger-title"
+            className="rounded-xl border border-destructive/25 bg-destructive-container/35 p-5 text-on-surface"
+          >
+            <h3
+              id="security-danger-title"
+              className="text-base font-bold leading-6 text-destructive"
+            >
+              {t("dashboard.settings.security.dangerZone.title", {
+                defaultValue: fallbackCopy.securityDangerTitle,
+              })}
+            </h3>
+            <p className="mt-3 text-sm leading-5 text-on-surface-variant">
+              {t("dashboard.settings.security.dangerZone.description", {
+                defaultValue: fallbackCopy.securityDangerDescription,
+              })}
+            </p>
+            <button
+              type="button"
+              onFocus={() => deleteAccountIconRef.current?.startAnimation()}
+              onBlur={() => deleteAccountIconRef.current?.stopAnimation()}
+              onMouseEnter={() =>
+                deleteAccountIconRef.current?.startAnimation()
+              }
+              onMouseLeave={() => deleteAccountIconRef.current?.stopAnimation()}
+              onClick={openDeleteAccountConfirmation}
+              className={cn(
+                destructiveActionClassName,
+                "mt-5 min-h-11 w-full gap-2 px-5 text-sm",
+              )}
+            >
+              <DeleteIcon
+                ref={deleteAccountIconRef}
+                aria-hidden="true"
+                animateOnHover={false}
+                size={17}
+              />
+              {t("dashboard.settings.security.dangerZone.action", {
+                defaultValue: fallbackCopy.securityDangerAction,
+              })}
+            </button>
+          </section>
+        </div>
+
+        <section aria-labelledby="security-password-title" className="min-w-0">
+          <h3
+            id="security-password-title"
+            className="text-base font-bold leading-6 text-on-surface"
+          >
+            {t("dashboard.settings.security.password.title", {
+              defaultValue: fallbackCopy.securityPasswordTitle,
+            })}
+          </h3>
+          <div className="mt-4 grid gap-4">
+            {passwordFields.map((field) => {
+              const PasswordIcon = field.icon;
+
+              return (
+                <div key={field.id} className="min-w-0">
+                  <label
+                    htmlFor={field.id}
+                    className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+                  >
+                    {t(field.labelKey, { defaultValue: field.fallback })}
+                  </label>
+                  <div className="relative">
                     <input
                       id={field.id}
-                      type="password"
+                      name={field.name}
+                      type={field.isVisible ? "text" : "password"}
                       autoComplete={field.autoComplete}
-                      readOnly
+                      disabled={passwordFieldsAreDisabled}
+                      value={field.value}
+                      aria-invalid={
+                        field.name === "confirmPassword"
+                          ? confirmPasswordDoesNotMatch ||
+                            Boolean(
+                              getPasswordChangeFieldError("confirmPassword"),
+                            )
+                          : Boolean(
+                              getPasswordChangeFieldError(
+                                field.name as
+                                  | "currentPassword"
+                                  | "newPassword"
+                                  | "confirmPassword",
+                              ),
+                            )
+                      }
+                      aria-describedby={
+                        field.name === "confirmPassword" &&
+                        (confirmPassword.length > 0 ||
+                          getPasswordChangeFieldError("confirmPassword"))
+                          ? "security-confirm-password-feedback"
+                          : undefined
+                      }
+                      onFocus={() => field.iconRef.current?.startAnimation()}
+                      onBlur={() => field.iconRef.current?.stopAnimation()}
+                      onChange={(event) => {
+                        field.onChange(event.target.value);
+                        setPasswordChangeState(null);
+                      }}
                       placeholder={passwordPlaceholder}
-                      className={fieldClassName}
+                      className={cn(
+                        fieldClassName,
+                        "peer pl-12 pr-14 disabled:cursor-not-allowed disabled:opacity-60",
+                      )}
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant transition-colors duration-200 peer-focus:text-primary peer-disabled:opacity-60"
+                    >
+                      <PasswordIcon
+                        ref={field.iconRef}
+                        aria-hidden="true"
+                        animateOnHover={false}
+                        size={18}
+                      />
+                    </span>
+                    <PasswordVisibilityToggle
+                      isVisible={field.isVisible}
+                      onToggle={field.onToggleVisibility}
+                      showLabel={t("common.showPassword")}
+                      hideLabel={t("common.hidePassword")}
                     />
                   </div>
-                ))}
-              </div>
-            </section>
-
-            <section
-              aria-labelledby="security-danger-title"
-              className="rounded-xl border border-destructive/25 bg-destructive-container/35 p-5 text-on-surface"
-            >
-              <h3
-                id="security-danger-title"
-                className="text-base font-bold leading-6 text-destructive"
-              >
-                {t("dashboard.settings.security.dangerZone.title", {
-                  defaultValue: fallbackCopy.securityDangerTitle,
-                })}
-              </h3>
-              <p className="mt-3 max-w-[620px] text-sm leading-5 text-on-surface-variant">
-                {t("dashboard.settings.security.dangerZone.description", {
-                  defaultValue: fallbackCopy.securityDangerDescription,
-                })}
-              </p>
-              <button
-                type="button"
-                onFocus={() => deleteAccountIconRef.current?.startAnimation()}
-                onBlur={() => deleteAccountIconRef.current?.stopAnimation()}
-                onMouseEnter={() =>
-                  deleteAccountIconRef.current?.startAnimation()
-                }
-                onMouseLeave={() =>
-                  deleteAccountIconRef.current?.stopAnimation()
-                }
-                onClick={openDeleteAccountConfirmation}
-                className={cn(
-                  destructiveActionClassName,
-                  "mt-5 min-h-11 gap-2 px-5 text-sm",
-                )}
-              >
-                <DeleteIcon
-                  ref={deleteAccountIconRef}
-                  aria-hidden="true"
-                  animateOnHover={false}
-                  size={17}
-                />
-                {t("dashboard.settings.security.dangerZone.action", {
-                  defaultValue: fallbackCopy.securityDangerAction,
-                })}
-              </button>
-            </section>
+                  {field.name === "newPassword" ? (
+                    <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-medium">
+                      {passwordRequirements.map((requirement) => (
+                        <PasswordRequirementItem
+                          key={requirement.labelKey}
+                          isMet={requirement.isMet}
+                          label={t(requirement.labelKey)}
+                        />
+                      ))}
+                    </ul>
+                  ) : null}
+                  {field.name === "confirmPassword" ? (
+                    <AnimatedFormMessage
+                      id="security-confirm-password-feedback"
+                      message={
+                        getPasswordChangeFieldError("confirmPassword")
+                          ? t(
+                              getPasswordChangeFieldError("confirmPassword") ??
+                                "",
+                              {
+                                defaultValue:
+                                  fallbackCopy.securityPasswordActionFeedback,
+                              },
+                            )
+                          : confirmPasswordDoesNotMatch
+                            ? t("validation.passwordMismatch")
+                            : confirmPasswordMatches
+                              ? t(
+                                  "dashboard.settings.security.password.feedback.confirmMatch",
+                                  {
+                                    defaultValue:
+                                      fallbackCopy.securityPasswordConfirmMatch,
+                                  },
+                                )
+                              : undefined
+                      }
+                      tone={
+                        getPasswordChangeFieldError("confirmPassword") ||
+                        confirmPasswordDoesNotMatch
+                          ? "error"
+                          : "success"
+                      }
+                      role={
+                        getPasswordChangeFieldError("confirmPassword") ||
+                        confirmPasswordDoesNotMatch
+                          ? "alert"
+                          : "status"
+                      }
+                      spacingClassName="pt-2"
+                    />
+                  ) : null}
+                  {getPasswordChangeFieldError(
+                    field.name as
+                      | "currentPassword"
+                      | "newPassword"
+                      | "confirmPassword",
+                  ) && field.name !== "confirmPassword" ? (
+                    <p className="mt-2 text-xs font-semibold text-destructive">
+                      {t(
+                        getPasswordChangeFieldError(
+                          field.name as
+                            | "currentPassword"
+                            | "newPassword"
+                            | "confirmPassword",
+                        ) ?? "",
+                        {
+                          defaultValue:
+                            fallbackCopy.securityPasswordActionFeedback,
+                        },
+                      )}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
-
-          <section
-            aria-labelledby="security-activity-title"
-            className="lg:border-l lg:border-border lg:pl-8"
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start">
-              <h3
-                id="security-activity-title"
-                className="text-base font-bold leading-6 text-on-surface"
+          <div className="mt-5 flex justify-end">
+            <button
+              type="button"
+              disabled={
+                isPasswordChangeActionPending ||
+                isPasswordChangeChallengeActive ||
+                !passwordChangeFieldsAreComplete
+              }
+              onClick={requestPasswordChangeCode}
+              onFocus={() => savePasswordIconRef.current?.startAnimation()}
+              onBlur={() => savePasswordIconRef.current?.stopAnimation()}
+              onMouseEnter={() => savePasswordIconRef.current?.startAnimation()}
+              onMouseLeave={() => savePasswordIconRef.current?.stopAnimation()}
+              className={cn(
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-bold transition-[background-color,color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                passwordChangeFieldsAreComplete &&
+                  !isPasswordChangeActionPending &&
+                  !isPasswordChangeChallengeActive
+                  ? "cursor-pointer bg-primary text-primary-foreground shadow-[0_8px_20px_rgb(13_13_18/0.16)] hover:bg-primary/90"
+                  : "cursor-not-allowed bg-surface-container-high text-on-surface-variant shadow-none",
+              )}
+            >
+              <CircleCheckIcon
+                ref={savePasswordIconRef}
+                aria-hidden="true"
+                animateOnHover={false}
+                size={16}
+              />
+              {isPasswordChangeActionPending && !isPasswordChangeChallengeActive
+                ? t("dashboard.settings.security.password.actions.sending", {
+                    defaultValue: fallbackCopy.securityPasswordSendingCode,
+                  })
+                : t("dashboard.settings.security.password.actions.save", {
+                    defaultValue: fallbackCopy.securityPasswordSave,
+                  })}
+            </button>
+          </div>
+          {passwordChangeState?.status === "error" &&
+          !passwordChangeState.errors ? (
+            <p className="mt-3 text-sm font-semibold text-destructive">
+              {t(passwordChangeState.messageKey, {
+                defaultValue: fallbackCopy.securityPasswordActionFeedback,
+              })}
+            </p>
+          ) : null}
+          <AnimatePresence initial={false}>
+            {isPasswordChangeChallengeActive ? (
+              <motion.div
+                className="mt-5 rounded-xl border border-outline-variant bg-surface-container-low p-4"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
               >
-                {t("dashboard.settings.security.recentActivity.title", {
-                  defaultValue: fallbackCopy.securityRecentActivityTitle,
-                })}
-              </h3>
-              <button
-                type="button"
-                disabled={!hasOtherSessions || isSessionActionPending}
-                onClick={() => setConfirmation({ type: "all" })}
-                className="inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-xs font-bold text-on-surface transition hover:border-outline hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {t("dashboard.settings.security.recentActivity.closeAll", {
-                  defaultValue: fallbackCopy.securityCloseAllSessions,
-                })}
-              </button>
-            </div>
-
-            <div className="mt-4 divide-y divide-border">
-              {sessions.length > 0 ? (
-                sessions.map((session) => {
-                  const deviceLabel =
-                    session.deviceLabel === "Dispositivo desconocido"
+                <label
+                  htmlFor="security-password-change-code"
+                  className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
+                >
+                  {t("dashboard.settings.security.password.codeLabel", {
+                    defaultValue: fallbackCopy.securityPasswordCodeLabel,
+                  })}
+                </label>
+                <div className="relative">
+                  <input
+                    id="security-password-change-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={normalizedPasswordChangeCode}
+                    onChange={(event) => {
+                      setPasswordChangeCode(event.target.value);
+                      setPasswordChangeState(null);
+                    }}
+                    onFocus={() =>
+                      passwordChangeCodeIconRef.current?.startAnimation()
+                    }
+                    onBlur={() =>
+                      passwordChangeCodeIconRef.current?.stopAnimation()
+                    }
+                    placeholder={t("recovery.verificationCodePlaceholder", {
+                      defaultValue: "000000",
+                    })}
+                    className={cn(
+                      fieldClassName,
+                      "peer pl-12 font-mono tracking-[0.16em]",
+                    )}
+                  />
+                  <KeyIcon
+                    ref={passwordChangeCodeIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={18}
+                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant transition-colors duration-200 peer-focus:text-primary"
+                  />
+                </div>
+                {getPasswordChangeFieldError("code") ? (
+                  <p className="mt-2 text-xs font-semibold text-destructive">
+                    {t(getPasswordChangeFieldError("code") ?? "", {
+                      defaultValue: fallbackCopy.securityPasswordActionFeedback,
+                    })}
+                  </p>
+                ) : null}
+                <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    disabled={isPasswordChangeActionPending}
+                    onClick={cancelPasswordChange}
+                    onFocus={() =>
+                      cancelPasswordChangeIconRef.current?.startAnimation()
+                    }
+                    onBlur={() =>
+                      cancelPasswordChangeIconRef.current?.stopAnimation()
+                    }
+                    onMouseEnter={() =>
+                      cancelPasswordChangeIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      cancelPasswordChangeIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <XIcon
+                      ref={cancelPasswordChangeIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={16}
+                    />
+                    {t("dashboard.settings.security.password.actions.cancel", {
+                      defaultValue:
+                        fallbackCopy.securityDeleteAccountConfirmCancel,
+                    })}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      isPasswordChangeActionPending ||
+                      !passwordChangeCodeIsValid
+                    }
+                    onClick={confirmPasswordChange}
+                    onFocus={() =>
+                      verifyPasswordChangeIconRef.current?.startAnimation()
+                    }
+                    onBlur={() =>
+                      verifyPasswordChangeIconRef.current?.stopAnimation()
+                    }
+                    onMouseEnter={() =>
+                      verifyPasswordChangeIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      verifyPasswordChangeIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <CheckCheckIcon
+                      ref={verifyPasswordChangeIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={16}
+                    />
+                    {isPasswordChangeActionPending
                       ? t(
-                          "dashboard.settings.security.recentActivity.unknownDevice",
+                          "dashboard.settings.security.password.actions.verifying",
                           {
-                            defaultValue: fallbackCopy.securityUnknownDevice,
+                            defaultValue:
+                              fallbackCopy.securityPasswordVerifying,
                           },
                         )
-                      : session.deviceLabel;
-                  const ActivityIcon = getSessionActivityIcon(
-                    deviceLabel,
-                  );
+                      : t(
+                          "dashboard.settings.security.password.actions.verify",
+                          {
+                            defaultValue: fallbackCopy.securityPasswordVerify,
+                          },
+                        )}
+                  </button>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </section>
 
-                  return (
+        <section
+          aria-labelledby="security-activity-title"
+          className="min-w-0 lg:border-l lg:border-border lg:pl-8"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h3
+              id="security-activity-title"
+              className="text-base font-bold leading-6 text-on-surface"
+            >
+              {t("dashboard.settings.security.recentActivity.title", {
+                defaultValue: fallbackCopy.securityRecentActivityTitle,
+              })}
+            </h3>
+            <button
+              type="button"
+              disabled={!hasOtherSessions || isSessionActionPending}
+              onClick={() => setConfirmation({ type: "all" })}
+              className="inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-xs font-bold text-on-surface transition hover:border-outline hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {t("dashboard.settings.security.recentActivity.closeAll", {
+                defaultValue: fallbackCopy.securityCloseAllSessions,
+              })}
+            </button>
+          </div>
+
+          <div className="mt-4 divide-y divide-border">
+            {sessions.length > 0 ? (
+              sessions.map((session) => {
+                const deviceLabel =
+                  session.deviceLabel === "Dispositivo desconocido"
+                    ? t(
+                        "dashboard.settings.security.recentActivity.unknownDevice",
+                        {
+                          defaultValue: fallbackCopy.securityUnknownDevice,
+                        },
+                      )
+                    : session.deviceLabel;
+                const ActivityIcon = getSessionActivityIcon(deviceLabel);
+
+                return (
                   <div
                     key={session.id}
-                    className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0"
+                    className="flex items-start justify-between gap-3 py-4 first:pt-0 last:pb-0"
                   >
                     <div className="flex min-w-0 items-start gap-3">
                       <ActivityIcon
@@ -1338,7 +1878,7 @@ function ConfiguracionSecurityPanel({
                         className="mt-0.5 shrink-0 text-on-surface-variant"
                       />
                       <div className="min-w-0">
-                        <p className="text-sm font-bold leading-5 text-on-surface">
+                        <p className="break-words text-sm font-bold leading-5 text-on-surface">
                           {deviceLabel}
                         </p>
                         <p className="text-xs font-medium leading-4 text-on-surface-variant">
@@ -1346,8 +1886,7 @@ function ConfiguracionSecurityPanel({
                             ? t(
                                 "dashboard.settings.security.recentActivity.activeNow",
                                 {
-                                  defaultValue:
-                                    fallbackCopy.securityActiveNow,
+                                  defaultValue: fallbackCopy.securityActiveNow,
                                 },
                               )
                             : formatSessionActivityTime(
@@ -1358,7 +1897,7 @@ function ConfiguracionSecurityPanel({
                       </div>
                     </div>
                     {session.isCurrent ? (
-                      <span className="text-xs font-bold leading-4 text-chart-1">
+                      <span className="shrink-0 pt-5 text-right text-xs font-bold leading-4 text-chart-1">
                         {t(
                           "dashboard.settings.security.recentActivity.current",
                           {
@@ -1379,7 +1918,7 @@ function ConfiguracionSecurityPanel({
                         }
                         className={cn(
                           signOutTextActionClassName,
-                          "self-start disabled:cursor-not-allowed disabled:opacity-45",
+                          "shrink-0 pt-5 text-right disabled:cursor-not-allowed disabled:opacity-45",
                         )}
                       >
                         {t(
@@ -1391,29 +1930,28 @@ function ConfiguracionSecurityPanel({
                       </button>
                     )}
                   </div>
-                  );
-                })
-              ) : (
-                <p className="py-4 text-sm leading-5 text-on-surface-variant">
-                  {t("dashboard.settings.security.recentActivity.empty", {
-                    defaultValue: fallbackCopy.securityNoSessions,
-                  })}
-                </p>
-              )}
-            </div>
-
-            {sessionFeedbackKey ? (
-              <p
-                role="status"
-                className="mt-4 text-xs font-semibold text-on-surface-variant"
-              >
-                {t(sessionFeedbackKey, {
-                  defaultValue: fallbackCopy.securitySessionActionFeedback,
+                );
+              })
+            ) : (
+              <p className="py-4 text-sm leading-5 text-on-surface-variant">
+                {t("dashboard.settings.security.recentActivity.empty", {
+                  defaultValue: fallbackCopy.securityNoSessions,
                 })}
               </p>
-            ) : null}
-          </section>
-        </div>
+            )}
+          </div>
+
+          {sessionFeedbackKey ? (
+            <p
+              role="status"
+              className="mt-4 text-xs font-semibold text-on-surface-variant"
+            >
+              {t(sessionFeedbackKey, {
+                defaultValue: fallbackCopy.securitySessionActionFeedback,
+              })}
+            </p>
+          ) : null}
+        </section>
       </div>
 
       <AnimatePresence>
@@ -1455,11 +1993,7 @@ function ConfiguracionSecurityPanel({
                       size={20}
                     />
                   ) : (
-                    <Laptop
-                      aria-hidden="true"
-                      className="shrink-0"
-                      size={20}
-                    />
+                    <Laptop aria-hidden="true" className="shrink-0" size={20} />
                   )}
                 </span>
                 <div className="min-w-0">
@@ -1505,9 +2039,12 @@ function ConfiguracionSecurityPanel({
                     animateOnHover={false}
                     size={16}
                   />
-                  {t("dashboard.settings.security.recentActivity.confirm.cancel", {
-                    defaultValue: fallbackCopy.securityConfirmCancel,
-                  })}
+                  {t(
+                    "dashboard.settings.security.recentActivity.confirm.cancel",
+                    {
+                      defaultValue: fallbackCopy.securityConfirmCancel,
+                    },
+                  )}
                 </button>
                 <button
                   type="button"
@@ -1547,6 +2084,205 @@ function ConfiguracionSecurityPanel({
                               : fallbackCopy.securityConfirmAction,
                         },
                       )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isPasswordChangeNoticeOpen ? (
+          <motion.div
+            role="presentation"
+            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="password-change-notice-title"
+              aria-describedby="password-change-notice-description"
+              className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
+              <div className="flex min-w-0 items-center gap-3 text-left">
+                <span
+                  aria-hidden="true"
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                >
+                  <MailboxIcon
+                    aria-hidden="true"
+                    className="shrink-0"
+                    size={20}
+                  />
+                </span>
+                <h3
+                  id="password-change-notice-title"
+                  className="break-words text-sm font-bold leading-5 text-on-surface"
+                >
+                  {t("dashboard.settings.security.password.notice.title", {
+                    defaultValue: fallbackCopy.securityPasswordNoticeTitle,
+                  })}
+                </h3>
+              </div>
+              <p
+                id="password-change-notice-description"
+                className="mt-4 text-sm leading-5 text-on-surface-variant"
+              >
+                {t("dashboard.settings.security.password.notice.body", {
+                  defaultValue: fallbackCopy.securityPasswordNoticeBody,
+                  email: passwordChangeMaskedEmail,
+                })}
+              </p>
+              <div className="mt-6 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordChangeNoticeOpen(false)}
+                  onFocus={() =>
+                    passwordChangeNoticeIconRef.current?.startAnimation()
+                  }
+                  onBlur={() =>
+                    passwordChangeNoticeIconRef.current?.stopAnimation()
+                  }
+                  onMouseEnter={() =>
+                    passwordChangeNoticeIconRef.current?.startAnimation()
+                  }
+                  onMouseLeave={() =>
+                    passwordChangeNoticeIconRef.current?.stopAnimation()
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <CircleCheckIcon
+                    ref={passwordChangeNoticeIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
+                  {t("dashboard.settings.security.password.notice.action", {
+                    defaultValue: fallbackCopy.securityPasswordNoticeAction,
+                  })}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isPasswordChangeSessionChoiceOpen ? (
+          <motion.div
+            role="presentation"
+            className="fixed inset-0 z-[60] grid place-items-center bg-inverse-surface/45 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="password-change-session-title"
+              aria-describedby="password-change-session-description"
+              className="w-full max-w-[460px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
+              <div className="flex min-w-0 items-center gap-3 text-left">
+                <span
+                  aria-hidden="true"
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                >
+                  <CircleCheckIcon
+                    aria-hidden="true"
+                    className="shrink-0"
+                    size={20}
+                  />
+                </span>
+                <h3
+                  id="password-change-session-title"
+                  className="break-words text-sm font-bold leading-5 text-on-surface"
+                >
+                  {t("dashboard.settings.security.password.session.title", {
+                    defaultValue: fallbackCopy.securityPasswordSessionTitle,
+                  })}
+                </h3>
+              </div>
+              <p
+                id="password-change-session-description"
+                className="mt-4 text-sm leading-5 text-on-surface-variant"
+              >
+                {t("dashboard.settings.security.password.session.body", {
+                  defaultValue: fallbackCopy.securityPasswordSessionBody,
+                })}
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  disabled={isPasswordChangeActionPending}
+                  onClick={() => finishPasswordChangeSession("current")}
+                  onFocus={() =>
+                    closeCurrentPasswordSessionIconRef.current?.startAnimation()
+                  }
+                  onBlur={() =>
+                    closeCurrentPasswordSessionIconRef.current?.stopAnimation()
+                  }
+                  onMouseEnter={() =>
+                    closeCurrentPasswordSessionIconRef.current?.startAnimation()
+                  }
+                  onMouseLeave={() =>
+                    closeCurrentPasswordSessionIconRef.current?.stopAnimation()
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <LogoutIcon
+                    ref={closeCurrentPasswordSessionIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
+                  {t(
+                    "dashboard.settings.security.password.session.closeCurrent",
+                    {
+                      defaultValue: fallbackCopy.securityPasswordCloseCurrent,
+                    },
+                  )}
+                </button>
+                <button
+                  type="button"
+                  disabled={isPasswordChangeActionPending}
+                  onClick={() => finishPasswordChangeSession("all")}
+                  onFocus={() =>
+                    closeAllPasswordSessionsIconRef.current?.startAnimation()
+                  }
+                  onBlur={() =>
+                    closeAllPasswordSessionsIconRef.current?.stopAnimation()
+                  }
+                  onMouseEnter={() =>
+                    closeAllPasswordSessionsIconRef.current?.startAnimation()
+                  }
+                  onMouseLeave={() =>
+                    closeAllPasswordSessionsIconRef.current?.stopAnimation()
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <LogoutIcon
+                    ref={closeAllPasswordSessionsIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
+                  {t("dashboard.settings.security.password.session.closeAll", {
+                    defaultValue: fallbackCopy.securityPasswordCloseAll,
+                  })}
                 </button>
               </div>
             </motion.div>
@@ -1617,16 +2353,43 @@ function ConfiguracionSecurityPanel({
                     },
                   )}
                 </label>
-                <input
-                  id="delete-account-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={deleteAccountPassword}
-                  onChange={(event) =>
-                    setDeleteAccountPassword(event.target.value)
-                  }
-                  className={fieldClassName}
-                />
+                <div className="relative">
+                  <input
+                    id="delete-account-password"
+                    type={showDeleteAccountPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={deleteAccountPassword}
+                    onFocus={() =>
+                      deleteAccountPasswordIconRef.current?.startAnimation()
+                    }
+                    onBlur={() =>
+                      deleteAccountPasswordIconRef.current?.stopAnimation()
+                    }
+                    onChange={(event) =>
+                      setDeleteAccountPassword(event.target.value)
+                    }
+                    className={cn(fieldClassName, "peer pl-12 pr-14")}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant transition-colors duration-200 peer-focus:text-primary"
+                  >
+                    <LockKeyholeIcon
+                      ref={deleteAccountPasswordIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={18}
+                    />
+                  </span>
+                  <PasswordVisibilityToggle
+                    isVisible={showDeleteAccountPassword}
+                    onToggle={() =>
+                      setShowDeleteAccountPassword((current) => !current)
+                    }
+                    showLabel={t("common.showPassword")}
+                    hideLabel={t("common.hidePassword")}
+                  />
+                </div>
                 {deleteAccountState?.status === "error" ? (
                   <p className="mt-2 text-xs font-semibold text-destructive">
                     {t(deleteAccountState.messageKey, {
@@ -1753,8 +2516,7 @@ function ConfiguracionSecurityPanel({
                   {t(
                     "dashboard.settings.security.dangerZone.confirm.codeTitle",
                     {
-                      defaultValue:
-                        fallbackCopy.securityDeleteAccountCodeTitle,
+                      defaultValue: fallbackCopy.securityDeleteAccountCodeTitle,
                     },
                   )}
                 </h3>
@@ -1763,13 +2525,10 @@ function ConfiguracionSecurityPanel({
                 id="delete-account-code-description"
                 className="mt-4 text-sm leading-5 text-on-surface-variant"
               >
-                {t(
-                  "dashboard.settings.security.dangerZone.confirm.codeBody",
-                  {
-                    defaultValue: fallbackCopy.securityDeleteAccountCodeBody,
-                    email: deleteAccountMaskedEmail,
-                  },
-                )}
+                {t("dashboard.settings.security.dangerZone.confirm.codeBody", {
+                  defaultValue: fallbackCopy.securityDeleteAccountCodeBody,
+                  email: deleteAccountMaskedEmail,
+                })}
               </p>
               <div className="mt-5">
                 <label
@@ -1835,7 +2594,9 @@ function ConfiguracionSecurityPanel({
                     isDeleteAccountActionPending || !deleteAccountCodeIsValid
                   }
                   onClick={confirmDeleteAccount}
-                  onFocus={() => deleteWithCodeIconRef.current?.startAnimation()}
+                  onFocus={() =>
+                    deleteWithCodeIconRef.current?.startAnimation()
+                  }
                   onBlur={() => deleteWithCodeIconRef.current?.stopAnimation()}
                   onMouseEnter={() =>
                     deleteWithCodeIconRef.current?.startAnimation()
@@ -1890,8 +2651,9 @@ export function ConfiguracionSettingsView({
     useState<DashboardSettingsSectionId>("general");
   const shouldReduceMotion = useReducedMotion();
   const activeSection =
-    dashboardSettingsSections.find((section) => section.id === activeSectionId) ??
-    dashboardSettingsSections[0];
+    dashboardSettingsSections.find(
+      (section) => section.id === activeSectionId,
+    ) ?? dashboardSettingsSections[0];
   const contentMotion = {
     initial: shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 },
     animate: { opacity: 1, y: 0 },

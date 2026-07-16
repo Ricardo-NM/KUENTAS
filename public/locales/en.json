@@ -102,6 +102,36 @@
             "current": "Current password",
             "new": "New password",
             "confirm": "Confirm password"
+          },
+          "actions": {
+            "save": "Save changes",
+            "sending": "Sending...",
+            "cancel": "Cancel",
+            "verify": "Verify",
+            "verifying": "Verifying..."
+          },
+          "codeLabel": "Verification code",
+          "notice": {
+            "title": "Check your email",
+            "body": "A verification code was sent to {{email}} to confirm the password change.",
+            "action": "Got it"
+          },
+          "session": {
+            "title": "Password changed successfully",
+            "body": "To protect your account, sign out and log back in with your new password.",
+            "closeCurrent": "Sign out active session",
+            "closeAll": "Sign out all"
+          },
+          "feedback": {
+            "currentRequired": "Enter your current password to continue.",
+            "invalidCurrent": "The current password is incorrect.",
+            "invalidNew": "The new password does not meet the requirements.",
+            "newMustDiffer": "The new password must be different from the current one.",
+            "invalidCode": "The verification code is invalid or has expired.",
+            "emailSendFailed": "We could not send the verification code. Try again.",
+            "changed": "Password changed successfully.",
+            "generic": "We could not complete the password change.",
+            "confirmMatch": "Passwords match."
           }
         },
         "twoFactor": {
@@ -296,6 +326,23 @@
         "The code expires around {{expirationTime}}.",
         "",
         "If you did not request account deletion, change your password and review your active sessions."
+      ]
+    },
+    "passwordChange": {
+      "subject": "Verification code for password change",
+      "title": "Code to change your password",
+      "intro": "Use this verification code on the settings screen to confirm the password change for your account.",
+      "codeLabel": "Verification code",
+      "expiration": "The code expires around {{expirationTime}}.",
+      "ignore": "If you did not request this change, review your active sessions and keep your account secure.",
+      "textLines": [
+        "{{appName}}",
+        "",
+        "Code to change your password",
+        "Your verification code is: {{code}}",
+        "The code expires around {{expirationTime}}.",
+        "",
+        "If you did not request this change, review your active sessions and keep your account secure."
       ]
     }
   },

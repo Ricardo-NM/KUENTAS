@@ -5,7 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import {
   KeyIcon,
   type KeyIconHandle,
-  LockIcon,
+  LockKeyholeIcon,
   type LockIconHandle,
   MailCheckIcon,
   type MailCheckIconHandle,
@@ -189,7 +189,9 @@ function RequestResetForm() {
             value={email}
             required
             aria-invalid={showEmailError}
-            aria-describedby={showEmailError ? "recovery-email-error" : undefined}
+            aria-describedby={
+              showEmailError ? "recovery-email-error" : undefined
+            }
             onChange={(event) => setEmail(event.target.value)}
             onFocus={() => emailIconRef.current?.startAnimation()}
             onBlur={() => {
@@ -211,7 +213,7 @@ function RequestResetForm() {
           id="recovery-email-error"
           message={
             showEmailError
-              ? emailError ?? t("validation.invalidEmail")
+              ? (emailError ?? t("validation.invalidEmail"))
               : undefined
           }
           tone="error"
@@ -287,7 +289,7 @@ function VerifyCodeForm({
     state.status === "error"
       ? state.messageKey
         ? t(state.messageKey)
-        : state.message ?? codeError
+        : (state.message ?? codeError)
       : undefined;
 
   if (state.step === "reset") {
@@ -421,9 +423,9 @@ function ResetPasswordForm() {
       ? t("validation.passwordUpdated")
       : state.messageKey
         ? t(state.messageKey)
-        : state.message ??
+        : (state.message ??
           state.errors?.repeatPassword?.[0] ??
-          state.errors?.password?.[0];
+          state.errors?.password?.[0]);
 
   return (
     <form
@@ -461,7 +463,7 @@ function ResetPasswordForm() {
               onBlur={() => passwordIconRef.current?.stopAnimation()}
               className={`${inputBaseClass} ${normalInputClass} pr-14`}
             />
-            <LockIcon
+            <LockKeyholeIcon
               ref={passwordIconRef}
               aria-hidden="true"
               size={18}
@@ -518,7 +520,7 @@ function ResetPasswordForm() {
                 repeatPasswordDoesNotMatch ? errorInputClass : normalInputClass
               } pr-14`}
             />
-            <LockIcon
+            <LockKeyholeIcon
               ref={repeatPasswordIconRef}
               aria-hidden="true"
               size={18}
@@ -560,7 +562,9 @@ function ResetPasswordForm() {
         disabled={isPending || !canSubmit || state.status === "success"}
         className="auth-form-reveal auth-form-delay-4 mt-5 inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-lg bg-[#d0e1fb] px-5 text-sm font-bold text-[#0b1c30] transition hover:bg-[#b7c8e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d0e1fb] disabled:cursor-not-allowed disabled:opacity-55"
       >
-        {isPending ? t("recovery.submittingReset") : t("recovery.updatePassword")}
+        {isPending
+          ? t("recovery.submittingReset")
+          : t("recovery.updatePassword")}
       </button>
 
       <Link

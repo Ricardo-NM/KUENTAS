@@ -102,6 +102,36 @@
             "current": "Contraseña actual",
             "new": "Nueva contraseña",
             "confirm": "Confirmar contraseña"
+          },
+          "actions": {
+            "save": "Guardar cambios",
+            "sending": "Enviando...",
+            "cancel": "Cancelar",
+            "verify": "Verificar",
+            "verifying": "Verificando..."
+          },
+          "codeLabel": "Código de verificación",
+          "notice": {
+            "title": "Revisa tu correo electrónico",
+            "body": "Se ha enviado un código de verificación a {{email}} para confirmar el cambio de contraseña.",
+            "action": "Entendido"
+          },
+          "session": {
+            "title": "Contraseña cambiada correctamente",
+            "body": "Para proteger tu cuenta, cierra sesión y vuelve a iniciar con tu nueva contraseña.",
+            "closeCurrent": "Cerrar sesión activa",
+            "closeAll": "Cerrar todas"
+          },
+          "feedback": {
+            "currentRequired": "Ingresa tu contraseña actual para continuar.",
+            "invalidCurrent": "La contraseña actual no es correcta.",
+            "invalidNew": "La nueva contraseña no cumple los requisitos.",
+            "newMustDiffer": "La nueva contraseña debe ser diferente a la actual.",
+            "invalidCode": "El código de verificación no es válido o ya expiró.",
+            "emailSendFailed": "No se pudo enviar el código de verificación. Intenta nuevamente.",
+            "changed": "Contraseña cambiada correctamente.",
+            "generic": "No se pudo completar el cambio de contraseña.",
+            "confirmMatch": "Las contraseñas coinciden."
           }
         },
         "twoFactor": {
@@ -296,6 +326,23 @@
         "El código vence alrededor de las {{expirationTime}}.",
         "",
         "Si no solicitaste eliminar tu cuenta, cambia tu contraseña y revisa tus sesiones activas."
+      ]
+    },
+    "passwordChange": {
+      "subject": "Código de verificación para cambio de contraseña",
+      "title": "Código para cambiar tu contraseña",
+      "intro": "Usa este código de verificación en la pantalla de configuración para confirmar el cambio de contraseña de tu cuenta.",
+      "codeLabel": "Código de verificación",
+      "expiration": "El código vence alrededor de las {{expirationTime}}.",
+      "ignore": "Si no solicitaste este cambio, revisa tus sesiones activas y mantén segura tu cuenta.",
+      "textLines": [
+        "{{appName}}",
+        "",
+        "Código para cambiar tu contraseña",
+        "Tu código de verificación es: {{code}}",
+        "El código vence alrededor de las {{expirationTime}}.",
+        "",
+        "Si no solicitaste este cambio, revisa tus sesiones activas y mantén segura tu cuenta."
       ]
     }
   },

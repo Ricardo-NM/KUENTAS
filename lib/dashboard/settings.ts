@@ -67,6 +67,23 @@ export const dashboardSettingsFallbackCopy = {
     securityCurrentPassword: "Contraseña actual",
     securityNewPassword: "Nueva contraseña",
     securityConfirmPassword: "Confirmar contraseña",
+    securityPasswordSave: "Guardar cambios",
+    securityPasswordSendingCode: "Enviando...",
+    securityPasswordVerify: "Verificar",
+    securityPasswordVerifying: "Verificando...",
+    securityPasswordCodeLabel: "Código de verificación",
+    securityPasswordNoticeTitle: "Revisa tu correo electrónico",
+    securityPasswordNoticeBody:
+      "Se ha enviado un código de verificación a {{email}} para confirmar el cambio de contraseña.",
+    securityPasswordNoticeAction: "Entendido",
+    securityPasswordSessionTitle: "Contraseña cambiada correctamente",
+    securityPasswordSessionBody:
+      "Para proteger tu cuenta, cierra sesión y vuelve a iniciar con tu nueva contraseña.",
+    securityPasswordCloseCurrent: "Cerrar sesión activa",
+    securityPasswordCloseAll: "Cerrar todas",
+    securityPasswordConfirmMatch: "Las contraseñas coinciden.",
+    securityPasswordActionFeedback:
+      "No se pudo completar el cambio de contraseña.",
     securityTwoFactorTitle: "Autenticación de dos pasos (2FA)",
     securityTwoFactorDescription:
       "Añade una capa extra de seguridad a tu cuenta de Kuentas.",
@@ -155,6 +172,23 @@ export const dashboardSettingsFallbackCopy = {
     securityCurrentPassword: "Current password",
     securityNewPassword: "New password",
     securityConfirmPassword: "Confirm password",
+    securityPasswordSave: "Save changes",
+    securityPasswordSendingCode: "Sending...",
+    securityPasswordVerify: "Verify",
+    securityPasswordVerifying: "Verifying...",
+    securityPasswordCodeLabel: "Verification code",
+    securityPasswordNoticeTitle: "Check your email",
+    securityPasswordNoticeBody:
+      "A verification code was sent to {{email}} to confirm your password change.",
+    securityPasswordNoticeAction: "Got it",
+    securityPasswordSessionTitle: "Password changed successfully",
+    securityPasswordSessionBody:
+      "To protect your account, sign out and log back in with your new password.",
+    securityPasswordCloseCurrent: "Sign out active session",
+    securityPasswordCloseAll: "Sign out all",
+    securityPasswordConfirmMatch: "Passwords match.",
+    securityPasswordActionFeedback:
+      "We could not complete the password change.",
     securityTwoFactorTitle: "Two-factor authentication (2FA)",
     securityTwoFactorDescription:
       "Add an extra layer of security to your Kuentas account.",
