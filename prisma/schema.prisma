@@ -7,15 +7,17 @@ datasource db {
 }
 
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  firstName           String
-  lastName            String
-  passwordHash        String
-  sessions            Session[]
-  passwordResetTokens PasswordResetToken[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  id                        String                     @id @default(cuid())
+  email                     String                     @unique
+  firstName                 String
+  lastName                  String
+  passwordHash              String
+  emailVerifiedAt           DateTime?
+  sessions                  Session[]
+  passwordResetTokens       PasswordResetToken[]
+  accountVerificationTokens AccountVerificationToken[]
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
 }
 
 model Session {
@@ -53,6 +55,20 @@ model LoginAttempt {
 }
 
 model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
+}
+
+model AccountVerificationToken {
   id        String    @id @default(cuid())
   userId    String
   tokenHash String    @unique

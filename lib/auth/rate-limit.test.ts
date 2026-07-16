@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   failedLoginBlockMs,
   maxFailedLoginAttempts,
+  getAccountVerificationRateLimitTargets,
   getClientIpFromHeaders,
   getLoginRateLimitTargets,
   getNextFailedLoginState,
@@ -130,6 +131,31 @@ describe("login rate limit", () => {
         email: "user@example.com",
         ipHash: "iphash",
         scope: "password_reset_email_ip",
+      },
+    ]);
+  });
+
+  it("builds account verification cooldown targets for email, IP, and email plus IP", () => {
+    expect(
+      getAccountVerificationRateLimitTargets("user@example.com", "iphash"),
+    ).toEqual([
+      {
+        key: "account-verification:email:user@example.com",
+        email: "user@example.com",
+        ipHash: null,
+        scope: "account_verification_email",
+      },
+      {
+        key: "account-verification:ip:iphash",
+        email: null,
+        ipHash: "iphash",
+        scope: "account_verification_ip",
+      },
+      {
+        key: "account-verification:email-ip:user@example.com:iphash",
+        email: "user@example.com",
+        ipHash: "iphash",
+        scope: "account_verification_email_ip",
       },
     ]);
   });

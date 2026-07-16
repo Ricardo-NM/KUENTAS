@@ -3,6 +3,8 @@ import { z } from "zod";
 export const invalidCredentialsMessage = "Alguno de los campos es incorrecto";
 export const tooManyLoginAttemptsMessage =
   "Demasiados intentos fallidos, espera un momento";
+export const accountNotVerifiedMessage =
+  "Verifica tu correo electrónico antes de iniciar sesión.";
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -61,6 +63,8 @@ export const passwordResetCodeSchema = z.object({
     .regex(/^\d{6}$/, "Ingresa el código de 6 dígitos."),
 });
 
+export const accountVerificationCodeSchema = passwordResetCodeSchema;
+
 export const passwordResetSchema = z
   .object({
     password: passwordSchema,
@@ -77,4 +81,7 @@ export type PasswordResetRequestInput = z.infer<
   typeof passwordResetRequestSchema
 >;
 export type PasswordResetCodeInput = z.infer<typeof passwordResetCodeSchema>;
+export type AccountVerificationCodeInput = z.infer<
+  typeof accountVerificationCodeSchema
+>;
 export type PasswordResetInput = z.infer<typeof passwordResetSchema>;

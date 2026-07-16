@@ -25,6 +25,20 @@ const initialState: AuthActionState = {
   status: "idle",
 };
 
+function translateActionMessage(
+  t: (key: string) => string,
+  key: string | undefined,
+  fallback: string | undefined,
+) {
+  if (!key) {
+    return fallback;
+  }
+
+  const translated = t(key);
+
+  return translated === key ? fallback : translated;
+}
+
 export function LoginForm() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -42,9 +56,7 @@ export function LoginForm() {
   const canSubmit = emailIsValid && password.length > 0;
   const credentialsAreInvalid = state.status === "error";
   const loginMessage = credentialsAreInvalid
-    ? state.messageKey
-      ? t(state.messageKey)
-      : state.message
+    ? translateActionMessage(t, state.messageKey, state.message)
     : undefined;
 
   useEffect(() => {

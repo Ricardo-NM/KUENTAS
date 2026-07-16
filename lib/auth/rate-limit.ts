@@ -4,6 +4,7 @@ import { getPrisma } from "@/lib/prisma";
 export const maxFailedLoginAttempts = 5;
 export const failedLoginBlockMs = 15 * 60 * 1000;
 export const passwordRecoveryEmailCooldownMs = 60 * 1000;
+export const accountVerificationEmailCooldownMs = 60 * 1000;
 
 type LoginAttemptState = {
   failedCount: number;
@@ -20,7 +21,10 @@ type LoginRateLimitTarget = {
     | "email_ip"
     | "password_reset_email"
     | "password_reset_ip"
-    | "password_reset_email_ip";
+    | "password_reset_email_ip"
+    | "account_verification_email"
+    | "account_verification_ip"
+    | "account_verification_email_ip";
 };
 
 function getRateLimitSecret() {
@@ -106,6 +110,32 @@ export function getPasswordRecoveryRateLimitTargets(
       email,
       ipHash,
       scope: "password_reset_email_ip",
+    },
+  ];
+}
+
+export function getAccountVerificationRateLimitTargets(
+  email: string,
+  ipHash: string,
+): LoginRateLimitTarget[] {
+  return [
+    {
+      key: `account-verification:email:${email}`,
+      email,
+      ipHash: null,
+      scope: "account_verification_email",
+    },
+    {
+      key: `account-verification:ip:${ipHash}`,
+      email: null,
+      ipHash,
+      scope: "account_verification_ip",
+    },
+    {
+      key: `account-verification:email-ip:${email}:${ipHash}`,
+      email,
+      ipHash,
+      scope: "account_verification_email_ip",
     },
   ];
 }
@@ -277,6 +307,92 @@ export async function recordPasswordRecoveryEmailAttempt(
   const targets = getPasswordRecoveryRateLimitTargets(email, ipHash);
   const blockedUntil = new Date(
     now.getTime() + passwordRecoveryEmailCooldownMs,
+  );
+
+  await Promise.all(
+    targets.map((target) =>
+      prisma.loginAttempt.upsert({
+        where: {
+          key: target.key,
+        },
+        create: {
+          key: target.key,
+          email: target.email,
+          ipHash: target.ipHash,
+          scope: target.scope,
+          failedCount: 0,
+          blockedUntil,
+        },
+        update: {
+          failedCount: 0,
+          blockedUntil,
+        },
+      }),
+    ),
+  );
+
+  return blockedUntil;
+}
+
+export async function getAccountVerificationEmailCooldown(
+  email: string,
+  ipHash: string,
+) {
+  const prisma = getPrisma();
+  const targets = getAccountVerificationRateLimitTargets(email, ipHash);
+  const attempts = await prisma.loginAttempt.findMany({
+    where: {
+      key: {
+        in: targets.map((target) => target.key),
+      },
+    },
+    select: {
+      key: true,
+      blockedUntil: true,
+    },
+  });
+  const activeCooldowns = attempts.filter((attempt) =>
+    isBlockedLoginAttempt(attempt),
+  );
+
+  if (activeCooldowns.length > 0) {
+    return activeCooldowns.reduce<Date | null>((latest, attempt) => {
+      if (!attempt.blockedUntil) {
+        return latest;
+      }
+
+      return !latest || attempt.blockedUntil > latest
+        ? attempt.blockedUntil
+        : latest;
+    }, null);
+  }
+
+  const expiredCooldownKeys = attempts
+    .filter((attempt) => attempt.blockedUntil)
+    .map((attempt) => attempt.key);
+
+  if (expiredCooldownKeys.length > 0) {
+    await prisma.loginAttempt.deleteMany({
+      where: {
+        key: {
+          in: expiredCooldownKeys,
+        },
+      },
+    });
+  }
+
+  return null;
+}
+
+export async function recordAccountVerificationEmailAttempt(
+  email: string,
+  ipHash: string,
+  now = new Date(),
+) {
+  const prisma = getPrisma();
+  const targets = getAccountVerificationRateLimitTargets(email, ipHash);
+  const blockedUntil = new Date(
+    now.getTime() + accountVerificationEmailCooldownMs,
   );
 
   await Promise.all(

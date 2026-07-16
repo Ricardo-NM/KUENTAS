@@ -205,7 +205,11 @@
     "hideRepeatPassword": "Ocultar repetir contraseña",
     "submitting": "Creando cuenta...",
     "submit": "Crear cuenta",
-    "alreadyAccount": "¿Ya tienes cuenta?"
+    "alreadyAccount": "¿Ya tienes cuenta?",
+    "codeSentMessage": "El código para crear tu cuenta se ha enviado correctamente. Revisa tu correo electrónico {{email}} para continuar.",
+    "accountVerifiedTitle": "Cuenta verificada correctamente",
+    "accountVerifiedMessage": "Tu cuenta se verificó correctamente. Ahora puedes iniciar sesión.",
+    "accountVerifiedAction": "Iniciar sesión"
   },
   "recovery": {
     "requestTitle": "Recuperar contraseña",
@@ -238,16 +242,33 @@
       "title": "Código para cambiar tu contraseña",
       "intro": "Usa este código de verificación en la pantalla de recuperación para confirmar el cambio de contraseña de tu cuenta.",
       "codeLabel": "Código de verificación",
-      "expiration": "El código vence alrededor de las {{expirationTime}}.",
+      "expiration": "El código vence alrededor de las {{expirationTime}}",
       "ignore": "Si no solicitaste este cambio, puedes ignorar este correo.",
       "textLines": [
         "{{appName}}",
         "",
         "Código para cambiar tu contraseña",
         "Tu código de verificación es: {{code}}",
-        "El código vence alrededor de las {{expirationTime}}.",
+        "El código vence alrededor de las {{expirationTime}}",
         "",
         "Si no solicitaste este cambio, puedes ignorar este correo."
+      ]
+    },
+    "accountVerification": {
+      "subject": "Código de verificación para crear cuenta",
+      "title": "Código para crear tu cuenta",
+      "intro": "Usa este código de verificación en la pantalla de registro para validar que estás creando una nueva cuenta.",
+      "codeLabel": "Código de verificación",
+      "expiration": "El código vence alrededor de las {{expirationTime}}",
+      "ignore": "Si no solicitaste crear esta cuenta, puedes ignorar este correo.",
+      "textLines": [
+        "{{appName}}",
+        "",
+        "Código para crear tu cuenta",
+        "Tu código de verificación es: {{code}}",
+        "El código vence alrededor de las {{expirationTime}}",
+        "",
+        "Si no solicitaste crear esta cuenta, puedes ignorar este correo."
       ]
     }
   },
@@ -263,7 +284,11 @@
     "invalidVerificationCode": "El código de verificación no es válido o ya expiró.",
     "resetEmailSendFailed": "No se pudo enviar el código de verificación. Intenta nuevamente.",
     "resetEmailCooldown": "Espera {{seconds}} segundos antes de solicitar otro código.",
-    "passwordUpdated": "Contraseña actualizada correctamente."
+    "passwordUpdated": "Contraseña actualizada correctamente.",
+    "accountVerificationEmailSendFailed": "No se pudo enviar el código de verificación. Intenta nuevamente.",
+    "invalidAccountVerificationCode": "El código de verificación no es válido o ya expiró.",
+    "accountNotVerified": "Verifica tu correo electrónico antes de iniciar sesión.",
+    "accountVerificationCooldown": "Espera {{seconds}} segundos antes de solicitar otro código."
   },
   "passwordRequirements": {
     "uppercase": "Al menos una letra mayúscula",
