@@ -2,21 +2,28 @@
 
 import {
   BadgeAlertIcon,
+  BlocksIcon,
+  CalendarCheck2Icon,
+  CalendarCogIcon,
   CalendarDaysIcon,
   CheckCheckIcon,
   ChevronDownIcon,
+  CircleDollarSignIcon,
   CircleCheckIcon,
   DeleteIcon,
   KeyIcon,
   KeySquareIcon,
+  LanguagesIcon,
   LockKeyholeIcon,
   LockKeyholeOpenIcon,
   LogoutIcon,
+  MailCheckIcon,
   MailboxIcon,
   MoonIcon,
   SunMediumIcon,
   SwitchCameraIcon,
   UploadIcon,
+  UserIcon,
   XIcon,
   type MoonIconHandle,
   type SunMediumIconHandle,
@@ -70,10 +77,12 @@ import {
 } from "./actions";
 import {
   dashboardCurrencyOptions,
+  dashboardDateFormatOptions,
   dashboardNotificationOptions,
   dashboardSettingsFallbackCopy,
   dashboardSettingsSectionParamName,
   dashboardSettingsSections,
+  dashboardWeekStartOptions,
   isDashboardSettingsSectionId,
   type DashboardNotificationIcon,
   type DashboardSettingsSectionId,
@@ -121,6 +130,7 @@ const notificationIcons: Record<DashboardNotificationIcon, AnimatedIcon> = {
   "calendar-days": CalendarDaysIcon,
   "badge-alert": BadgeAlertIcon,
   mailbox: MailboxIcon,
+  blocks: BlocksIcon,
 };
 
 const focusableSettingsSectionIds = [
@@ -129,8 +139,7 @@ const focusableSettingsSectionIds = [
   "notificaciones",
 ] as const;
 
-type FocusableSettingsSectionId =
-  (typeof focusableSettingsSectionIds)[number];
+type FocusableSettingsSectionId = (typeof focusableSettingsSectionIds)[number];
 
 function isFocusableSettingsSectionId(
   id: DashboardSettingsSectionId,
@@ -287,12 +296,14 @@ type SelectOption = {
 
 function SettingsSelect({
   ariaLabel,
+  Icon,
   id,
   onChange,
   options,
   value,
 }: {
   ariaLabel: string;
+  Icon?: AnimatedIcon;
   id: string;
   onChange: (value: string) => void;
   options: SelectOption[];
@@ -306,8 +317,34 @@ function SettingsSelect({
   } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listboxRef = useRef<HTMLDivElement>(null);
+  const iconRef = useRef<AnimatedIconHandle>(null);
+  const iconAnimationTimeoutRef = useRef<number | null>(null);
   const selectedOption =
     options.find((option) => option.value === value) ?? options[0];
+
+  useEffect(() => {
+    return () => {
+      if (iconAnimationTimeoutRef.current) {
+        window.clearTimeout(iconAnimationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || !Icon) {
+      return;
+    }
+
+    if (iconAnimationTimeoutRef.current) {
+      window.clearTimeout(iconAnimationTimeoutRef.current);
+    }
+
+    iconRef.current?.startAnimation();
+    iconAnimationTimeoutRef.current = window.setTimeout(() => {
+      iconRef.current?.stopAnimation();
+      iconAnimationTimeoutRef.current = null;
+    }, 700);
+  }, [Icon, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -387,7 +424,18 @@ function SettingsSelect({
         onClick={() => setIsOpen((current) => !current)}
         className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest py-2 pl-3.5 pr-3 text-left text-sm font-semibold text-on-surface shadow-[0_1px_2px_rgb(13_13_18/0.04)] outline-none transition hover:border-outline hover:bg-surface focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15"
       >
-        <span className="min-w-0 truncate">{selectedOption.label}</span>
+        <span className="flex min-w-0 flex-1 items-center gap-2.5">
+          {Icon ? (
+            <Icon
+              ref={iconRef}
+              aria-hidden="true"
+              animateOnHover={false}
+              className="shrink-0 text-on-surface-variant"
+              size={18}
+            />
+          ) : null}
+          <span className="min-w-0 truncate">{selectedOption.label}</span>
+        </span>
         <ChevronDownIcon
           aria-hidden="true"
           animateOnHover={false}
@@ -484,7 +532,7 @@ function SettingsToggleRow({
   return (
     <div
       className={cn(
-        "flex min-w-0 items-center justify-between gap-4 py-4 text-left",
+        "flex min-w-0 items-center justify-between gap-4 text-left",
         className,
       )}
     >
@@ -669,6 +717,8 @@ function ConfiguracionGeneralPanel() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
   const [selectedCurrency, setSelectedCurrency] = useState("MXN");
+  const [selectedDateFormat, setSelectedDateFormat] = useState("DD/MM/YYYY");
+  const [selectedWeekStart, setSelectedWeekStart] = useState("monday");
   const [selectedTheme, setSelectedTheme] = useState<DashboardTheme>("light");
   const sunIconRef = useRef<SunMediumIconHandle>(null);
   const moonIconRef = useRef<MoonIconHandle>(null);
@@ -724,6 +774,18 @@ function ConfiguracionGeneralPanel() {
       defaultValue: option.fallbackLabels[language],
     }),
   }));
+  const dateFormatOptions = dashboardDateFormatOptions.map((option) => ({
+    value: option.value,
+    label: t(option.labelKey, {
+      defaultValue: option.fallbackLabels[language],
+    }),
+  }));
+  const weekStartOptions = dashboardWeekStartOptions.map((option) => ({
+    value: option.value,
+    label: t(option.labelKey, {
+      defaultValue: option.fallbackLabels[language],
+    }),
+  }));
 
   return (
     <div className="w-full text-left">
@@ -733,7 +795,7 @@ function ConfiguracionGeneralPanel() {
         })}
       </h2>
 
-      <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+      <div className="mt-5 grid gap-6 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
         <div className="block min-w-0">
           <label
             htmlFor="settings-interface-language"
@@ -745,6 +807,7 @@ function ConfiguracionGeneralPanel() {
           </label>
           <SettingsSelect
             id="settings-interface-language"
+            Icon={LanguagesIcon}
             ariaLabel={t("dashboard.settings.general.interfaceLanguage.label", {
               defaultValue: fallbackCopy.interfaceLanguageLabel,
             })}
@@ -765,12 +828,53 @@ function ConfiguracionGeneralPanel() {
           </label>
           <SettingsSelect
             id="settings-primary-currency"
+            Icon={CircleDollarSignIcon}
             ariaLabel={t("dashboard.settings.general.currency.label", {
               defaultValue: fallbackCopy.currencyLabel,
             })}
             value={selectedCurrency}
             onChange={setSelectedCurrency}
             options={currencyOptions}
+          />
+        </div>
+        <div className="block min-w-0">
+          <label
+            htmlFor="settings-date-format"
+            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+          >
+            {t("dashboard.settings.general.dateFormat.label", {
+              defaultValue: fallbackCopy.dateFormatLabel,
+            })}
+          </label>
+          <SettingsSelect
+            id="settings-date-format"
+            Icon={CalendarCogIcon}
+            ariaLabel={t("dashboard.settings.general.dateFormat.label", {
+              defaultValue: fallbackCopy.dateFormatLabel,
+            })}
+            value={selectedDateFormat}
+            onChange={setSelectedDateFormat}
+            options={dateFormatOptions}
+          />
+        </div>
+        <div className="block min-w-0">
+          <label
+            htmlFor="settings-week-start"
+            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+          >
+            {t("dashboard.settings.general.weekStart.label", {
+              defaultValue: fallbackCopy.weekStartLabel,
+            })}
+          </label>
+          <SettingsSelect
+            id="settings-week-start"
+            Icon={CalendarCheck2Icon}
+            ariaLabel={t("dashboard.settings.general.weekStart.label", {
+              defaultValue: fallbackCopy.weekStartLabel,
+            })}
+            value={selectedWeekStart}
+            onChange={setSelectedWeekStart}
+            options={weekStartOptions}
           />
         </div>
         <div className="min-w-0">
@@ -861,6 +965,8 @@ function ConfiguracionProfilePanel({
   const cropModalIconRef = useRef<AnimatedIconHandle>(null);
   const cropCancelIconRef = useRef<AnimatedIconHandle>(null);
   const cropSaveIconRef = useRef<AnimatedIconHandle>(null);
+  const firstNameIconRef = useRef<AnimatedIconHandle>(null);
+  const lastNameIconRef = useRef<AnimatedIconHandle>(null);
   const shouldReduceMotion = useReducedMotion();
   const [hiddenSavedMessageId, setHiddenSavedMessageId] = useState<
     string | null
@@ -999,9 +1105,7 @@ function ConfiguracionProfilePanel({
     event.target.value = "";
   };
 
-  const handleProfilePhotoDragEnter = (
-    event: DragEvent<HTMLButtonElement>,
-  ) => {
+  const handleProfilePhotoDragEnter = (event: DragEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
     profilePhotoDragDepthRef.current += 1;
@@ -1012,16 +1116,12 @@ function ConfiguracionProfilePanel({
     }
   };
 
-  const handleProfilePhotoDragOver = (
-    event: DragEvent<HTMLButtonElement>,
-  ) => {
+  const handleProfilePhotoDragOver = (event: DragEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
   };
 
-  const handleProfilePhotoDragLeave = (
-    event: DragEvent<HTMLButtonElement>,
-  ) => {
+  const handleProfilePhotoDragLeave = (event: DragEvent<HTMLButtonElement>) => {
     event.preventDefault();
     profilePhotoDragDepthRef.current = Math.max(
       profilePhotoDragDepthRef.current - 1,
@@ -1157,472 +1257,531 @@ function ConfiguracionProfilePanel({
           })}
         </h2>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/png,image/jpeg"
-        className="sr-only"
-        onChange={handleProfilePhotoFile}
-      />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg"
+          className="sr-only"
+          onChange={handleProfilePhotoFile}
+        />
 
-      <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center">
-        <button
-          type="button"
-          aria-label={t("dashboard.settings.profile.photo.avatarLabel", {
-            defaultValue: fallbackCopy.profileAvatarLabel,
-          })}
-          onClick={openProfilePhotoSelector}
-          onDragEnter={handleProfilePhotoDragEnter}
-          onDragOver={handleProfilePhotoDragOver}
-          onDragLeave={handleProfilePhotoDragLeave}
-          onDrop={handleProfilePhotoDrop}
-          onFocus={() => avatarIconRef.current?.startAnimation()}
-          onBlur={() => avatarIconRef.current?.stopAnimation()}
-          onMouseEnter={() => avatarIconRef.current?.startAnimation()}
-          onMouseLeave={() => avatarIconRef.current?.stopAnimation()}
-          className={cn(
-            "group relative inline-flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border bg-surface-container-highest text-xl font-bold text-on-surface shadow-[inset_0_0_0_1px_rgb(255_255_255/0.16)] transition-[border-color,box-shadow,background-color] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-            isProfilePhotoDragActive
-              ? "border-primary bg-surface-container-low shadow-[0_0_0_4px_rgb(13_13_18/0.10)]"
-              : "border-outline-variant",
-          )}
-        >
-          {profileImagePath ? (
-            <Image
-              src={profileImagePath}
-              alt=""
-              width={96}
-              height={96}
-              unoptimized
-              className="size-full object-cover"
-            />
-          ) : (
-            <span aria-hidden="true">
-              {(user.firstName || user.email).trim().charAt(0).toUpperCase()}
-            </span>
-          )}
-          <span
-            aria-hidden="true"
+        <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            aria-label={t("dashboard.settings.profile.photo.avatarLabel", {
+              defaultValue: fallbackCopy.profileAvatarLabel,
+            })}
+            onClick={openProfilePhotoSelector}
+            onDragEnter={handleProfilePhotoDragEnter}
+            onDragOver={handleProfilePhotoDragOver}
+            onDragLeave={handleProfilePhotoDragLeave}
+            onDrop={handleProfilePhotoDrop}
+            onFocus={() => avatarIconRef.current?.startAnimation()}
+            onBlur={() => avatarIconRef.current?.stopAnimation()}
+            onMouseEnter={() => avatarIconRef.current?.startAnimation()}
+            onMouseLeave={() => avatarIconRef.current?.stopAnimation()}
             className={cn(
-              "absolute inset-0 flex items-center justify-center bg-primary/72 text-primary-foreground transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100",
-              isProfilePhotoDragActive ? "opacity-100" : "opacity-0",
+              "group relative inline-flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border bg-surface-container-highest text-xl font-bold text-on-surface shadow-[inset_0_0_0_1px_rgb(255_255_255/0.16)] transition-[border-color,box-shadow,background-color] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              isProfilePhotoDragActive
+                ? "border-primary bg-surface-container-low shadow-[0_0_0_4px_rgb(13_13_18/0.10)]"
+                : "border-outline-variant",
             )}
           >
-            <SwitchCameraIcon
-              ref={avatarIconRef}
-              animateOnHover={false}
-              size={28}
-            />
-          </span>
-        </button>
-
-        <div className="min-w-0">
-          <p className="text-base font-bold leading-6 text-on-surface">
-            {t("dashboard.settings.profile.photo.title", {
-              defaultValue: fallbackCopy.profilePhotoTitle,
-            })}
-          </p>
-          <p className="mt-1 text-sm leading-5 text-on-surface-variant">
-            {t("dashboard.settings.profile.photo.help", {
-              defaultValue: fallbackCopy.profilePhotoHelp,
-            })}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={openProfilePhotoSelector}
-              onFocus={() => uploadIconRef.current?.startAnimation()}
-              onBlur={() => uploadIconRef.current?.stopAnimation()}
-              onMouseEnter={() => uploadIconRef.current?.startAnimation()}
-              onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
-              className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground shadow-[0_4px_10px_rgb(13_13_18/0.12)]"
+            {profileImagePath ? (
+              <Image
+                src={profileImagePath}
+                alt=""
+                width={96}
+                height={96}
+                unoptimized
+                className="size-full object-cover"
+              />
+            ) : (
+              <span aria-hidden="true">
+                {(user.firstName || user.email).trim().charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span
+              aria-hidden="true"
+              className={cn(
+                "absolute inset-0 flex items-center justify-center bg-primary/72 text-primary-foreground transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100",
+                isProfilePhotoDragActive ? "opacity-100" : "opacity-0",
+              )}
             >
-              <UploadIcon
-                ref={uploadIconRef}
+              <SwitchCameraIcon
+                ref={avatarIconRef}
+                animateOnHover={false}
+                size={28}
+              />
+            </span>
+          </button>
+
+          <div className="min-w-0">
+            <p className="text-base font-bold leading-6 text-on-surface">
+              {t("dashboard.settings.profile.photo.title", {
+                defaultValue: fallbackCopy.profilePhotoTitle,
+              })}
+            </p>
+            <p className="mt-1 text-sm leading-5 text-on-surface-variant">
+              {t("dashboard.settings.profile.photo.help", {
+                defaultValue: fallbackCopy.profilePhotoHelp,
+              })}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={openProfilePhotoSelector}
+                onFocus={() => uploadIconRef.current?.startAnimation()}
+                onBlur={() => uploadIconRef.current?.stopAnimation()}
+                onMouseEnter={() => uploadIconRef.current?.startAnimation()}
+                onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
+                className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground shadow-[0_4px_10px_rgb(13_13_18/0.12)]"
+              >
+                <UploadIcon
+                  ref={uploadIconRef}
+                  aria-hidden="true"
+                  animateOnHover={false}
+                  size={16}
+                />
+                {t("dashboard.settings.profile.photo.upload", {
+                  defaultValue: fallbackCopy.profileUpload,
+                })}
+              </button>
+              <button
+                type="button"
+                disabled={!profileImagePath || isPhotoDeleting}
+                onClick={deleteProfilePhoto}
+                onFocus={() => deleteIconRef.current?.startAnimation()}
+                onBlur={() => deleteIconRef.current?.stopAnimation()}
+                onMouseEnter={() => deleteIconRef.current?.startAnimation()}
+                onMouseLeave={() => deleteIconRef.current?.stopAnimation()}
+                className={cn(
+                  "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  profileImagePath && !isPhotoDeleting
+                    ? "cursor-pointer bg-accent text-accent-foreground hover:bg-surface-container-highest"
+                    : "cursor-not-allowed bg-surface-container text-on-surface-variant opacity-70",
+                )}
+              >
+                <DeleteIcon
+                  ref={deleteIconRef}
+                  aria-hidden="true"
+                  animateOnHover={false}
+                  size={16}
+                />
+                {isPhotoDeleting
+                  ? t("dashboard.settings.profile.photo.deleting", {
+                      defaultValue: fallbackCopy.profilePhotoDeleting,
+                    })
+                  : t("dashboard.settings.profile.photo.delete", {
+                      defaultValue: fallbackCopy.profileDelete,
+                    })}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,0.72fr)_auto] xl:items-end">
+          <div className="min-w-0">
+            <label
+              htmlFor="profile-first-name"
+              className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+            >
+              {t("dashboard.settings.profile.fields.firstName", {
+                defaultValue: fallbackCopy.profileFirstName,
+              })}
+            </label>
+            <div className="relative">
+              <input
+                id="profile-first-name"
+                name="firstName"
+                type="text"
+                autoComplete="given-name"
+                value={firstNameValue}
+                onFocus={() => firstNameIconRef.current?.startAnimation()}
+                onBlur={() => firstNameIconRef.current?.stopAnimation()}
+                onChange={(event) => setFirstNameValue(event.target.value)}
+                aria-invalid={Boolean(firstNameError)}
+                aria-describedby={
+                  firstNameError ? "profile-first-name-error" : undefined
+                }
+                className={cn(
+                  fieldClassName,
+                  "peer pl-12",
+                  firstNameError
+                    ? "border-destructive focus:border-destructive"
+                    : "",
+                )}
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant transition-colors duration-200 peer-focus:text-primary"
+              >
+                <UserIcon
+                  ref={firstNameIconRef}
+                  aria-hidden="true"
+                  animateOnHover={false}
+                  size={18}
+                />
+              </span>
+            </div>
+            {firstNameError ? (
+              <p
+                id="profile-first-name-error"
+                className="mt-2 text-xs font-semibold text-destructive"
+              >
+                {firstNameError}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="min-w-0">
+            <label
+              htmlFor="profile-last-name"
+              className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+            >
+              {t("dashboard.settings.profile.fields.lastName", {
+                defaultValue: fallbackCopy.profileLastName,
+              })}
+            </label>
+            <div className="relative">
+              <input
+                id="profile-last-name"
+                name="lastName"
+                type="text"
+                autoComplete="family-name"
+                value={lastNameValue}
+                onFocus={() => lastNameIconRef.current?.startAnimation()}
+                onBlur={() => lastNameIconRef.current?.stopAnimation()}
+                onChange={(event) => setLastNameValue(event.target.value)}
+                aria-invalid={Boolean(lastNameError)}
+                aria-describedby={
+                  lastNameError ? "profile-last-name-error" : undefined
+                }
+                className={cn(
+                  fieldClassName,
+                  "peer pl-12",
+                  lastNameError
+                    ? "border-destructive focus:border-destructive"
+                    : "",
+                )}
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant transition-colors duration-200 peer-focus:text-primary"
+              >
+                <UserIcon
+                  ref={lastNameIconRef}
+                  aria-hidden="true"
+                  animateOnHover={false}
+                  size={18}
+                />
+              </span>
+            </div>
+            {lastNameError ? (
+              <p
+                id="profile-last-name-error"
+                className="mt-2 text-xs font-semibold text-destructive"
+              >
+                {lastNameError}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="min-w-0">
+            <label
+              htmlFor="profile-email"
+              className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+            >
+              {t("dashboard.settings.profile.fields.email", {
+                defaultValue: fallbackCopy.profileEmail,
+              })}
+            </label>
+            <div className="relative">
+              <input
+                id="profile-email"
+                type="text"
+                autoComplete="off"
+                value={maskEmailForDisplay(user.email)}
+                readOnly
+                aria-readonly="true"
+                className="min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container py-0 pl-12 pr-4 text-sm font-medium text-on-surface-variant outline-none"
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant"
+              >
+                <MailCheckIcon
+                  aria-hidden="true"
+                  animateOnHover={false}
+                  size={18}
+                />
+              </span>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-col-reverse gap-3 md:col-span-2 sm:flex-row sm:justify-start lg:col-span-3 xl:col-span-1 xl:mt-0 xl:flex-nowrap xl:justify-end">
+            <button
+              type="reset"
+              onClick={() => {
+                setFirstNameValue(savedFirstName);
+                setLastNameValue(savedLastName);
+              }}
+              onFocus={() => cancelIconRef.current?.startAnimation()}
+              onBlur={() => cancelIconRef.current?.stopAnimation()}
+              onMouseEnter={() => cancelIconRef.current?.startAnimation()}
+              onMouseLeave={() => cancelIconRef.current?.stopAnimation()}
+              className="inline-flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-4"
+            >
+              <XIcon
+                ref={cancelIconRef}
                 aria-hidden="true"
                 animateOnHover={false}
-                size={16}
+                className="mr-2"
+                size={17}
               />
-              {t("dashboard.settings.profile.photo.upload", {
-                defaultValue: fallbackCopy.profileUpload,
+              {t("dashboard.settings.profile.actions.cancel", {
+                defaultValue: fallbackCopy.profileCancel,
               })}
             </button>
             <button
-              type="button"
-              disabled={!profileImagePath || isPhotoDeleting}
-              onClick={deleteProfilePhoto}
-              onFocus={() => deleteIconRef.current?.startAnimation()}
-              onBlur={() => deleteIconRef.current?.stopAnimation()}
-              onMouseEnter={() => deleteIconRef.current?.startAnimation()}
-              onMouseLeave={() => deleteIconRef.current?.stopAnimation()}
+              type="submit"
+              disabled={isPending || !hasProfileChanges}
+              onFocus={() => saveIconRef.current?.startAnimation()}
+              onBlur={() => saveIconRef.current?.stopAnimation()}
+              onMouseEnter={() => saveIconRef.current?.startAnimation()}
+              onMouseLeave={() => saveIconRef.current?.stopAnimation()}
               className={cn(
-                "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                profileImagePath && !isPhotoDeleting
-                  ? "cursor-pointer bg-accent text-accent-foreground hover:bg-surface-container-highest"
-                  : "cursor-not-allowed bg-surface-container text-on-surface-variant opacity-70",
+                "inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 text-sm font-bold transition-[background-color,color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-4",
+                hasProfileChanges && !isPending
+                  ? "cursor-pointer bg-primary text-primary-foreground shadow-[0_8px_20px_rgb(13_13_18/0.16)] hover:bg-primary/90"
+                  : "cursor-not-allowed bg-surface-container-high text-on-surface-variant shadow-none",
               )}
             >
-              <DeleteIcon
-                ref={deleteIconRef}
+              <CircleCheckIcon
+                ref={saveIconRef}
                 aria-hidden="true"
                 animateOnHover={false}
-                size={16}
+                size={18}
               />
-              {isPhotoDeleting
-                ? t("dashboard.settings.profile.photo.deleting", {
-                    defaultValue: fallbackCopy.profilePhotoDeleting,
+              {isPending
+                ? t("dashboard.settings.profile.actions.saving", {
+                    defaultValue: fallbackCopy.profileSaving,
                   })
-                : t("dashboard.settings.profile.photo.delete", {
-                    defaultValue: fallbackCopy.profileDelete,
+                : t("dashboard.settings.profile.actions.save", {
+                    defaultValue: fallbackCopy.profileSave,
                   })}
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,0.72fr)_auto] xl:items-end">
-        <div className="min-w-0">
-          <label
-            htmlFor="profile-first-name"
-            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
-          >
-            {t("dashboard.settings.profile.fields.firstName", {
-              defaultValue: fallbackCopy.profileFirstName,
-            })}
-          </label>
-          <input
-            id="profile-first-name"
-            name="firstName"
-            type="text"
-            autoComplete="given-name"
-            value={firstNameValue}
-            onChange={(event) => setFirstNameValue(event.target.value)}
-            aria-invalid={Boolean(firstNameError)}
-            aria-describedby={
-              firstNameError ? "profile-first-name-error" : undefined
-            }
-            className={cn(
-              fieldClassName,
-              firstNameError
-                ? "border-destructive focus:border-destructive"
-                : "",
-            )}
-          />
-          {firstNameError ? (
-            <p
-              id="profile-first-name-error"
-              className="mt-2 text-xs font-semibold text-destructive"
-            >
-              {firstNameError}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="min-w-0">
-          <label
-            htmlFor="profile-last-name"
-            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
-          >
-            {t("dashboard.settings.profile.fields.lastName", {
-              defaultValue: fallbackCopy.profileLastName,
-            })}
-          </label>
-          <input
-            id="profile-last-name"
-            name="lastName"
-            type="text"
-            autoComplete="family-name"
-            value={lastNameValue}
-            onChange={(event) => setLastNameValue(event.target.value)}
-            aria-invalid={Boolean(lastNameError)}
-            aria-describedby={
-              lastNameError ? "profile-last-name-error" : undefined
-            }
-            className={cn(
-              fieldClassName,
-              lastNameError
-                ? "border-destructive focus:border-destructive"
-                : "",
-            )}
-          />
-          {lastNameError ? (
-            <p
-              id="profile-last-name-error"
-              className="mt-2 text-xs font-semibold text-destructive"
-            >
-              {lastNameError}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="min-w-0">
-          <label
-            htmlFor="profile-email"
-            className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
-          >
-            {t("dashboard.settings.profile.fields.email", {
-              defaultValue: fallbackCopy.profileEmail,
-            })}
-          </label>
-          <input
-            id="profile-email"
-            type="text"
-            autoComplete="off"
-            value={maskEmailForDisplay(user.email)}
-            readOnly
-            aria-readonly="true"
-            className="min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container px-4 text-sm font-medium text-on-surface-variant outline-none"
-          />
-        </div>
-        <div className="mt-5 flex flex-col-reverse gap-3 md:col-span-2 sm:flex-row sm:justify-start lg:col-span-3 xl:col-span-1 xl:mt-0 xl:flex-nowrap xl:justify-end">
-          <button
-            type="reset"
-            onClick={() => {
-              setFirstNameValue(savedFirstName);
-              setLastNameValue(savedLastName);
-            }}
-            onFocus={() => cancelIconRef.current?.startAnimation()}
-            onBlur={() => cancelIconRef.current?.stopAnimation()}
-            onMouseEnter={() => cancelIconRef.current?.startAnimation()}
-            onMouseLeave={() => cancelIconRef.current?.stopAnimation()}
-            className="inline-flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-4"
-          >
-            <XIcon
-              ref={cancelIconRef}
-              aria-hidden="true"
-              animateOnHover={false}
-              className="mr-2"
-              size={17}
-            />
-            {t("dashboard.settings.profile.actions.cancel", {
-              defaultValue: fallbackCopy.profileCancel,
-            })}
-          </button>
-          <button
-            type="submit"
-            disabled={isPending || !hasProfileChanges}
-            onFocus={() => saveIconRef.current?.startAnimation()}
-            onBlur={() => saveIconRef.current?.stopAnimation()}
-            onMouseEnter={() => saveIconRef.current?.startAnimation()}
-            onMouseLeave={() => saveIconRef.current?.stopAnimation()}
-            className={cn(
-              "inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-5 text-sm font-bold transition-[background-color,color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring xl:px-4",
-              hasProfileChanges && !isPending
-                ? "cursor-pointer bg-primary text-primary-foreground shadow-[0_8px_20px_rgb(13_13_18/0.16)] hover:bg-primary/90"
-                : "cursor-not-allowed bg-surface-container-high text-on-surface-variant shadow-none",
-            )}
-          >
-            <CircleCheckIcon
-              ref={saveIconRef}
-              aria-hidden="true"
-              animateOnHover={false}
-              size={18}
-            />
-            {isPending
-              ? t("dashboard.settings.profile.actions.saving", {
-                  defaultValue: fallbackCopy.profileSaving,
-                })
-              : t("dashboard.settings.profile.actions.save", {
-                  defaultValue: fallbackCopy.profileSave,
-                })}
-          </button>
-        </div>
-      </div>
-
       </form>
 
       <ViewportPortal>
-      <AnimatePresence>
-        {selectedImageSrc ? (
-          <motion.div
-            role="presentation"
-            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-          >
+        <AnimatePresence>
+          {selectedImageSrc ? (
             <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="profile-photo-crop-title"
-              aria-describedby="profile-photo-crop-description"
-              className="w-full max-w-[480px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+              role="presentation"
+              className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="profile-photo-crop-title"
+                aria-describedby="profile-photo-crop-description"
+                className="w-full max-w-[480px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+                initial={
+                  shouldReduceMotion
+                    ? { opacity: 1, y: 0, scale: 1 }
+                    : { opacity: 0, y: 8, scale: 0.98 }
+                }
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={
+                  shouldReduceMotion
+                    ? { opacity: 0, y: 0, scale: 1 }
+                    : { opacity: 0, y: 8, scale: 0.98 }
+                }
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : { duration: 0.18, ease: "easeOut" }
+                }
+              >
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <span
+                    aria-hidden="true"
+                    onMouseEnter={() =>
+                      cropModalIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      cropModalIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-container text-on-surface"
+                  >
+                    <SwitchCameraIcon
+                      ref={cropModalIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={20}
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <h3
+                      id="profile-photo-crop-title"
+                      className="break-words text-sm font-bold leading-5 text-on-surface"
+                    >
+                      {t("dashboard.settings.profile.photo.crop.title", {
+                        defaultValue: fallbackCopy.profilePhotoCropTitle,
+                      })}
+                    </h3>
+                    <p
+                      id="profile-photo-crop-description"
+                      className="mt-0.5 text-xs leading-[18px] text-on-surface-variant"
+                    >
+                      {t("dashboard.settings.profile.photo.crop.description", {
+                        defaultValue: fallbackCopy.profilePhotoCropDescription,
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative mt-5 h-[320px] overflow-hidden rounded-xl border border-border bg-surface-container">
+                  <Cropper
+                    image={selectedImageSrc}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={1}
+                    cropShape="round"
+                    showGrid={false}
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={(_, croppedAreaPixels) =>
+                      setCroppedAreaPixels(croppedAreaPixels)
+                    }
+                    classes={{
+                      containerClassName: "rounded-xl",
+                    }}
+                  />
+                </div>
+
+                <div className="mt-5">
+                  <label
+                    htmlFor="profile-photo-zoom"
+                    className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
+                  >
+                    {t("dashboard.settings.profile.photo.crop.zoom", {
+                      defaultValue: fallbackCopy.profilePhotoCropZoom,
+                    })}
+                  </label>
+                  <input
+                    id="profile-photo-zoom"
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    value={zoom}
+                    onChange={(event) => setZoom(Number(event.target.value))}
+                    className="w-full accent-primary"
+                  />
+                </div>
+
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    disabled={isPhotoSaving}
+                    onClick={closeCropModal}
+                    onFocus={() => cropCancelIconRef.current?.startAnimation()}
+                    onBlur={() => cropCancelIconRef.current?.stopAnimation()}
+                    onMouseEnter={() =>
+                      cropCancelIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      cropCancelIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <XIcon
+                      ref={cropCancelIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={16}
+                    />
+                    {t("dashboard.settings.profile.photo.crop.cancel", {
+                      defaultValue: fallbackCopy.profilePhotoCropCancel,
+                    })}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPhotoSaving || !croppedAreaPixels}
+                    onClick={saveProfilePhoto}
+                    onFocus={() => cropSaveIconRef.current?.startAnimation()}
+                    onBlur={() => cropSaveIconRef.current?.stopAnimation()}
+                    onMouseEnter={() =>
+                      cropSaveIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      cropSaveIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <CircleCheckIcon
+                      ref={cropSaveIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={18}
+                    />
+                    {isPhotoSaving
+                      ? t("dashboard.settings.profile.photo.crop.saving", {
+                          defaultValue: fallbackCopy.profilePhotoCropSaving,
+                        })
+                      : t("dashboard.settings.profile.photo.crop.save", {
+                          defaultValue: fallbackCopy.profilePhotoCropSave,
+                        })}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {profilePhotoToast ? (
+            <motion.div
+              key={profilePhotoToast.id}
+              role="status"
+              aria-live="polite"
+              className="pointer-events-none fixed inset-x-0 bottom-5 z-[60] flex justify-center px-4 sm:bottom-6"
               initial={
                 shouldReduceMotion
-                  ? { opacity: 1, y: 0, scale: 1 }
-                  : { opacity: 0, y: 8, scale: 0.98 }
+                  ? { opacity: 1, y: 0 }
+                  : { opacity: 0, y: 12 }
               }
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={
                 shouldReduceMotion
-                  ? { opacity: 0, y: 0, scale: 1 }
-                  : { opacity: 0, y: 8, scale: 0.98 }
+                  ? { opacity: 0, y: 0 }
+                  : { opacity: 0, y: 12 }
               }
               transition={
                 shouldReduceMotion
                   ? { duration: 0 }
-                  : { duration: 0.18, ease: "easeOut" }
+                  : { duration: 0.22, ease: "easeOut" }
               }
             >
-              <div className="flex min-w-0 items-center gap-3 text-left">
-                <span
-                  aria-hidden="true"
-                  onMouseEnter={() => cropModalIconRef.current?.startAnimation()}
-                  onMouseLeave={() => cropModalIconRef.current?.stopAnimation()}
-                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-container text-on-surface"
-                >
-                  <SwitchCameraIcon
-                    ref={cropModalIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={20}
-                  />
-                </span>
-                <div className="min-w-0">
-                  <h3
-                    id="profile-photo-crop-title"
-                    className="break-words text-sm font-bold leading-5 text-on-surface"
-                  >
-                    {t("dashboard.settings.profile.photo.crop.title", {
-                      defaultValue: fallbackCopy.profilePhotoCropTitle,
-                    })}
-                  </h3>
-                  <p
-                    id="profile-photo-crop-description"
-                    className="mt-0.5 text-xs leading-[18px] text-on-surface-variant"
-                  >
-                    {t("dashboard.settings.profile.photo.crop.description", {
-                      defaultValue: fallbackCopy.profilePhotoCropDescription,
-                    })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="relative mt-5 h-[320px] overflow-hidden rounded-xl border border-border bg-surface-container">
-                <Cropper
-                  image={selectedImageSrc}
-                  crop={crop}
-                  zoom={zoom}
-                  aspect={1}
-                  cropShape="round"
-                  showGrid={false}
-                  onCropChange={setCrop}
-                  onZoomChange={setZoom}
-                  onCropComplete={(_, croppedAreaPixels) =>
-                    setCroppedAreaPixels(croppedAreaPixels)
-                  }
-                  classes={{
-                    containerClassName: "rounded-xl",
-                  }}
-                />
-              </div>
-
-              <div className="mt-5">
-                <label
-                  htmlFor="profile-photo-zoom"
-                  className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
-                >
-                  {t("dashboard.settings.profile.photo.crop.zoom", {
-                    defaultValue: fallbackCopy.profilePhotoCropZoom,
-                  })}
-                </label>
-                <input
-                  id="profile-photo-zoom"
-                  type="range"
-                  min={1}
-                  max={3}
-                  step={0.1}
-                  value={zoom}
-                  onChange={(event) => setZoom(Number(event.target.value))}
-                  className="w-full accent-primary"
-                />
-              </div>
-
-              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  disabled={isPhotoSaving}
-                  onClick={closeCropModal}
-                  onFocus={() => cropCancelIconRef.current?.startAnimation()}
-                  onBlur={() => cropCancelIconRef.current?.stopAnimation()}
-                  onMouseEnter={() => cropCancelIconRef.current?.startAnimation()}
-                  onMouseLeave={() => cropCancelIconRef.current?.stopAnimation()}
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <XIcon
-                    ref={cropCancelIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {t("dashboard.settings.profile.photo.crop.cancel", {
-                    defaultValue: fallbackCopy.profilePhotoCropCancel,
-                  })}
-                </button>
-                <button
-                  type="button"
-                  disabled={isPhotoSaving || !croppedAreaPixels}
-                  onClick={saveProfilePhoto}
-                  onFocus={() => cropSaveIconRef.current?.startAnimation()}
-                  onBlur={() => cropSaveIconRef.current?.stopAnimation()}
-                  onMouseEnter={() => cropSaveIconRef.current?.startAnimation()}
-                  onMouseLeave={() => cropSaveIconRef.current?.stopAnimation()}
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <CircleCheckIcon
-                    ref={cropSaveIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={18}
-                  />
-                  {isPhotoSaving
-                    ? t("dashboard.settings.profile.photo.crop.saving", {
-                        defaultValue: fallbackCopy.profilePhotoCropSaving,
-                      })
-                    : t("dashboard.settings.profile.photo.crop.save", {
-                        defaultValue: fallbackCopy.profilePhotoCropSave,
-                      })}
-                </button>
-              </div>
+              <span
+                className={cn(
+                  "w-full max-w-[420px] rounded-xl border px-4 py-3 text-center text-sm font-semibold shadow-[0_18px_40px_rgb(13_13_18/0.16)]",
+                  profilePhotoToast.variant === "success"
+                    ? "border-chart-1/35 bg-chart-1/10 text-chart-1"
+                    : "border-destructive/35 bg-destructive/10 text-destructive",
+                )}
+              >
+                {profilePhotoToast.message}
+              </span>
             </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {profilePhotoToast ? (
-          <motion.div
-            key={profilePhotoToast.id}
-            role="status"
-            aria-live="polite"
-            className="pointer-events-none fixed inset-x-0 bottom-5 z-[60] flex justify-center px-4 sm:bottom-6"
-            initial={
-              shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }
-            }
-            animate={{ opacity: 1, y: 0 }}
-            exit={
-              shouldReduceMotion ? { opacity: 0, y: 0 } : { opacity: 0, y: 12 }
-            }
-            transition={
-              shouldReduceMotion
-                ? { duration: 0 }
-                : { duration: 0.22, ease: "easeOut" }
-            }
-          >
-            <span
-              className={cn(
-                "w-full max-w-[420px] rounded-xl border px-4 py-3 text-center text-sm font-semibold shadow-[0_18px_40px_rgb(13_13_18/0.16)]",
-                profilePhotoToast.variant === "success"
-                  ? "border-chart-1/35 bg-chart-1/10 text-chart-1"
-                  : "border-destructive/35 bg-destructive/10 text-destructive",
-              )}
-            >
-              {profilePhotoToast.message}
-            </span>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+          ) : null}
+        </AnimatePresence>
       </ViewportPortal>
     </>
   );
@@ -1632,6 +1791,33 @@ function ConfiguracionNotificationsPanel() {
   const { i18n, t } = useTranslation();
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
+  const firstColumnOptions = dashboardNotificationOptions.slice(0, 3);
+  const secondColumnOptions = dashboardNotificationOptions.slice(3);
+
+  const renderNotificationToggle = (
+    option: (typeof dashboardNotificationOptions)[number],
+  ) => {
+    const title = t(option.titleKey, {
+      defaultValue: option.fallbackTitles[language],
+    });
+    const description = t(option.descriptionKey, {
+      defaultValue: option.fallbackDescriptions[language],
+    });
+    const Icon = notificationIcons[option.icon];
+
+    return (
+      <SettingsToggleRow
+        key={option.id}
+        id={`notification-${option.id}`}
+        className="py-0"
+        title={title}
+        description={description}
+        ariaLabel={title}
+        Icon={Icon}
+        initiallyEnabled={option.initiallyEnabled}
+      />
+    );
+  };
 
   return (
     <div className="w-full text-left">
@@ -1641,29 +1827,13 @@ function ConfiguracionNotificationsPanel() {
         })}
       </h2>
 
-      <div className="mt-5 grid gap-4">
-        {dashboardNotificationOptions.map((option) => {
-          const title = t(option.titleKey, {
-            defaultValue: option.fallbackTitles[language],
-          });
-          const description = t(option.descriptionKey, {
-            defaultValue: option.fallbackDescriptions[language],
-          });
-          const Icon = notificationIcons[option.icon];
-
-          return (
-            <SettingsToggleRow
-              key={option.id}
-              id={`notification-${option.id}`}
-              className="py-0"
-              title={title}
-              description={description}
-              ariaLabel={title}
-              Icon={Icon}
-              initiallyEnabled={option.initiallyEnabled}
-            />
-          );
-        })}
+      <div className="mt-5 grid gap-4 md:grid-cols-2 md:gap-x-8">
+        <div className="grid gap-4">
+          {firstColumnOptions.map(renderNotificationToggle)}
+        </div>
+        <div className="grid content-start gap-4 md:border-l md:border-border md:pl-8">
+          {secondColumnOptions.map(renderNotificationToggle)}
+        </div>
       </div>
     </div>
   );
@@ -2037,1221 +2207,1268 @@ function ConfiguracionSecurityPanel({
           })}
         </h2>
 
-        <div className="mt-5 grid gap-y-9 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(250px,300px)] lg:gap-x-8">
+        <div className="mt-5 grid gap-y-9 lg:grid-cols-3 lg:gap-x-8">
           <section
             aria-labelledby="security-2fa-title"
             className="rounded-xl border border-outline-variant bg-accent/55 p-4 text-on-surface sm:p-5 lg:col-span-2"
           >
-          <SettingsToggleRow
-            id="security-2fa"
-            title={t("dashboard.settings.security.twoFactor.title", {
-              defaultValue: fallbackCopy.securityTwoFactorTitle,
-            })}
-            description={t(
-              "dashboard.settings.security.twoFactor.description",
-              {
-                defaultValue: fallbackCopy.securityTwoFactorDescription,
-              },
-            )}
-            ariaLabel={t("dashboard.settings.security.twoFactor.enabledLabel", {
-              defaultValue: fallbackCopy.securityTwoFactorEnabled,
-            })}
-            Icon={KeySquareIcon}
-            initiallyEnabled={true}
-          />
-        </section>
+            <SettingsToggleRow
+              id="security-2fa"
+              title={t("dashboard.settings.security.twoFactor.title", {
+                defaultValue: fallbackCopy.securityTwoFactorTitle,
+              })}
+              description={t(
+                "dashboard.settings.security.twoFactor.description",
+                {
+                  defaultValue: fallbackCopy.securityTwoFactorDescription,
+                },
+              )}
+              ariaLabel={t(
+                "dashboard.settings.security.twoFactor.enabledLabel",
+                {
+                  defaultValue: fallbackCopy.securityTwoFactorEnabled,
+                },
+              )}
+              Icon={KeySquareIcon}
+              initiallyEnabled={true}
+            />
+          </section>
 
-        <div className="lg:row-span-2 lg:border-l lg:border-border lg:pl-8">
+          <div className="lg:row-span-2 lg:border-l lg:border-border lg:pl-8">
+            <section
+              aria-labelledby="security-danger-title"
+              className="rounded-xl border border-destructive/25 bg-destructive-container/35 p-5 text-on-surface"
+            >
+              <h3
+                id="security-danger-title"
+                className="text-base font-bold leading-3 text-destructive"
+              >
+                {t("dashboard.settings.security.dangerZone.title", {
+                  defaultValue: fallbackCopy.securityDangerTitle,
+                })}
+              </h3>
+              <p className="mt-3 text-sm leading-5 text-on-surface-variant">
+                {t("dashboard.settings.security.dangerZone.description", {
+                  defaultValue: fallbackCopy.securityDangerDescription,
+                })}
+              </p>
+              <button
+                type="button"
+                onFocus={() => deleteAccountIconRef.current?.startAnimation()}
+                onBlur={() => deleteAccountIconRef.current?.stopAnimation()}
+                onMouseEnter={() =>
+                  deleteAccountIconRef.current?.startAnimation()
+                }
+                onMouseLeave={() =>
+                  deleteAccountIconRef.current?.stopAnimation()
+                }
+                onClick={openDeleteAccountConfirmation}
+                className={cn(
+                  destructiveActionClassName,
+                  "mt-5 min-h-11 w-full gap-2 px-5 text-sm",
+                )}
+              >
+                <DeleteIcon
+                  ref={deleteAccountIconRef}
+                  aria-hidden="true"
+                  animateOnHover={false}
+                  size={17}
+                />
+                {t("dashboard.settings.security.dangerZone.action", {
+                  defaultValue: fallbackCopy.securityDangerAction,
+                })}
+              </button>
+            </section>
+          </div>
+
           <section
-            aria-labelledby="security-danger-title"
-            className="rounded-xl border border-destructive/25 bg-destructive-container/35 p-5 text-on-surface"
+            aria-labelledby="security-password-title"
+            className="min-w-0"
           >
             <h3
-              id="security-danger-title"
-              className="text-base font-bold leading-6 text-destructive"
+              id="security-password-title"
+              className="text-base font-bold leading-6 text-on-surface"
             >
-              {t("dashboard.settings.security.dangerZone.title", {
-                defaultValue: fallbackCopy.securityDangerTitle,
+              {t("dashboard.settings.security.password.title", {
+                defaultValue: fallbackCopy.securityPasswordTitle,
               })}
             </h3>
-            <p className="mt-3 text-sm leading-5 text-on-surface-variant">
-              {t("dashboard.settings.security.dangerZone.description", {
-                defaultValue: fallbackCopy.securityDangerDescription,
-              })}
-            </p>
-            <button
-              type="button"
-              onFocus={() => deleteAccountIconRef.current?.startAnimation()}
-              onBlur={() => deleteAccountIconRef.current?.stopAnimation()}
-              onMouseEnter={() =>
-                deleteAccountIconRef.current?.startAnimation()
-              }
-              onMouseLeave={() => deleteAccountIconRef.current?.stopAnimation()}
-              onClick={openDeleteAccountConfirmation}
-              className={cn(
-                destructiveActionClassName,
-                "mt-5 min-h-11 w-full gap-2 px-5 text-sm",
-              )}
-            >
-              <DeleteIcon
-                ref={deleteAccountIconRef}
-                aria-hidden="true"
-                animateOnHover={false}
-                size={17}
-              />
-              {t("dashboard.settings.security.dangerZone.action", {
-                defaultValue: fallbackCopy.securityDangerAction,
-              })}
-            </button>
-          </section>
-        </div>
+            <div className="mt-4 grid gap-4">
+              {passwordFields.map((field) => {
+                const PasswordIcon = field.icon;
 
-        <section aria-labelledby="security-password-title" className="min-w-0">
-          <h3
-            id="security-password-title"
-            className="text-base font-bold leading-6 text-on-surface"
-          >
-            {t("dashboard.settings.security.password.title", {
-              defaultValue: fallbackCopy.securityPasswordTitle,
-            })}
-          </h3>
-          <div className="mt-4 grid gap-4">
-            {passwordFields.map((field) => {
-              const PasswordIcon = field.icon;
-
-              return (
-                <div key={field.id} className="min-w-0">
+                return (
+                  <div key={field.id} className="min-w-0">
+                    <label
+                      htmlFor={field.id}
+                      className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+                    >
+                      {t(field.labelKey, { defaultValue: field.fallback })}
+                    </label>
+                    <div className="relative">
+                      <input
+                        id={field.id}
+                        name={field.name}
+                        type={field.isVisible ? "text" : "password"}
+                        autoComplete={field.autoComplete}
+                        disabled={passwordFieldsAreDisabled}
+                        value={field.value}
+                        aria-invalid={
+                          field.name === "confirmPassword"
+                            ? confirmPasswordDoesNotMatch ||
+                              Boolean(
+                                getPasswordChangeFieldError("confirmPassword"),
+                              )
+                            : Boolean(
+                                getPasswordChangeFieldError(
+                                  field.name as
+                                    | "currentPassword"
+                                    | "newPassword"
+                                    | "confirmPassword",
+                                ),
+                              )
+                        }
+                        aria-describedby={
+                          field.name === "confirmPassword" &&
+                          (confirmPassword.length > 0 ||
+                            getPasswordChangeFieldError("confirmPassword"))
+                            ? "security-confirm-password-feedback"
+                            : undefined
+                        }
+                        onFocus={() => field.iconRef.current?.startAnimation()}
+                        onBlur={() => field.iconRef.current?.stopAnimation()}
+                        onChange={(event) => {
+                          field.onChange(event.target.value);
+                          setPasswordChangeState(null);
+                        }}
+                        placeholder={passwordPlaceholder}
+                        className={cn(
+                          fieldClassName,
+                          "peer pl-12 pr-14 disabled:cursor-not-allowed disabled:opacity-60",
+                        )}
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant transition-colors duration-200 peer-focus:text-primary peer-disabled:opacity-60"
+                      >
+                        <PasswordIcon
+                          ref={field.iconRef}
+                          aria-hidden="true"
+                          animateOnHover={false}
+                          size={18}
+                        />
+                      </span>
+                      <PasswordVisibilityToggle
+                        isVisible={field.isVisible}
+                        onToggle={field.onToggleVisibility}
+                        showLabel={t("common.showPassword")}
+                        hideLabel={t("common.hidePassword")}
+                      />
+                    </div>
+                    {field.name === "newPassword" ? (
+                      <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-medium">
+                        {passwordRequirements.map((requirement) => (
+                          <PasswordRequirementItem
+                            key={requirement.labelKey}
+                            isMet={requirement.isMet}
+                            label={t(requirement.labelKey)}
+                          />
+                        ))}
+                      </ul>
+                    ) : null}
+                    {field.name === "confirmPassword" ? (
+                      <AnimatedFormMessage
+                        id="security-confirm-password-feedback"
+                        message={
+                          getPasswordChangeFieldError("confirmPassword")
+                            ? t(
+                                getPasswordChangeFieldError(
+                                  "confirmPassword",
+                                ) ?? "",
+                                {
+                                  defaultValue:
+                                    fallbackCopy.securityPasswordActionFeedback,
+                                },
+                              )
+                            : confirmPasswordDoesNotMatch
+                              ? t("validation.passwordMismatch")
+                              : confirmPasswordMatches
+                                ? t(
+                                    "dashboard.settings.security.password.feedback.confirmMatch",
+                                    {
+                                      defaultValue:
+                                        fallbackCopy.securityPasswordConfirmMatch,
+                                    },
+                                  )
+                                : undefined
+                        }
+                        tone={
+                          getPasswordChangeFieldError("confirmPassword") ||
+                          confirmPasswordDoesNotMatch
+                            ? "error"
+                            : "success"
+                        }
+                        role={
+                          getPasswordChangeFieldError("confirmPassword") ||
+                          confirmPasswordDoesNotMatch
+                            ? "alert"
+                            : "status"
+                        }
+                        spacingClassName="pt-2"
+                      />
+                    ) : null}
+                    {getPasswordChangeFieldError(
+                      field.name as
+                        | "currentPassword"
+                        | "newPassword"
+                        | "confirmPassword",
+                    ) && field.name !== "confirmPassword" ? (
+                      <p className="mt-2 text-xs font-semibold text-destructive">
+                        {t(
+                          getPasswordChangeFieldError(
+                            field.name as
+                              | "currentPassword"
+                              | "newPassword"
+                              | "confirmPassword",
+                          ) ?? "",
+                          {
+                            defaultValue:
+                              fallbackCopy.securityPasswordActionFeedback,
+                          },
+                        )}
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                disabled={
+                  isPasswordChangeActionPending ||
+                  isPasswordChangeChallengeActive ||
+                  !passwordChangeFieldsAreComplete
+                }
+                onClick={requestPasswordChangeCode}
+                onFocus={() => savePasswordIconRef.current?.startAnimation()}
+                onBlur={() => savePasswordIconRef.current?.stopAnimation()}
+                onMouseEnter={() =>
+                  savePasswordIconRef.current?.startAnimation()
+                }
+                onMouseLeave={() =>
+                  savePasswordIconRef.current?.stopAnimation()
+                }
+                className={cn(
+                  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-bold transition-[background-color,color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  passwordChangeFieldsAreComplete &&
+                    !isPasswordChangeActionPending &&
+                    !isPasswordChangeChallengeActive
+                    ? "cursor-pointer bg-primary text-primary-foreground shadow-[0_8px_20px_rgb(13_13_18/0.16)] hover:bg-primary/90"
+                    : "cursor-not-allowed bg-surface-container-high text-on-surface-variant shadow-none",
+                )}
+              >
+                <CircleCheckIcon
+                  ref={savePasswordIconRef}
+                  aria-hidden="true"
+                  animateOnHover={false}
+                  size={16}
+                />
+                {isPasswordChangeActionPending &&
+                !isPasswordChangeChallengeActive
+                  ? t("dashboard.settings.security.password.actions.sending", {
+                      defaultValue: fallbackCopy.securityPasswordSendingCode,
+                    })
+                  : t("dashboard.settings.security.password.actions.save", {
+                      defaultValue: fallbackCopy.securityPasswordSave,
+                    })}
+              </button>
+            </div>
+            {passwordChangeState?.status === "error" &&
+            !passwordChangeState.errors ? (
+              <p className="mt-3 text-sm font-semibold text-destructive">
+                {t(passwordChangeState.messageKey, {
+                  defaultValue: fallbackCopy.securityPasswordActionFeedback,
+                })}
+              </p>
+            ) : null}
+            <AnimatePresence initial={false}>
+              {isPasswordChangeChallengeActive ? (
+                <motion.div
+                  className="mt-5 rounded-xl border border-outline-variant bg-surface-container-low p-4"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                >
                   <label
-                    htmlFor={field.id}
-                    className="mb-2 block text-sm font-medium leading-5 text-on-surface-variant"
+                    htmlFor="security-password-change-code"
+                    className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
                   >
-                    {t(field.labelKey, { defaultValue: field.fallback })}
+                    {t("dashboard.settings.security.password.codeLabel", {
+                      defaultValue: fallbackCopy.securityPasswordCodeLabel,
+                    })}
                   </label>
                   <div className="relative">
                     <input
-                      id={field.id}
-                      name={field.name}
-                      type={field.isVisible ? "text" : "password"}
-                      autoComplete={field.autoComplete}
-                      disabled={passwordFieldsAreDisabled}
-                      value={field.value}
-                      aria-invalid={
-                        field.name === "confirmPassword"
-                          ? confirmPasswordDoesNotMatch ||
-                            Boolean(
-                              getPasswordChangeFieldError("confirmPassword"),
-                            )
-                          : Boolean(
-                              getPasswordChangeFieldError(
-                                field.name as
-                                  | "currentPassword"
-                                  | "newPassword"
-                                  | "confirmPassword",
-                              ),
-                            )
-                      }
-                      aria-describedby={
-                        field.name === "confirmPassword" &&
-                        (confirmPassword.length > 0 ||
-                          getPasswordChangeFieldError("confirmPassword"))
-                          ? "security-confirm-password-feedback"
-                          : undefined
-                      }
-                      onFocus={() => field.iconRef.current?.startAnimation()}
-                      onBlur={() => field.iconRef.current?.stopAnimation()}
+                      id="security-password-change-code"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={normalizedPasswordChangeCode}
                       onChange={(event) => {
-                        field.onChange(event.target.value);
+                        setPasswordChangeCode(event.target.value);
                         setPasswordChangeState(null);
                       }}
-                      placeholder={passwordPlaceholder}
+                      onFocus={() =>
+                        passwordChangeCodeIconRef.current?.startAnimation()
+                      }
+                      onBlur={() =>
+                        passwordChangeCodeIconRef.current?.stopAnimation()
+                      }
+                      placeholder={t("recovery.verificationCodePlaceholder", {
+                        defaultValue: "000000",
+                      })}
                       className={cn(
                         fieldClassName,
-                        "peer pl-12 pr-14 disabled:cursor-not-allowed disabled:opacity-60",
+                        "peer pl-12 font-mono tracking-[0.16em]",
                       )}
+                    />
+                    <KeyIcon
+                      ref={passwordChangeCodeIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={18}
+                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant transition-colors duration-200 peer-focus:text-primary"
+                    />
+                  </div>
+                  {getPasswordChangeFieldError("code") ? (
+                    <p className="mt-2 text-xs font-semibold text-destructive">
+                      {t(getPasswordChangeFieldError("code") ?? "", {
+                        defaultValue:
+                          fallbackCopy.securityPasswordActionFeedback,
+                      })}
+                    </p>
+                  ) : null}
+                  <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      disabled={isPasswordChangeActionPending}
+                      onClick={cancelPasswordChange}
+                      onFocus={() =>
+                        cancelPasswordChangeIconRef.current?.startAnimation()
+                      }
+                      onBlur={() =>
+                        cancelPasswordChangeIconRef.current?.stopAnimation()
+                      }
+                      onMouseEnter={() =>
+                        cancelPasswordChangeIconRef.current?.startAnimation()
+                      }
+                      onMouseLeave={() =>
+                        cancelPasswordChangeIconRef.current?.stopAnimation()
+                      }
+                      className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <XIcon
+                        ref={cancelPasswordChangeIconRef}
+                        aria-hidden="true"
+                        animateOnHover={false}
+                        size={16}
+                      />
+                      {t(
+                        "dashboard.settings.security.password.actions.cancel",
+                        {
+                          defaultValue:
+                            fallbackCopy.securityDeleteAccountConfirmCancel,
+                        },
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        isPasswordChangeActionPending ||
+                        !passwordChangeCodeIsValid
+                      }
+                      onClick={confirmPasswordChange}
+                      onFocus={() =>
+                        verifyPasswordChangeIconRef.current?.startAnimation()
+                      }
+                      onBlur={() =>
+                        verifyPasswordChangeIconRef.current?.stopAnimation()
+                      }
+                      onMouseEnter={() =>
+                        verifyPasswordChangeIconRef.current?.startAnimation()
+                      }
+                      onMouseLeave={() =>
+                        verifyPasswordChangeIconRef.current?.stopAnimation()
+                      }
+                      className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <CheckCheckIcon
+                        ref={verifyPasswordChangeIconRef}
+                        aria-hidden="true"
+                        animateOnHover={false}
+                        size={16}
+                      />
+                      {isPasswordChangeActionPending
+                        ? t(
+                            "dashboard.settings.security.password.actions.verifying",
+                            {
+                              defaultValue:
+                                fallbackCopy.securityPasswordVerifying,
+                            },
+                          )
+                        : t(
+                            "dashboard.settings.security.password.actions.verify",
+                            {
+                              defaultValue: fallbackCopy.securityPasswordVerify,
+                            },
+                          )}
+                    </button>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </section>
+
+          <section
+            aria-labelledby="security-activity-title"
+            className="min-w-0 lg:border-l lg:border-border lg:pl-8"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h3
+                id="security-activity-title"
+                className="text-base font-bold leading-6 text-on-surface"
+              >
+                {t("dashboard.settings.security.recentActivity.title", {
+                  defaultValue: fallbackCopy.securityRecentActivityTitle,
+                })}
+              </h3>
+              <button
+                type="button"
+                disabled={!hasOtherSessions || isSessionActionPending}
+                onClick={() => setConfirmation({ type: "all" })}
+                className="inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-xs font-bold text-on-surface transition hover:border-outline hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {t("dashboard.settings.security.recentActivity.closeAll", {
+                  defaultValue: fallbackCopy.securityCloseAllSessions,
+                })}
+              </button>
+            </div>
+
+            <div className="mt-4 divide-y divide-border">
+              {sessions.length > 0 ? (
+                sessions.map((session) => {
+                  const deviceLabel =
+                    session.deviceLabel === "Dispositivo desconocido"
+                      ? t(
+                          "dashboard.settings.security.recentActivity.unknownDevice",
+                          {
+                            defaultValue: fallbackCopy.securityUnknownDevice,
+                          },
+                        )
+                      : session.deviceLabel;
+                  const ActivityIcon = getSessionActivityIcon(deviceLabel);
+
+                  return (
+                    <div
+                      key={session.id}
+                      className="flex items-start justify-between gap-3 py-4 first:pt-0 last:pb-0"
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        <ActivityIcon
+                          aria-hidden="true"
+                          size={20}
+                          className="mt-0.5 shrink-0 text-on-surface-variant"
+                        />
+                        <div className="min-w-0">
+                          <p className="break-words text-sm font-bold leading-5 text-on-surface">
+                            {deviceLabel}
+                          </p>
+                          <p className="text-xs font-medium leading-4 text-on-surface-variant">
+                            {session.isCurrent
+                              ? t(
+                                  "dashboard.settings.security.recentActivity.activeNow",
+                                  {
+                                    defaultValue:
+                                      fallbackCopy.securityActiveNow,
+                                  },
+                                )
+                              : formatSessionActivityTime(
+                                  session.lastSeenAt,
+                                  language,
+                                )}
+                          </p>
+                        </div>
+                      </div>
+                      {session.isCurrent ? (
+                        <span className="shrink-0 pt-5 text-right text-xs font-bold leading-4 text-chart-1">
+                          {t(
+                            "dashboard.settings.security.recentActivity.current",
+                            {
+                              defaultValue: fallbackCopy.securityCurrentSession,
+                            },
+                          )}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isSessionActionPending}
+                          onClick={() =>
+                            setConfirmation({
+                              type: "single",
+                              sessionId: session.id,
+                              deviceLabel,
+                            })
+                          }
+                          className={cn(
+                            signOutTextActionClassName,
+                            "shrink-0 pt-5 text-right disabled:cursor-not-allowed disabled:opacity-45",
+                          )}
+                        >
+                          {t(
+                            "dashboard.settings.security.recentActivity.closeSession",
+                            {
+                              defaultValue: fallbackCopy.securitySignOut,
+                            },
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="py-4 text-sm leading-5 text-on-surface-variant">
+                  {t("dashboard.settings.security.recentActivity.empty", {
+                    defaultValue: fallbackCopy.securityNoSessions,
+                  })}
+                </p>
+              )}
+            </div>
+
+            {sessionFeedbackKey ? (
+              <p
+                role="status"
+                className="mt-4 text-xs font-semibold text-on-surface-variant"
+              >
+                {t(sessionFeedbackKey, {
+                  defaultValue: fallbackCopy.securitySessionActionFeedback,
+                })}
+              </p>
+            ) : null}
+          </section>
+        </div>
+      </div>
+
+      <ViewportPortal>
+        <AnimatePresence>
+          {confirmation ? (
+            <motion.div
+              role="presentation"
+              className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="session-confirmation-title"
+                aria-describedby="session-confirmation-description"
+                className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive-container/75 text-destructive"
+                  >
+                    {confirmation?.type === "all" ? (
+                      <MonitorSmartphone
+                        aria-hidden="true"
+                        className="shrink-0"
+                        size={20}
+                      />
+                    ) : isConfirmationMobileDevice ? (
+                      <Smartphone
+                        aria-hidden="true"
+                        className="shrink-0"
+                        size={20}
+                      />
+                    ) : (
+                      <Laptop
+                        aria-hidden="true"
+                        className="shrink-0"
+                        size={20}
+                      />
+                    )}
+                  </span>
+                  <div className="min-w-0">
+                    <h3
+                      id="session-confirmation-title"
+                      className="break-words text-sm font-bold leading-5 text-on-surface"
+                    >
+                      {confirmation?.type === "single"
+                        ? confirmation.deviceLabel
+                        : confirmationTitle}
+                    </h3>
+                    {confirmationSessionTime ? (
+                      <p className="text-xs font-medium leading-4 text-on-surface-variant">
+                        {confirmationSessionTime}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <p
+                  id="session-confirmation-description"
+                  className="mt-4 text-sm leading-5 text-on-surface-variant"
+                >
+                  {confirmationDescription}
+                </p>
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    disabled={isSessionActionPending}
+                    onClick={() => setConfirmation(null)}
+                    onFocus={() =>
+                      cancelSessionIconRef.current?.startAnimation()
+                    }
+                    onBlur={() => cancelSessionIconRef.current?.stopAnimation()}
+                    onMouseEnter={() =>
+                      cancelSessionIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      cancelSessionIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <XIcon
+                      ref={cancelSessionIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={16}
+                    />
+                    {t(
+                      "dashboard.settings.security.recentActivity.confirm.cancel",
+                      {
+                        defaultValue: fallbackCopy.securityConfirmCancel,
+                      },
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSessionActionPending}
+                    onClick={executeConfirmedSessionAction}
+                    onFocus={() =>
+                      logoutSessionIconRef.current?.startAnimation()
+                    }
+                    onBlur={() => logoutSessionIconRef.current?.stopAnimation()}
+                    onMouseEnter={() =>
+                      logoutSessionIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      logoutSessionIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <LogoutIcon
+                      ref={logoutSessionIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={16}
+                    />
+                    {isSessionActionPending
+                      ? t(
+                          "dashboard.settings.security.recentActivity.confirm.closing",
+                          {
+                            defaultValue: fallbackCopy.securityClosingSession,
+                          },
+                        )
+                      : t(
+                          confirmation.type === "all"
+                            ? "dashboard.settings.security.recentActivity.confirm.confirmAll"
+                            : "dashboard.settings.security.recentActivity.confirm.confirm",
+                          {
+                            defaultValue:
+                              confirmation.type === "all"
+                                ? fallbackCopy.securityConfirmAllAction
+                                : fallbackCopy.securityConfirmAction,
+                          },
+                        )}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isPasswordChangeNoticeOpen ? (
+            <motion.div
+              role="presentation"
+              className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="password-change-notice-title"
+                aria-describedby="password-change-notice-description"
+                className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                  >
+                    <MailboxIcon
+                      aria-hidden="true"
+                      className="shrink-0"
+                      size={20}
+                    />
+                  </span>
+                  <h3
+                    id="password-change-notice-title"
+                    className="break-words text-sm font-bold leading-5 text-on-surface"
+                  >
+                    {t("dashboard.settings.security.password.notice.title", {
+                      defaultValue: fallbackCopy.securityPasswordNoticeTitle,
+                    })}
+                  </h3>
+                </div>
+                <p
+                  id="password-change-notice-description"
+                  className="mt-4 text-sm leading-5 text-on-surface-variant"
+                >
+                  {t("dashboard.settings.security.password.notice.body", {
+                    defaultValue: fallbackCopy.securityPasswordNoticeBody,
+                    email: passwordChangeMaskedEmail,
+                  })}
+                </p>
+                <div className="mt-6 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsPasswordChangeNoticeOpen(false)}
+                    onFocus={() =>
+                      passwordChangeNoticeIconRef.current?.startAnimation()
+                    }
+                    onBlur={() =>
+                      passwordChangeNoticeIconRef.current?.stopAnimation()
+                    }
+                    onMouseEnter={() =>
+                      passwordChangeNoticeIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      passwordChangeNoticeIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    <CircleCheckIcon
+                      ref={passwordChangeNoticeIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={16}
+                    />
+                    {t("dashboard.settings.security.password.notice.action", {
+                      defaultValue: fallbackCopy.securityPasswordNoticeAction,
+                    })}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isPasswordChangeSessionChoiceOpen ? (
+            <motion.div
+              role="presentation"
+              className="fixed inset-0 z-[60] grid place-items-center bg-inverse-surface/45 px-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="password-change-session-title"
+                aria-describedby="password-change-session-description"
+                className="w-full max-w-[460px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                  >
+                    <CircleCheckIcon
+                      aria-hidden="true"
+                      className="shrink-0"
+                      size={20}
+                    />
+                  </span>
+                  <h3
+                    id="password-change-session-title"
+                    className="break-words text-sm font-bold leading-5 text-on-surface"
+                  >
+                    {t("dashboard.settings.security.password.session.title", {
+                      defaultValue: fallbackCopy.securityPasswordSessionTitle,
+                    })}
+                  </h3>
+                </div>
+                <p
+                  id="password-change-session-description"
+                  className="mt-4 text-sm leading-5 text-on-surface-variant"
+                >
+                  {t("dashboard.settings.security.password.session.body", {
+                    defaultValue: fallbackCopy.securityPasswordSessionBody,
+                  })}
+                </p>
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={isPasswordChangeActionPending}
+                    onClick={() => finishPasswordChangeSession("current")}
+                    onFocus={() =>
+                      closeCurrentPasswordSessionIconRef.current?.startAnimation()
+                    }
+                    onBlur={() =>
+                      closeCurrentPasswordSessionIconRef.current?.stopAnimation()
+                    }
+                    onMouseEnter={() =>
+                      closeCurrentPasswordSessionIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      closeCurrentPasswordSessionIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <LogoutIcon
+                      ref={closeCurrentPasswordSessionIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={16}
+                    />
+                    {t(
+                      "dashboard.settings.security.password.session.closeCurrent",
+                      {
+                        defaultValue: fallbackCopy.securityPasswordCloseCurrent,
+                      },
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPasswordChangeActionPending}
+                    onClick={() => finishPasswordChangeSession("all")}
+                    onFocus={() =>
+                      closeAllPasswordSessionsIconRef.current?.startAnimation()
+                    }
+                    onBlur={() =>
+                      closeAllPasswordSessionsIconRef.current?.stopAnimation()
+                    }
+                    onMouseEnter={() =>
+                      closeAllPasswordSessionsIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      closeAllPasswordSessionsIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <LogoutIcon
+                      ref={closeAllPasswordSessionsIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={16}
+                    />
+                    {t(
+                      "dashboard.settings.security.password.session.closeAll",
+                      {
+                        defaultValue: fallbackCopy.securityPasswordCloseAll,
+                      },
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isDeleteAccountConfirmationOpen ? (
+            <motion.div
+              role="presentation"
+              className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="delete-account-confirmation-title"
+                aria-describedby="delete-account-confirmation-description"
+                className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive-container/75 text-destructive"
+                  >
+                    <UserRoundX
+                      aria-hidden="true"
+                      className="shrink-0"
+                      size={20}
+                    />
+                  </span>
+                  <h3
+                    id="delete-account-confirmation-title"
+                    className="break-words text-sm font-bold leading-5 text-on-surface"
+                  >
+                    {t("dashboard.settings.security.dangerZone.confirm.title", {
+                      defaultValue:
+                        fallbackCopy.securityDeleteAccountConfirmTitle,
+                    })}
+                  </h3>
+                </div>
+                <p
+                  id="delete-account-confirmation-description"
+                  className="mt-4 text-sm leading-5 text-on-surface-variant"
+                >
+                  {t("dashboard.settings.security.dangerZone.confirm.body", {
+                    defaultValue: fallbackCopy.securityDeleteAccountConfirmBody,
+                  })}
+                </p>
+                <div className="mt-5">
+                  <label
+                    htmlFor="delete-account-password"
+                    className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
+                  >
+                    {t(
+                      "dashboard.settings.security.dangerZone.confirm.passwordLabel",
+                      {
+                        defaultValue:
+                          fallbackCopy.securityDeleteAccountPasswordLabel,
+                      },
+                    )}
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="delete-account-password"
+                      type={showDeleteAccountPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      value={deleteAccountPassword}
+                      onFocus={() =>
+                        deleteAccountPasswordIconRef.current?.startAnimation()
+                      }
+                      onBlur={() =>
+                        deleteAccountPasswordIconRef.current?.stopAnimation()
+                      }
+                      onChange={(event) =>
+                        setDeleteAccountPassword(event.target.value)
+                      }
+                      className={cn(fieldClassName, "peer pl-12 pr-14")}
                     />
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant transition-colors duration-200 peer-focus:text-primary peer-disabled:opacity-60"
+                      className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant transition-colors duration-200 peer-focus:text-primary"
                     >
-                      <PasswordIcon
-                        ref={field.iconRef}
+                      <LockKeyholeIcon
+                        ref={deleteAccountPasswordIconRef}
                         aria-hidden="true"
                         animateOnHover={false}
                         size={18}
                       />
                     </span>
                     <PasswordVisibilityToggle
-                      isVisible={field.isVisible}
-                      onToggle={field.onToggleVisibility}
+                      isVisible={showDeleteAccountPassword}
+                      onToggle={() =>
+                        setShowDeleteAccountPassword((current) => !current)
+                      }
                       showLabel={t("common.showPassword")}
                       hideLabel={t("common.hidePassword")}
                     />
                   </div>
-                  {field.name === "newPassword" ? (
-                    <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-medium">
-                      {passwordRequirements.map((requirement) => (
-                        <PasswordRequirementItem
-                          key={requirement.labelKey}
-                          isMet={requirement.isMet}
-                          label={t(requirement.labelKey)}
-                        />
-                      ))}
-                    </ul>
-                  ) : null}
-                  {field.name === "confirmPassword" ? (
-                    <AnimatedFormMessage
-                      id="security-confirm-password-feedback"
-                      message={
-                        getPasswordChangeFieldError("confirmPassword")
-                          ? t(
-                              getPasswordChangeFieldError("confirmPassword") ??
-                                "",
-                              {
-                                defaultValue:
-                                  fallbackCopy.securityPasswordActionFeedback,
-                              },
-                            )
-                          : confirmPasswordDoesNotMatch
-                            ? t("validation.passwordMismatch")
-                            : confirmPasswordMatches
-                              ? t(
-                                  "dashboard.settings.security.password.feedback.confirmMatch",
-                                  {
-                                    defaultValue:
-                                      fallbackCopy.securityPasswordConfirmMatch,
-                                  },
-                                )
-                              : undefined
-                      }
-                      tone={
-                        getPasswordChangeFieldError("confirmPassword") ||
-                        confirmPasswordDoesNotMatch
-                          ? "error"
-                          : "success"
-                      }
-                      role={
-                        getPasswordChangeFieldError("confirmPassword") ||
-                        confirmPasswordDoesNotMatch
-                          ? "alert"
-                          : "status"
-                      }
-                      spacingClassName="pt-2"
-                    />
-                  ) : null}
-                  {getPasswordChangeFieldError(
-                    field.name as
-                      | "currentPassword"
-                      | "newPassword"
-                      | "confirmPassword",
-                  ) && field.name !== "confirmPassword" ? (
+                  {deleteAccountState?.status === "error" ? (
                     <p className="mt-2 text-xs font-semibold text-destructive">
-                      {t(
-                        getPasswordChangeFieldError(
-                          field.name as
-                            | "currentPassword"
-                            | "newPassword"
-                            | "confirmPassword",
-                        ) ?? "",
-                        {
-                          defaultValue:
-                            fallbackCopy.securityPasswordActionFeedback,
-                        },
-                      )}
+                      {t(deleteAccountState.messageKey, {
+                        defaultValue:
+                          fallbackCopy.securityDeleteAccountActionFeedback,
+                      })}
                     </p>
                   ) : null}
                 </div>
-              );
-            })}
-          </div>
-          <div className="mt-5 flex justify-end">
-            <button
-              type="button"
-              disabled={
-                isPasswordChangeActionPending ||
-                isPasswordChangeChallengeActive ||
-                !passwordChangeFieldsAreComplete
-              }
-              onClick={requestPasswordChangeCode}
-              onFocus={() => savePasswordIconRef.current?.startAnimation()}
-              onBlur={() => savePasswordIconRef.current?.stopAnimation()}
-              onMouseEnter={() => savePasswordIconRef.current?.startAnimation()}
-              onMouseLeave={() => savePasswordIconRef.current?.stopAnimation()}
-              className={cn(
-                "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-bold transition-[background-color,color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                passwordChangeFieldsAreComplete &&
-                  !isPasswordChangeActionPending &&
-                  !isPasswordChangeChallengeActive
-                  ? "cursor-pointer bg-primary text-primary-foreground shadow-[0_8px_20px_rgb(13_13_18/0.16)] hover:bg-primary/90"
-                  : "cursor-not-allowed bg-surface-container-high text-on-surface-variant shadow-none",
-              )}
-            >
-              <CircleCheckIcon
-                ref={savePasswordIconRef}
-                aria-hidden="true"
-                animateOnHover={false}
-                size={16}
-              />
-              {isPasswordChangeActionPending && !isPasswordChangeChallengeActive
-                ? t("dashboard.settings.security.password.actions.sending", {
-                    defaultValue: fallbackCopy.securityPasswordSendingCode,
-                  })
-                : t("dashboard.settings.security.password.actions.save", {
-                    defaultValue: fallbackCopy.securityPasswordSave,
-                  })}
-            </button>
-          </div>
-          {passwordChangeState?.status === "error" &&
-          !passwordChangeState.errors ? (
-            <p className="mt-3 text-sm font-semibold text-destructive">
-              {t(passwordChangeState.messageKey, {
-                defaultValue: fallbackCopy.securityPasswordActionFeedback,
-              })}
-            </p>
-          ) : null}
-          <AnimatePresence initial={false}>
-            {isPasswordChangeChallengeActive ? (
-              <motion.div
-                className="mt-5 rounded-xl border border-outline-variant bg-surface-container-low p-4"
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-              >
-                <label
-                  htmlFor="security-password-change-code"
-                  className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
-                >
-                  {t("dashboard.settings.security.password.codeLabel", {
-                    defaultValue: fallbackCopy.securityPasswordCodeLabel,
-                  })}
-                </label>
-                <div className="relative">
-                  <input
-                    id="security-password-change-code"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    value={normalizedPasswordChangeCode}
-                    onChange={(event) => {
-                      setPasswordChangeCode(event.target.value);
-                      setPasswordChangeState(null);
-                    }}
-                    onFocus={() =>
-                      passwordChangeCodeIconRef.current?.startAnimation()
-                    }
-                    onBlur={() =>
-                      passwordChangeCodeIconRef.current?.stopAnimation()
-                    }
-                    placeholder={t("recovery.verificationCodePlaceholder", {
-                      defaultValue: "000000",
-                    })}
-                    className={cn(
-                      fieldClassName,
-                      "peer pl-12 font-mono tracking-[0.16em]",
-                    )}
-                  />
-                  <KeyIcon
-                    ref={passwordChangeCodeIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={18}
-                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant transition-colors duration-200 peer-focus:text-primary"
-                  />
-                </div>
-                {getPasswordChangeFieldError("code") ? (
-                  <p className="mt-2 text-xs font-semibold text-destructive">
-                    {t(getPasswordChangeFieldError("code") ?? "", {
-                      defaultValue: fallbackCopy.securityPasswordActionFeedback,
-                    })}
-                  </p>
-                ) : null}
-                <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                   <button
                     type="button"
-                    disabled={isPasswordChangeActionPending}
-                    onClick={cancelPasswordChange}
+                    disabled={isDeleteAccountActionPending}
+                    onClick={closeDeleteAccountConfirmation}
                     onFocus={() =>
-                      cancelPasswordChangeIconRef.current?.startAnimation()
+                      cancelDeleteAccountIconRef.current?.startAnimation()
                     }
                     onBlur={() =>
-                      cancelPasswordChangeIconRef.current?.stopAnimation()
+                      cancelDeleteAccountIconRef.current?.stopAnimation()
                     }
                     onMouseEnter={() =>
-                      cancelPasswordChangeIconRef.current?.startAnimation()
+                      cancelDeleteAccountIconRef.current?.startAnimation()
                     }
                     onMouseLeave={() =>
-                      cancelPasswordChangeIconRef.current?.stopAnimation()
+                      cancelDeleteAccountIconRef.current?.stopAnimation()
                     }
                     className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <XIcon
-                      ref={cancelPasswordChangeIconRef}
+                      ref={cancelDeleteAccountIconRef}
                       aria-hidden="true"
                       animateOnHover={false}
                       size={16}
                     />
-                    {t("dashboard.settings.security.password.actions.cancel", {
-                      defaultValue:
-                        fallbackCopy.securityDeleteAccountConfirmCancel,
-                    })}
+                    {t(
+                      "dashboard.settings.security.dangerZone.confirm.cancel",
+                      {
+                        defaultValue:
+                          fallbackCopy.securityDeleteAccountConfirmCancel,
+                      },
+                    )}
                   </button>
                   <button
                     type="button"
                     disabled={
-                      isPasswordChangeActionPending ||
-                      !passwordChangeCodeIsValid
+                      isDeleteAccountActionPending || !deleteAccountPassword
                     }
-                    onClick={confirmPasswordChange}
+                    onClick={requestDeleteAccountCode}
                     onFocus={() =>
-                      verifyPasswordChangeIconRef.current?.startAnimation()
+                      confirmDeleteAccountIconRef.current?.startAnimation()
                     }
                     onBlur={() =>
-                      verifyPasswordChangeIconRef.current?.stopAnimation()
+                      confirmDeleteAccountIconRef.current?.stopAnimation()
                     }
                     onMouseEnter={() =>
-                      verifyPasswordChangeIconRef.current?.startAnimation()
+                      confirmDeleteAccountIconRef.current?.startAnimation()
                     }
                     onMouseLeave={() =>
-                      verifyPasswordChangeIconRef.current?.stopAnimation()
+                      confirmDeleteAccountIconRef.current?.stopAnimation()
                     }
-                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <CheckCheckIcon
-                      ref={verifyPasswordChangeIconRef}
+                    <DeleteIcon
+                      ref={confirmDeleteAccountIconRef}
                       aria-hidden="true"
                       animateOnHover={false}
                       size={16}
                     />
-                    {isPasswordChangeActionPending
+                    {isDeleteAccountActionPending
                       ? t(
-                          "dashboard.settings.security.password.actions.verifying",
+                          "dashboard.settings.security.dangerZone.confirm.sending",
                           {
                             defaultValue:
-                              fallbackCopy.securityPasswordVerifying,
+                              fallbackCopy.securityDeleteAccountSendingCode,
                           },
                         )
                       : t(
-                          "dashboard.settings.security.password.actions.verify",
+                          "dashboard.settings.security.dangerZone.confirm.confirm",
                           {
-                            defaultValue: fallbackCopy.securityPasswordVerify,
+                            defaultValue:
+                              fallbackCopy.securityDeleteAccountConfirmAction,
                           },
                         )}
                   </button>
                 </div>
               </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </section>
-
-        <section
-          aria-labelledby="security-activity-title"
-          className="min-w-0 lg:border-l lg:border-border lg:pl-8"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <h3
-              id="security-activity-title"
-              className="text-base font-bold leading-6 text-on-surface"
-            >
-              {t("dashboard.settings.security.recentActivity.title", {
-                defaultValue: fallbackCopy.securityRecentActivityTitle,
-              })}
-            </h3>
-            <button
-              type="button"
-              disabled={!hasOtherSessions || isSessionActionPending}
-              onClick={() => setConfirmation({ type: "all" })}
-              className="inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-xs font-bold text-on-surface transition hover:border-outline hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {t("dashboard.settings.security.recentActivity.closeAll", {
-                defaultValue: fallbackCopy.securityCloseAllSessions,
-              })}
-            </button>
-          </div>
-
-          <div className="mt-4 divide-y divide-border">
-            {sessions.length > 0 ? (
-              sessions.map((session) => {
-                const deviceLabel =
-                  session.deviceLabel === "Dispositivo desconocido"
-                    ? t(
-                        "dashboard.settings.security.recentActivity.unknownDevice",
-                        {
-                          defaultValue: fallbackCopy.securityUnknownDevice,
-                        },
-                      )
-                    : session.deviceLabel;
-                const ActivityIcon = getSessionActivityIcon(deviceLabel);
-
-                return (
-                  <div
-                    key={session.id}
-                    className="flex items-start justify-between gap-3 py-4 first:pt-0 last:pb-0"
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <ActivityIcon
-                        aria-hidden="true"
-                        size={20}
-                        className="mt-0.5 shrink-0 text-on-surface-variant"
-                      />
-                      <div className="min-w-0">
-                        <p className="break-words text-sm font-bold leading-5 text-on-surface">
-                          {deviceLabel}
-                        </p>
-                        <p className="text-xs font-medium leading-4 text-on-surface-variant">
-                          {session.isCurrent
-                            ? t(
-                                "dashboard.settings.security.recentActivity.activeNow",
-                                {
-                                  defaultValue: fallbackCopy.securityActiveNow,
-                                },
-                              )
-                            : formatSessionActivityTime(
-                                session.lastSeenAt,
-                                language,
-                              )}
-                        </p>
-                      </div>
-                    </div>
-                    {session.isCurrent ? (
-                      <span className="shrink-0 pt-5 text-right text-xs font-bold leading-4 text-chart-1">
-                        {t(
-                          "dashboard.settings.security.recentActivity.current",
-                          {
-                            defaultValue: fallbackCopy.securityCurrentSession,
-                          },
-                        )}
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={isSessionActionPending}
-                        onClick={() =>
-                          setConfirmation({
-                            type: "single",
-                            sessionId: session.id,
-                            deviceLabel,
-                          })
-                        }
-                        className={cn(
-                          signOutTextActionClassName,
-                          "shrink-0 pt-5 text-right disabled:cursor-not-allowed disabled:opacity-45",
-                        )}
-                      >
-                        {t(
-                          "dashboard.settings.security.recentActivity.closeSession",
-                          {
-                            defaultValue: fallbackCopy.securitySignOut,
-                          },
-                        )}
-                      </button>
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              <p className="py-4 text-sm leading-5 text-on-surface-variant">
-                {t("dashboard.settings.security.recentActivity.empty", {
-                  defaultValue: fallbackCopy.securityNoSessions,
-                })}
-              </p>
-            )}
-          </div>
-
-          {sessionFeedbackKey ? (
-            <p
-              role="status"
-              className="mt-4 text-xs font-semibold text-on-surface-variant"
-            >
-              {t(sessionFeedbackKey, {
-                defaultValue: fallbackCopy.securitySessionActionFeedback,
-              })}
-            </p>
+            </motion.div>
           ) : null}
-        </section>
-        </div>
-      </div>
+        </AnimatePresence>
 
-      <ViewportPortal>
-      <AnimatePresence>
-        {confirmation ? (
-          <motion.div
-            role="presentation"
-            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-          >
+        <AnimatePresence>
+          {isDeleteAccountCodeOpen ? (
             <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="session-confirmation-title"
-              aria-describedby="session-confirmation-description"
-              className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
+              role="presentation"
+              className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
             >
-              <div className="flex min-w-0 items-center gap-3 text-left">
-                <span
-                  aria-hidden="true"
-                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive-container/75 text-destructive"
-                >
-                  {confirmation?.type === "all" ? (
-                    <MonitorSmartphone
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="delete-account-code-title"
+                aria-describedby="delete-account-code-description"
+                className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+                initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+              >
+                <div className="flex min-w-0 items-center gap-3 text-left">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive-container/75 text-destructive"
+                  >
+                    <UserRoundX
                       aria-hidden="true"
                       className="shrink-0"
                       size={20}
                     />
-                  ) : isConfirmationMobileDevice ? (
-                    <Smartphone
-                      aria-hidden="true"
-                      className="shrink-0"
-                      size={20}
-                    />
-                  ) : (
-                    <Laptop aria-hidden="true" className="shrink-0" size={20} />
-                  )}
-                </span>
-                <div className="min-w-0">
+                  </span>
                   <h3
-                    id="session-confirmation-title"
+                    id="delete-account-code-title"
                     className="break-words text-sm font-bold leading-5 text-on-surface"
                   >
-                    {confirmation?.type === "single"
-                      ? confirmation.deviceLabel
-                      : confirmationTitle}
+                    {t(
+                      "dashboard.settings.security.dangerZone.confirm.codeTitle",
+                      {
+                        defaultValue:
+                          fallbackCopy.securityDeleteAccountCodeTitle,
+                      },
+                    )}
                   </h3>
-                  {confirmationSessionTime ? (
-                    <p className="text-xs font-medium leading-4 text-on-surface-variant">
-                      {confirmationSessionTime}
+                </div>
+                <p
+                  id="delete-account-code-description"
+                  className="mt-4 text-sm leading-5 text-on-surface-variant"
+                >
+                  {t(
+                    "dashboard.settings.security.dangerZone.confirm.codeBody",
+                    {
+                      defaultValue: fallbackCopy.securityDeleteAccountCodeBody,
+                      email: deleteAccountMaskedEmail,
+                    },
+                  )}
+                </p>
+                <div className="mt-5">
+                  <label
+                    htmlFor="delete-account-code"
+                    className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
+                  >
+                    {t("recovery.verificationCode", {
+                      defaultValue: fallbackCopy.securityDeleteAccountCodeLabel,
+                    })}
+                  </label>
+                  <input
+                    id="delete-account-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={normalizedDeleteAccountCode}
+                    onChange={(event) =>
+                      setDeleteAccountCode(event.target.value)
+                    }
+                    className={cn(
+                      fieldClassName,
+                      "font-mono tracking-[0.16em]",
+                    )}
+                  />
+                  {deleteAccountState?.status === "error" ? (
+                    <p className="mt-2 text-xs font-semibold text-destructive">
+                      {t(deleteAccountState.messageKey, {
+                        defaultValue:
+                          fallbackCopy.securityDeleteAccountActionFeedback,
+                      })}
                     </p>
                   ) : null}
                 </div>
-              </div>
-              <p
-                id="session-confirmation-description"
-                className="mt-4 text-sm leading-5 text-on-surface-variant"
-              >
-                {confirmationDescription}
-              </p>
-              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  disabled={isSessionActionPending}
-                  onClick={() => setConfirmation(null)}
-                  onFocus={() => cancelSessionIconRef.current?.startAnimation()}
-                  onBlur={() => cancelSessionIconRef.current?.stopAnimation()}
-                  onMouseEnter={() =>
-                    cancelSessionIconRef.current?.startAnimation()
-                  }
-                  onMouseLeave={() =>
-                    cancelSessionIconRef.current?.stopAnimation()
-                  }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <XIcon
-                    ref={cancelSessionIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {t(
-                    "dashboard.settings.security.recentActivity.confirm.cancel",
-                    {
-                      defaultValue: fallbackCopy.securityConfirmCancel,
-                    },
-                  )}
-                </button>
-                <button
-                  type="button"
-                  disabled={isSessionActionPending}
-                  onClick={executeConfirmedSessionAction}
-                  onFocus={() => logoutSessionIconRef.current?.startAnimation()}
-                  onBlur={() => logoutSessionIconRef.current?.stopAnimation()}
-                  onMouseEnter={() =>
-                    logoutSessionIconRef.current?.startAnimation()
-                  }
-                  onMouseLeave={() =>
-                    logoutSessionIconRef.current?.stopAnimation()
-                  }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <LogoutIcon
-                    ref={logoutSessionIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {isSessionActionPending
-                    ? t(
-                        "dashboard.settings.security.recentActivity.confirm.closing",
-                        {
-                          defaultValue: fallbackCopy.securityClosingSession,
-                        },
-                      )
-                    : t(
-                        confirmation.type === "all"
-                          ? "dashboard.settings.security.recentActivity.confirm.confirmAll"
-                          : "dashboard.settings.security.recentActivity.confirm.confirm",
-                        {
-                          defaultValue:
-                            confirmation.type === "all"
-                              ? fallbackCopy.securityConfirmAllAction
-                              : fallbackCopy.securityConfirmAction,
-                        },
-                      )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {isPasswordChangeNoticeOpen ? (
-          <motion.div
-            role="presentation"
-            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-          >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="password-change-notice-title"
-              aria-describedby="password-change-notice-description"
-              className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-            >
-              <div className="flex min-w-0 items-center gap-3 text-left">
-                <span
-                  aria-hidden="true"
-                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-                >
-                  <MailboxIcon
-                    aria-hidden="true"
-                    className="shrink-0"
-                    size={20}
-                  />
-                </span>
-                <h3
-                  id="password-change-notice-title"
-                  className="break-words text-sm font-bold leading-5 text-on-surface"
-                >
-                  {t("dashboard.settings.security.password.notice.title", {
-                    defaultValue: fallbackCopy.securityPasswordNoticeTitle,
-                  })}
-                </h3>
-              </div>
-              <p
-                id="password-change-notice-description"
-                className="mt-4 text-sm leading-5 text-on-surface-variant"
-              >
-                {t("dashboard.settings.security.password.notice.body", {
-                  defaultValue: fallbackCopy.securityPasswordNoticeBody,
-                  email: passwordChangeMaskedEmail,
-                })}
-              </p>
-              <div className="mt-6 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsPasswordChangeNoticeOpen(false)}
-                  onFocus={() =>
-                    passwordChangeNoticeIconRef.current?.startAnimation()
-                  }
-                  onBlur={() =>
-                    passwordChangeNoticeIconRef.current?.stopAnimation()
-                  }
-                  onMouseEnter={() =>
-                    passwordChangeNoticeIconRef.current?.startAnimation()
-                  }
-                  onMouseLeave={() =>
-                    passwordChangeNoticeIconRef.current?.stopAnimation()
-                  }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >
-                  <CircleCheckIcon
-                    ref={passwordChangeNoticeIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {t("dashboard.settings.security.password.notice.action", {
-                    defaultValue: fallbackCopy.securityPasswordNoticeAction,
-                  })}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {isPasswordChangeSessionChoiceOpen ? (
-          <motion.div
-            role="presentation"
-            className="fixed inset-0 z-[60] grid place-items-center bg-inverse-surface/45 px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-          >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="password-change-session-title"
-              aria-describedby="password-change-session-description"
-              className="w-full max-w-[460px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-            >
-              <div className="flex min-w-0 items-center gap-3 text-left">
-                <span
-                  aria-hidden="true"
-                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-                >
-                  <CircleCheckIcon
-                    aria-hidden="true"
-                    className="shrink-0"
-                    size={20}
-                  />
-                </span>
-                <h3
-                  id="password-change-session-title"
-                  className="break-words text-sm font-bold leading-5 text-on-surface"
-                >
-                  {t("dashboard.settings.security.password.session.title", {
-                    defaultValue: fallbackCopy.securityPasswordSessionTitle,
-                  })}
-                </h3>
-              </div>
-              <p
-                id="password-change-session-description"
-                className="mt-4 text-sm leading-5 text-on-surface-variant"
-              >
-                {t("dashboard.settings.security.password.session.body", {
-                  defaultValue: fallbackCopy.securityPasswordSessionBody,
-                })}
-              </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  disabled={isPasswordChangeActionPending}
-                  onClick={() => finishPasswordChangeSession("current")}
-                  onFocus={() =>
-                    closeCurrentPasswordSessionIconRef.current?.startAnimation()
-                  }
-                  onBlur={() =>
-                    closeCurrentPasswordSessionIconRef.current?.stopAnimation()
-                  }
-                  onMouseEnter={() =>
-                    closeCurrentPasswordSessionIconRef.current?.startAnimation()
-                  }
-                  onMouseLeave={() =>
-                    closeCurrentPasswordSessionIconRef.current?.stopAnimation()
-                  }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <LogoutIcon
-                    ref={closeCurrentPasswordSessionIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {t(
-                    "dashboard.settings.security.password.session.closeCurrent",
-                    {
-                      defaultValue: fallbackCopy.securityPasswordCloseCurrent,
-                    },
-                  )}
-                </button>
-                <button
-                  type="button"
-                  disabled={isPasswordChangeActionPending}
-                  onClick={() => finishPasswordChangeSession("all")}
-                  onFocus={() =>
-                    closeAllPasswordSessionsIconRef.current?.startAnimation()
-                  }
-                  onBlur={() =>
-                    closeAllPasswordSessionsIconRef.current?.stopAnimation()
-                  }
-                  onMouseEnter={() =>
-                    closeAllPasswordSessionsIconRef.current?.startAnimation()
-                  }
-                  onMouseLeave={() =>
-                    closeAllPasswordSessionsIconRef.current?.stopAnimation()
-                  }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <LogoutIcon
-                    ref={closeAllPasswordSessionsIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {t("dashboard.settings.security.password.session.closeAll", {
-                    defaultValue: fallbackCopy.securityPasswordCloseAll,
-                  })}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {isDeleteAccountConfirmationOpen ? (
-          <motion.div
-            role="presentation"
-            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-          >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="delete-account-confirmation-title"
-              aria-describedby="delete-account-confirmation-description"
-              className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-            >
-              <div className="flex min-w-0 items-center gap-3 text-left">
-                <span
-                  aria-hidden="true"
-                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive-container/75 text-destructive"
-                >
-                  <UserRoundX
-                    aria-hidden="true"
-                    className="shrink-0"
-                    size={20}
-                  />
-                </span>
-                <h3
-                  id="delete-account-confirmation-title"
-                  className="break-words text-sm font-bold leading-5 text-on-surface"
-                >
-                  {t("dashboard.settings.security.dangerZone.confirm.title", {
-                    defaultValue:
-                      fallbackCopy.securityDeleteAccountConfirmTitle,
-                  })}
-                </h3>
-              </div>
-              <p
-                id="delete-account-confirmation-description"
-                className="mt-4 text-sm leading-5 text-on-surface-variant"
-              >
-                {t("dashboard.settings.security.dangerZone.confirm.body", {
-                  defaultValue: fallbackCopy.securityDeleteAccountConfirmBody,
-                })}
-              </p>
-              <div className="mt-5">
-                <label
-                  htmlFor="delete-account-password"
-                  className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
-                >
-                  {t(
-                    "dashboard.settings.security.dangerZone.confirm.passwordLabel",
-                    {
-                      defaultValue:
-                        fallbackCopy.securityDeleteAccountPasswordLabel,
-                    },
-                  )}
-                </label>
-                <div className="relative">
-                  <input
-                    id="delete-account-password"
-                    type={showDeleteAccountPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={deleteAccountPassword}
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    disabled={isDeleteAccountActionPending}
+                    onClick={cancelDeleteAccountCode}
                     onFocus={() =>
-                      deleteAccountPasswordIconRef.current?.startAnimation()
+                      cancelDeletionCodeIconRef.current?.startAnimation()
                     }
                     onBlur={() =>
-                      deleteAccountPasswordIconRef.current?.stopAnimation()
+                      cancelDeletionCodeIconRef.current?.stopAnimation()
                     }
-                    onChange={(event) =>
-                      setDeleteAccountPassword(event.target.value)
+                    onMouseEnter={() =>
+                      cancelDeletionCodeIconRef.current?.startAnimation()
                     }
-                    className={cn(fieldClassName, "peer pl-12 pr-14")}
-                  />
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant transition-colors duration-200 peer-focus:text-primary"
+                    onMouseLeave={() =>
+                      cancelDeletionCodeIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <LockKeyholeIcon
-                      ref={deleteAccountPasswordIconRef}
+                    <XIcon
+                      ref={cancelDeletionCodeIconRef}
                       aria-hidden="true"
                       animateOnHover={false}
-                      size={18}
+                      size={16}
                     />
-                  </span>
-                  <PasswordVisibilityToggle
-                    isVisible={showDeleteAccountPassword}
-                    onToggle={() =>
-                      setShowDeleteAccountPassword((current) => !current)
+                    {t(
+                      "dashboard.settings.security.dangerZone.confirm.cancel",
+                      {
+                        defaultValue:
+                          fallbackCopy.securityDeleteAccountConfirmCancel,
+                      },
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      isDeleteAccountActionPending || !deleteAccountCodeIsValid
                     }
-                    showLabel={t("common.showPassword")}
-                    hideLabel={t("common.hidePassword")}
-                  />
+                    onClick={confirmDeleteAccount}
+                    onFocus={() =>
+                      deleteWithCodeIconRef.current?.startAnimation()
+                    }
+                    onBlur={() =>
+                      deleteWithCodeIconRef.current?.stopAnimation()
+                    }
+                    onMouseEnter={() =>
+                      deleteWithCodeIconRef.current?.startAnimation()
+                    }
+                    onMouseLeave={() =>
+                      deleteWithCodeIconRef.current?.stopAnimation()
+                    }
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <DeleteIcon
+                      ref={deleteWithCodeIconRef}
+                      aria-hidden="true"
+                      animateOnHover={false}
+                      size={16}
+                    />
+                    {isDeleteAccountActionPending
+                      ? t(
+                          "dashboard.settings.security.dangerZone.confirm.deleting",
+                          {
+                            defaultValue:
+                              fallbackCopy.securityDeleteAccountDeleting,
+                          },
+                        )
+                      : t(
+                          "dashboard.settings.security.dangerZone.confirm.deleteAccount",
+                          {
+                            defaultValue:
+                              fallbackCopy.securityDeleteAccountFinalAction,
+                          },
+                        )}
+                  </button>
                 </div>
-                {deleteAccountState?.status === "error" ? (
-                  <p className="mt-2 text-xs font-semibold text-destructive">
-                    {t(deleteAccountState.messageKey, {
-                      defaultValue:
-                        fallbackCopy.securityDeleteAccountActionFeedback,
-                    })}
-                  </p>
-                ) : null}
-              </div>
-              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  disabled={isDeleteAccountActionPending}
-                  onClick={closeDeleteAccountConfirmation}
-                  onFocus={() =>
-                    cancelDeleteAccountIconRef.current?.startAnimation()
-                  }
-                  onBlur={() =>
-                    cancelDeleteAccountIconRef.current?.stopAnimation()
-                  }
-                  onMouseEnter={() =>
-                    cancelDeleteAccountIconRef.current?.startAnimation()
-                  }
-                  onMouseLeave={() =>
-                    cancelDeleteAccountIconRef.current?.stopAnimation()
-                  }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <XIcon
-                    ref={cancelDeleteAccountIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {t("dashboard.settings.security.dangerZone.confirm.cancel", {
-                    defaultValue:
-                      fallbackCopy.securityDeleteAccountConfirmCancel,
-                  })}
-                </button>
-                <button
-                  type="button"
-                  disabled={
-                    isDeleteAccountActionPending || !deleteAccountPassword
-                  }
-                  onClick={requestDeleteAccountCode}
-                  onFocus={() =>
-                    confirmDeleteAccountIconRef.current?.startAnimation()
-                  }
-                  onBlur={() =>
-                    confirmDeleteAccountIconRef.current?.stopAnimation()
-                  }
-                  onMouseEnter={() =>
-                    confirmDeleteAccountIconRef.current?.startAnimation()
-                  }
-                  onMouseLeave={() =>
-                    confirmDeleteAccountIconRef.current?.stopAnimation()
-                  }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <DeleteIcon
-                    ref={confirmDeleteAccountIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {isDeleteAccountActionPending
-                    ? t(
-                        "dashboard.settings.security.dangerZone.confirm.sending",
-                        {
-                          defaultValue:
-                            fallbackCopy.securityDeleteAccountSendingCode,
-                        },
-                      )
-                    : t(
-                        "dashboard.settings.security.dangerZone.confirm.confirm",
-                        {
-                          defaultValue:
-                            fallbackCopy.securityDeleteAccountConfirmAction,
-                        },
-                      )}
-                </button>
-              </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {isDeleteAccountCodeOpen ? (
-          <motion.div
-            role="presentation"
-            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-          >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="delete-account-code-title"
-              aria-describedby="delete-account-code-description"
-              className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-            >
-              <div className="flex min-w-0 items-center gap-3 text-left">
-                <span
-                  aria-hidden="true"
-                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive-container/75 text-destructive"
-                >
-                  <UserRoundX
-                    aria-hidden="true"
-                    className="shrink-0"
-                    size={20}
-                  />
-                </span>
-                <h3
-                  id="delete-account-code-title"
-                  className="break-words text-sm font-bold leading-5 text-on-surface"
-                >
-                  {t(
-                    "dashboard.settings.security.dangerZone.confirm.codeTitle",
-                    {
-                      defaultValue: fallbackCopy.securityDeleteAccountCodeTitle,
-                    },
-                  )}
-                </h3>
-              </div>
-              <p
-                id="delete-account-code-description"
-                className="mt-4 text-sm leading-5 text-on-surface-variant"
-              >
-                {t("dashboard.settings.security.dangerZone.confirm.codeBody", {
-                  defaultValue: fallbackCopy.securityDeleteAccountCodeBody,
-                  email: deleteAccountMaskedEmail,
-                })}
-              </p>
-              <div className="mt-5">
-                <label
-                  htmlFor="delete-account-code"
-                  className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
-                >
-                  {t("recovery.verificationCode", {
-                    defaultValue: fallbackCopy.securityDeleteAccountCodeLabel,
-                  })}
-                </label>
-                <input
-                  id="delete-account-code"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  value={normalizedDeleteAccountCode}
-                  onChange={(event) => setDeleteAccountCode(event.target.value)}
-                  className={cn(fieldClassName, "font-mono tracking-[0.16em]")}
-                />
-                {deleteAccountState?.status === "error" ? (
-                  <p className="mt-2 text-xs font-semibold text-destructive">
-                    {t(deleteAccountState.messageKey, {
-                      defaultValue:
-                        fallbackCopy.securityDeleteAccountActionFeedback,
-                    })}
-                  </p>
-                ) : null}
-              </div>
-              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  disabled={isDeleteAccountActionPending}
-                  onClick={cancelDeleteAccountCode}
-                  onFocus={() =>
-                    cancelDeletionCodeIconRef.current?.startAnimation()
-                  }
-                  onBlur={() =>
-                    cancelDeletionCodeIconRef.current?.stopAnimation()
-                  }
-                  onMouseEnter={() =>
-                    cancelDeletionCodeIconRef.current?.startAnimation()
-                  }
-                  onMouseLeave={() =>
-                    cancelDeletionCodeIconRef.current?.stopAnimation()
-                  }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <XIcon
-                    ref={cancelDeletionCodeIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {t("dashboard.settings.security.dangerZone.confirm.cancel", {
-                    defaultValue:
-                      fallbackCopy.securityDeleteAccountConfirmCancel,
-                  })}
-                </button>
-                <button
-                  type="button"
-                  disabled={
-                    isDeleteAccountActionPending || !deleteAccountCodeIsValid
-                  }
-                  onClick={confirmDeleteAccount}
-                  onFocus={() =>
-                    deleteWithCodeIconRef.current?.startAnimation()
-                  }
-                  onBlur={() => deleteWithCodeIconRef.current?.stopAnimation()}
-                  onMouseEnter={() =>
-                    deleteWithCodeIconRef.current?.startAnimation()
-                  }
-                  onMouseLeave={() =>
-                    deleteWithCodeIconRef.current?.stopAnimation()
-                  }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <DeleteIcon
-                    ref={deleteWithCodeIconRef}
-                    aria-hidden="true"
-                    animateOnHover={false}
-                    size={16}
-                  />
-                  {isDeleteAccountActionPending
-                    ? t(
-                        "dashboard.settings.security.dangerZone.confirm.deleting",
-                        {
-                          defaultValue:
-                            fallbackCopy.securityDeleteAccountDeleting,
-                        },
-                      )
-                    : t(
-                        "dashboard.settings.security.dangerZone.confirm.deleteAccount",
-                        {
-                          defaultValue:
-                            fallbackCopy.securityDeleteAccountFinalAction,
-                        },
-                      )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+          ) : null}
+        </AnimatePresence>
       </ViewportPortal>
     </div>
   );

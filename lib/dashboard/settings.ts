@@ -46,6 +46,10 @@ export const dashboardSettingsFallbackCopy = {
     generalTitle: "Configuración general",
     interfaceLanguageLabel: "Idioma de la interfaz",
     currencyLabel: "Moneda principal",
+    dateFormatLabel: "Formato de fecha",
+    weekStartLabel: "Primer día de la semana",
+    monday: "Lunes",
+    sunday: "Domingo",
     visualThemeLabel: "Tema visual",
     lightTheme: "Claro",
     darkTheme: "Oscuro",
@@ -167,6 +171,10 @@ export const dashboardSettingsFallbackCopy = {
     generalTitle: "General settings",
     interfaceLanguageLabel: "Interface language",
     currencyLabel: "Primary currency",
+    dateFormatLabel: "Date format",
+    weekStartLabel: "First day of the week",
+    monday: "Monday",
+    sunday: "Sunday",
     visualThemeLabel: "Visual theme",
     lightTheme: "Light",
     darkTheme: "Dark",
@@ -330,6 +338,22 @@ export const dashboardNotificationOptions = [
       en: "Email with your weekly statistics.",
     },
   },
+  {
+    id: "new-features",
+    titleKey: "dashboard.settings.notifications.options.newFeatures.title",
+    descriptionKey:
+      "dashboard.settings.notifications.options.newFeatures.description",
+    icon: "blocks",
+    initiallyEnabled: true,
+    fallbackTitles: {
+      es: "Nuevas funcionalidades",
+      en: "New features",
+    },
+    fallbackDescriptions: {
+      es: "Entérate de nuevas funcionalidades vía correo electrónico.",
+      en: "Hear about new features by email.",
+    },
+  },
 ] as const;
 
 export const dashboardCurrencyOptions = [
@@ -355,6 +379,52 @@ export const dashboardCurrencyOptions = [
     fallbackLabels: {
       es: "EUR (€) - Euro",
       en: "EUR (€) - Euro",
+    },
+  },
+] as const;
+
+export const dashboardDateFormatOptions = [
+  {
+    value: "DD/MM/YYYY",
+    labelKey: "dashboard.settings.general.dateFormat.options.dayMonthYear",
+    fallbackLabels: {
+      es: "DD/MM/YYYY",
+      en: "DD/MM/YYYY",
+    },
+  },
+  {
+    value: "MM/DD/YYYY",
+    labelKey: "dashboard.settings.general.dateFormat.options.monthDayYear",
+    fallbackLabels: {
+      es: "MM/DD/YYYY",
+      en: "MM/DD/YYYY",
+    },
+  },
+  {
+    value: "YYYY/MM/DD",
+    labelKey: "dashboard.settings.general.dateFormat.options.yearMonthDay",
+    fallbackLabels: {
+      es: "YYYY/MM/DD",
+      en: "YYYY/MM/DD",
+    },
+  },
+] as const;
+
+export const dashboardWeekStartOptions = [
+  {
+    value: "monday",
+    labelKey: "dashboard.settings.general.weekStart.options.monday",
+    fallbackLabels: {
+      es: "Lunes",
+      en: "Monday",
+    },
+  },
+  {
+    value: "sunday",
+    labelKey: "dashboard.settings.general.weekStart.options.sunday",
+    fallbackLabels: {
+      es: "Domingo",
+      en: "Sunday",
     },
   },
 ] as const;

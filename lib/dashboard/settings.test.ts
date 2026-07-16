@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   dashboardCurrencyOptions,
+  dashboardDateFormatOptions,
   dashboardNotificationOptions,
   dashboardSettingsFallbackCopy,
   dashboardSettingsSectionParamName,
   dashboardSettingsSections,
+  dashboardWeekStartOptions,
   getDashboardSettingsSectionHref,
   isDashboardSettingsSectionId,
 } from "./settings";
@@ -70,6 +72,18 @@ describe("dashboard settings sections", () => {
     expect(dashboardSettingsFallbackCopy.en.title).toBe("Settings");
     expect(dashboardSettingsFallbackCopy.en.greeting).toBe(
       "Greetings from {{section}}",
+    );
+    expect(dashboardSettingsFallbackCopy.es.dateFormatLabel).toBe(
+      "Formato de fecha",
+    );
+    expect(dashboardSettingsFallbackCopy.es.weekStartLabel).toBe(
+      "Primer día de la semana",
+    );
+    expect(dashboardSettingsFallbackCopy.en.dateFormatLabel).toBe(
+      "Date format",
+    );
+    expect(dashboardSettingsFallbackCopy.en.weekStartLabel).toBe(
+      "First day of the week",
     );
     expect(dashboardSettingsFallbackCopy.es.profileSave).toBe("Guardar");
     expect(dashboardSettingsFallbackCopy.en.profileSave).toBe("Save");
@@ -176,6 +190,20 @@ describe("dashboard settings sections", () => {
     ]);
   });
 
+  it("defines general settings display-only date preferences", () => {
+    expect(dashboardDateFormatOptions.map((option) => option.value)).toEqual([
+      "DD/MM/YYYY",
+      "MM/DD/YYYY",
+      "YYYY/MM/DD",
+    ]);
+    expect(dashboardDateFormatOptions[0].fallbackLabels.es).toBe("DD/MM/YYYY");
+    expect(dashboardWeekStartOptions.map((option) => option.value)).toEqual([
+      "monday",
+      "sunday",
+    ]);
+    expect(dashboardWeekStartOptions[0].fallbackLabels.es).toBe("Lunes");
+  });
+
   it("defines notification settings toggles with icons and initial states", () => {
     expect(dashboardNotificationOptions).toEqual([
       {
@@ -227,6 +255,22 @@ describe("dashboard settings sections", () => {
         fallbackDescriptions: {
           es: "Correo electrónico con tus estadísticas de la semana.",
           en: "Email with your weekly statistics.",
+        },
+      },
+      {
+        id: "new-features",
+        titleKey: "dashboard.settings.notifications.options.newFeatures.title",
+        descriptionKey:
+          "dashboard.settings.notifications.options.newFeatures.description",
+        icon: "blocks",
+        initiallyEnabled: true,
+        fallbackTitles: {
+          es: "Nuevas funcionalidades",
+          en: "New features",
+        },
+        fallbackDescriptions: {
+          es: "Entérate de nuevas funcionalidades vía correo electrónico.",
+          en: "Hear about new features by email.",
         },
       },
     ]);

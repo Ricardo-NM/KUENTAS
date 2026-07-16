@@ -65,6 +65,21 @@
             "eur": "EUR (€) - Euro"
           }
         },
+        "dateFormat": {
+          "label": "Formato de fecha",
+          "options": {
+            "dayMonthYear": "DD/MM/YYYY",
+            "monthDayYear": "MM/DD/YYYY",
+            "yearMonthDay": "YYYY/MM/DD"
+          }
+        },
+        "weekStart": {
+          "label": "Primer día de la semana",
+          "options": {
+            "monday": "Lunes",
+            "sunday": "Domingo"
+          }
+        },
         "theme": {
           "label": "Tema visual",
           "light": "Claro",
@@ -105,7 +120,7 @@
         },
         "actions": {
           "cancel": "Cancelar",
-          "save": "Guardar",
+          "save": "Guardar cambios",
           "saving": "Guardando..."
         },
         "feedback": {
@@ -122,7 +137,7 @@
             "confirm": "Confirmar contraseña"
           },
           "actions": {
-            "save": "Guardar",
+            "save": "Guardar cambios",
             "sending": "Enviando...",
             "cancel": "Cancelar",
             "verify": "Verificar",
@@ -228,6 +243,10 @@
           "weeklySummary": {
             "title": "Resumen semanal",
             "description": "Correo electrónico con tus estadísticas de la semana."
+          },
+          "newFeatures": {
+            "title": "Nuevas funcionalidades",
+            "description": "Entérate de nuevas funcionalidades vía correo electrónico."
           }
         }
       },
