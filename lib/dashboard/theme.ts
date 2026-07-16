@@ -7,7 +7,7 @@ export const dashboardActiveIndicatorSweepTransition = {
 } as const;
 
 export const dashboardActiveIndicatorSweepStates = {
-  initial: { clipPath: "inset(0 100% 0 0 round 0.5rem)" },
-  animate: { clipPath: "inset(0 0% 0 0 round 0.5rem)" },
-  exit: { clipPath: "inset(0 100% 0 0 round 0.5rem)" },
+  initial: { opacity: 0, scaleX: 0 },
+  animate: { opacity: 1, scaleX: 1 },
+  exit: { opacity: 0, scaleX: 0 },
 } as const;

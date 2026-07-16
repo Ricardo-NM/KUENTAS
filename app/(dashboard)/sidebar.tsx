@@ -14,8 +14,11 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   type ComponentPropsWithoutRef,
   type ForwardRefExoticComponent,
+  type MouseEvent,
   type RefAttributes,
+  useEffect,
   useRef,
+  useState,
 } from "react";
 import { useFormStatus } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -59,29 +62,65 @@ const navItemBySection = new Map(
 function SidebarNavItem({
   href,
   icon,
+  isActive,
+  onNavigate,
   section,
 }: {
   href: string;
   icon: keyof typeof icons;
+  isActive: boolean;
+  onNavigate: (href: string) => void;
   section: DashboardSection;
 }) {
   const { t } = useTranslation();
-  const pathname = usePathname();
   const iconRef = useRef<AnimatedIconHandle>(null);
+  const animationTimeoutRef = useRef<number | null>(null);
   const Icon = icons[icon];
-  const isActive = pathname === href;
 
-  const startAnimation = () => iconRef.current?.startAnimation();
-  const stopAnimation = () => iconRef.current?.stopAnimation();
+  useEffect(() => {
+    return () => {
+      if (animationTimeoutRef.current) {
+        window.clearTimeout(animationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const triggerIconAnimation = () => {
+    if (animationTimeoutRef.current) {
+      window.clearTimeout(animationTimeoutRef.current);
+    }
+
+    iconRef.current?.startAnimation();
+    animationTimeoutRef.current = window.setTimeout(() => {
+      iconRef.current?.stopAnimation();
+      animationTimeoutRef.current = null;
+    }, 700);
+  };
+
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    if (!isActive) {
+      triggerIconAnimation();
+    }
+
+    onNavigate(href);
+  };
 
   return (
     <Link
       href={href}
       aria-current={isActive ? "page" : undefined}
-      onFocus={startAnimation}
-      onBlur={stopAnimation}
-      onMouseEnter={startAnimation}
-      onMouseLeave={stopAnimation}
+      onClick={handleClick}
       className={cn(
         "group relative flex min-h-11 items-center gap-3 overflow-hidden rounded-lg px-3 text-sm font-semibold transition-colors",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
@@ -94,7 +133,7 @@ function SidebarNavItem({
         {isActive ? (
           <motion.span
             aria-hidden="true"
-            className="absolute inset-0 rounded-lg bg-primary"
+            className="absolute inset-0 origin-left rounded-lg bg-primary will-change-transform"
             initial={dashboardActiveIndicatorSweepStates.initial}
             animate={dashboardActiveIndicatorSweepStates.animate}
             exit={dashboardActiveIndicatorSweepStates.exit}
@@ -125,23 +164,14 @@ function SidebarNavItem({
 function LogoutSubmitButton() {
   const { t } = useTranslation();
   const { pending } = useFormStatus();
-  const iconRef = useRef<AnimatedIconHandle>(null);
-
-  const startAnimation = () => iconRef.current?.startAnimation();
-  const stopAnimation = () => iconRef.current?.stopAnimation();
 
   return (
     <button
       type="submit"
       disabled={pending}
-      onFocus={startAnimation}
-      onBlur={stopAnimation}
-      onMouseEnter={startAnimation}
-      onMouseLeave={stopAnimation}
       className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)] transition-colors hover:bg-inverse-surface hover:text-inverse-on-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
     >
       <LogoutIcon
-        ref={iconRef}
         aria-hidden="true"
         animateOnHover={false}
         size={19}
@@ -153,7 +183,14 @@ function LogoutSubmitButton() {
 
 export function DashboardSidebar() {
   const { i18n, t } = useTranslation();
+  const pathname = usePathname();
+  const [pendingNavigation, setPendingNavigation] = useState<{
+    href: string;
+    pathname: string;
+  } | null>(null);
   const language = i18n.language?.startsWith("en") ? "en" : "es";
+  const activeHref =
+    pendingNavigation?.pathname === pathname ? pendingNavigation.href : pathname;
 
   return (
     <aside className="flex min-h-dvh w-full flex-col border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground shadow-[8px_0_24px_-22px_rgb(13_13_18/0.55)] lg:sticky lg:top-0 lg:h-dvh lg:min-h-0 lg:w-[260px] lg:self-start lg:overflow-hidden">
@@ -188,7 +225,14 @@ export function DashboardSidebar() {
                 const item = navItemBySection.get(section);
 
                 return item ? (
-                  <SidebarNavItem key={item.href} {...item} />
+                  <SidebarNavItem
+                    key={item.href}
+                    {...item}
+                    isActive={activeHref === item.href}
+                    onNavigate={(href) => {
+                      setPendingNavigation({ href, pathname });
+                    }}
+                  />
                 ) : null;
               })}
             </div>

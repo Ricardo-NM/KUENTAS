@@ -37,6 +37,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type ChangeEvent,
+  type ComponentType,
   type ComponentPropsWithoutRef,
   type DragEvent,
   type ForwardRefExoticComponent,
@@ -51,9 +52,10 @@ import {
   useTransition,
 } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Cropper, { type Area } from "react-easy-crop";
+import type { Area, CropperProps } from "react-easy-crop";
 import {
   cancelAccountDeletionAction,
   cancelPasswordChangeAction,
@@ -99,6 +101,17 @@ import {
 import { maskEmailForDisplay } from "@/lib/dashboard/user";
 import { AnimatedFormMessage } from "../../(auth)/animated-form-message";
 import { useTranslation } from "react-i18next";
+
+type LazyCropperProps = Pick<CropperProps, "crop" | "onCropChange"> &
+  Partial<Omit<CropperProps, "crop" | "onCropChange">>;
+
+const Cropper = dynamic<LazyCropperProps>(
+  () =>
+    import("react-easy-crop").then(
+      (module) => module.default as ComponentType<LazyCropperProps>,
+    ),
+  { ssr: false },
+);
 
 type AnimatedIconHandle = {
   startAnimation: () => void;
@@ -634,10 +647,36 @@ function SettingsNavItem({
   const { i18n, t } = useTranslation();
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const iconRef = useRef<AnimatedIconHandle>(null);
+  const animationTimeoutRef = useRef<number | null>(null);
   const Icon = settingsIcons[section.icon];
 
-  const startAnimation = () => iconRef.current?.startAnimation();
-  const stopAnimation = () => iconRef.current?.stopAnimation();
+  useEffect(() => {
+    return () => {
+      if (animationTimeoutRef.current) {
+        window.clearTimeout(animationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const triggerIconAnimation = () => {
+    if (animationTimeoutRef.current) {
+      window.clearTimeout(animationTimeoutRef.current);
+    }
+
+    iconRef.current?.startAnimation();
+    animationTimeoutRef.current = window.setTimeout(() => {
+      iconRef.current?.stopAnimation();
+      animationTimeoutRef.current = null;
+    }, 700);
+  };
+
+  const handleSelect = () => {
+    if (!isActive) {
+      triggerIconAnimation();
+    }
+
+    onSelect(section.id);
+  };
 
   return (
     <button
@@ -646,11 +685,7 @@ function SettingsNavItem({
       role="tab"
       aria-selected={isActive}
       aria-controls="settings-panel"
-      onClick={() => onSelect(section.id)}
-      onFocus={startAnimation}
-      onBlur={stopAnimation}
-      onMouseEnter={startAnimation}
-      onMouseLeave={stopAnimation}
+      onClick={handleSelect}
       className={cn(
         "group relative flex min-h-11 w-full cursor-pointer items-center gap-3 overflow-hidden rounded-lg px-3 text-left text-sm font-semibold transition-colors",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
@@ -663,7 +698,7 @@ function SettingsNavItem({
         {isActive ? (
           <motion.span
             aria-hidden="true"
-            className="absolute inset-0 rounded-lg bg-primary"
+            className="absolute inset-0 origin-left rounded-lg bg-primary will-change-transform"
             initial={dashboardActiveIndicatorSweepStates.initial}
             animate={dashboardActiveIndicatorSweepStates.animate}
             exit={dashboardActiveIndicatorSweepStates.exit}
@@ -3354,7 +3389,7 @@ export function ConfiguracionSettingsView({
     ? activeSection.id
     : "general";
   const focusCardsMotion = {
-    initial: shouldReduceMotion ? { opacity: 1 } : { opacity: 0 },
+    initial: shouldReduceMotion ? { opacity: 1 } : { opacity: 0.92 },
     animate: { opacity: 1 },
     exit: shouldReduceMotion ? { opacity: 1 } : { opacity: 0 },
     transition: shouldReduceMotion
@@ -3364,7 +3399,7 @@ export function ConfiguracionSettingsView({
   const securityPanelMotion = {
     initial: shouldReduceMotion
       ? { opacity: 1, filter: "blur(0px) saturate(1)" }
-      : { opacity: 0, filter: "blur(2px) saturate(0.72)" },
+      : { opacity: 0.92, filter: "blur(1px) saturate(0.9)" },
     animate: { opacity: 1, filter: "blur(0px) saturate(1)" },
     exit: shouldReduceMotion
       ? { opacity: 1, filter: "blur(0px) saturate(1)" }
@@ -3374,8 +3409,23 @@ export function ConfiguracionSettingsView({
       : { duration: 0.18, ease: "easeOut" as const },
   };
 
+  const pageRevealMotion = {
+    initial: shouldReduceMotion
+      ? { opacity: 1, filter: "blur(0px)" }
+      : { opacity: 0.78, filter: "blur(1.5px)" },
+    animate: { opacity: 1, filter: "blur(0px)" },
+    transition: shouldReduceMotion
+      ? { duration: 0 }
+      : { duration: 0.3, ease: [0.22, 1, 0.36, 1] as const },
+  };
+
   return (
-    <section className="grid gap-4 lg:h-[calc(100dvh-7.625rem)] lg:min-h-0 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+    <motion.section
+      className="grid gap-4 lg:h-[calc(100dvh-7.625rem)] lg:min-h-0 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]"
+      initial={pageRevealMotion.initial}
+      animate={pageRevealMotion.animate}
+      transition={pageRevealMotion.transition}
+    >
       <aside className="rounded-2xl border border-border bg-card px-4 py-5 text-card-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:px-5 lg:h-full lg:min-h-0 lg:self-start">
         <h1 className="px-1 font-heading text-2xl font-semibold leading-8 tracking-normal text-card-foreground">
           {t("dashboard.settings.title", { defaultValue: fallbackCopy.title })}
@@ -3461,6 +3511,6 @@ export function ConfiguracionSettingsView({
           )}
         </AnimatePresence>
       </section>
-    </section>
+    </motion.section>
   );
 }

@@ -4,45 +4,48 @@ import { getPrisma } from "@/lib/prisma";
 
 export default async function ConfiguracionPage() {
   const session = await requireSession();
-  const user = await getPrisma().user.findUnique({
-    where: {
-      id: session.userId,
-    },
-    select: {
-      firstName: true,
-      lastName: true,
-      email: true,
-      profileImagePath: true,
-    },
-  });
+  const prisma = getPrisma();
+
+  const [user, activeSessions] = await Promise.all([
+    prisma.user.findUnique({
+      where: {
+        id: session.userId,
+      },
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        profileImagePath: true,
+      },
+    }),
+    prisma.session.findMany({
+      where: {
+        userId: session.userId,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: [
+        {
+          lastSeenAt: "desc",
+        },
+        {
+          createdAt: "desc",
+        },
+      ],
+      select: {
+        id: true,
+        deviceLabel: true,
+        lastSeenAt: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+    }),
+  ]);
 
   if (!user) {
     throw new Error("Authenticated user was not found.");
   }
-
-  const activeSessions = await getPrisma().session.findMany({
-    where: {
-      userId: session.userId,
-      expiresAt: {
-        gt: new Date(),
-      },
-    },
-    orderBy: [
-      {
-        lastSeenAt: "desc",
-      },
-      {
-        createdAt: "desc",
-      },
-    ],
-    select: {
-      id: true,
-      deviceLabel: true,
-      lastSeenAt: true,
-      createdAt: true,
-      expiresAt: true,
-    },
-  });
 
   return (
     <ConfiguracionSettingsView
