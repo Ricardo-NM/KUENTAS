@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { I18nProvider } from "./i18n-provider";
 import { getDashboardThemeInitScript } from "@/lib/dashboard/theme-preference";
+import { AppToaster } from "@/components/ui/app-toaster";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -41,6 +42,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <I18nProvider>{children}</I18nProvider>
+        <AppToaster />
         <Script
           id="dashboard-theme-init"
           strategy="beforeInteractive"

@@ -38,6 +38,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { toast } from "react-hot-toast";
 import {
   type ChangeEvent,
   type ComponentType,
@@ -181,12 +182,6 @@ const initialProfileActionState: DashboardProfileActionState = {
 const profilePhotoMaxSize = 5 * 1024 * 1024;
 const profilePhotoAcceptedTypes = new Set(["image/png", "image/jpeg"]);
 const profilePhotoOutputSize = 512;
-
-type ProfilePhotoToastState = {
-  id: string;
-  message: string;
-  variant: "success" | "error";
-};
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -969,9 +964,7 @@ function ConfiguracionProfilePanel({
   const firstNameIconRef = useRef<AnimatedIconHandle>(null);
   const lastNameIconRef = useRef<AnimatedIconHandle>(null);
   const shouldReduceMotion = useReducedMotion();
-  const [hiddenSavedMessageId, setHiddenSavedMessageId] = useState<
-    string | null
-  >(null);
+  const hiddenSavedMessageIdRef = useRef<string | null>(null);
   const [firstNameValue, setFirstNameValue] = useState(user.firstName);
   const [lastNameValue, setLastNameValue] = useState(user.lastName);
   const [profileImagePath, setProfileImagePath] = useState(
@@ -985,8 +978,6 @@ function ConfiguracionProfilePanel({
   const [isPhotoDeleting, setIsPhotoDeleting] = useState(false);
   const [isProfilePhotoDragActive, setIsProfilePhotoDragActive] =
     useState(false);
-  const [profilePhotoToast, setProfilePhotoToast] =
-    useState<ProfilePhotoToastState | null>(null);
   const firstNameError = state.errors?.firstName?.[0];
   const lastNameError = state.errors?.lastName?.[0];
   const savedFirstName =
@@ -1010,22 +1001,14 @@ function ConfiguracionProfilePanel({
     if (
       !savedMessage ||
       !savedMessageId ||
-      savedMessageId === hiddenSavedMessageId
+      savedMessageId === hiddenSavedMessageIdRef.current
     ) {
       return;
     }
 
-    const timeout = window.setTimeout(() => {
-      setProfilePhotoToast({
-        id: savedMessageId,
-        message: savedMessage,
-        variant: "success",
-      });
-      setHiddenSavedMessageId(savedMessageId);
-    }, 0);
-
-    return () => window.clearTimeout(timeout);
-  }, [hiddenSavedMessageId, savedMessage, savedMessageId]);
+    toast.success(savedMessage);
+    hiddenSavedMessageIdRef.current = savedMessageId;
+  }, [savedMessage, savedMessageId]);
 
   useEffect(() => {
     if (!selectedImageSrc) {
@@ -1035,30 +1018,19 @@ function ConfiguracionProfilePanel({
     return () => URL.revokeObjectURL(selectedImageSrc);
   }, [selectedImageSrc]);
 
-  useEffect(() => {
-    if (!profilePhotoToast) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      setProfilePhotoToast((current) =>
-        current?.id === profilePhotoToast.id ? null : current,
-      );
-    }, 3000);
-
-    return () => window.clearTimeout(timeout);
-  }, [profilePhotoToast]);
-
   const showProfilePhotoToast = (
     messageKey: string,
     defaultValue: string,
-    variant: ProfilePhotoToastState["variant"],
+    variant: "success" | "error",
   ) => {
-    setProfilePhotoToast({
-      id: crypto.randomUUID(),
-      message: t(messageKey, { defaultValue }),
-      variant,
-    });
+    const message = t(messageKey, { defaultValue });
+
+    if (variant === "success") {
+      toast.success(message);
+      return;
+    }
+
+    toast.error(message);
   };
 
   const openProfilePhotoSelector = () => {
@@ -1742,44 +1714,6 @@ function ConfiguracionProfilePanel({
                   </button>
                 </div>
               </motion.div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {profilePhotoToast ? (
-            <motion.div
-              key={profilePhotoToast.id}
-              role="status"
-              aria-live="polite"
-              className="pointer-events-none fixed inset-x-0 bottom-5 z-[60] flex justify-center px-4 sm:bottom-6"
-              initial={
-                shouldReduceMotion
-                  ? { opacity: 1, y: 0 }
-                  : { opacity: 0, y: 12 }
-              }
-              animate={{ opacity: 1, y: 0 }}
-              exit={
-                shouldReduceMotion
-                  ? { opacity: 0, y: 0 }
-                  : { opacity: 0, y: 12 }
-              }
-              transition={
-                shouldReduceMotion
-                  ? { duration: 0 }
-                  : { duration: 0.22, ease: "easeOut" }
-              }
-            >
-              <span
-                className={cn(
-                  "w-full max-w-[420px] rounded-xl border px-4 py-3 text-center text-sm font-semibold shadow-[0_18px_40px_rgb(13_13_18/0.16)]",
-                  profilePhotoToast.variant === "success"
-                    ? "border-chart-1/35 bg-chart-1/10 text-chart-1"
-                    : "border-destructive/35 bg-destructive/10 text-destructive",
-                )}
-              >
-                {profilePhotoToast.message}
-              </span>
             </motion.div>
           ) : null}
         </AnimatePresence>
