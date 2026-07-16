@@ -3,7 +3,10 @@ import {
   dashboardCurrencyOptions,
   dashboardNotificationOptions,
   dashboardSettingsFallbackCopy,
+  dashboardSettingsSectionParamName,
   dashboardSettingsSections,
+  getDashboardSettingsSectionHref,
+  isDashboardSettingsSectionId,
 } from "./settings";
 
 describe("dashboard settings sections", () => {
@@ -30,6 +33,25 @@ describe("dashboard settings sections", () => {
       "bell",
       "shield-check",
     ]);
+  });
+
+  it("builds shareable settings section links", () => {
+    expect(dashboardSettingsSectionParamName).toBe("seccion");
+    expect(getDashboardSettingsSectionHref("general")).toBe(
+      "/configuracion?seccion=general",
+    );
+    expect(getDashboardSettingsSectionHref("perfil")).toBe(
+      "/configuracion?seccion=perfil",
+    );
+    expect(getDashboardSettingsSectionHref("notificaciones")).toBe(
+      "/configuracion?seccion=notificaciones",
+    );
+    expect(getDashboardSettingsSectionHref("seguridad")).toBe(
+      "/configuracion?seccion=seguridad",
+    );
+    expect(isDashboardSettingsSectionId("perfil")).toBe(true);
+    expect(isDashboardSettingsSectionId("otra")).toBe(false);
+    expect(isDashboardSettingsSectionId(null)).toBe(false);
   });
 
   it("keeps fallback labels in both languages for missing runtime translation resources", () => {

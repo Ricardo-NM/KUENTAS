@@ -366,3 +366,17 @@ export type DashboardSettingsIcon = DashboardSettingsSection["icon"];
 export type DashboardNotificationOption =
   (typeof dashboardNotificationOptions)[number];
 export type DashboardNotificationIcon = DashboardNotificationOption["icon"];
+
+export const dashboardSettingsSectionParamName = "seccion";
+
+export function isDashboardSettingsSectionId(
+  value: string | null | undefined,
+): value is DashboardSettingsSectionId {
+  return dashboardSettingsSections.some((section) => section.id === value);
+}
+
+export function getDashboardSettingsSectionHref(
+  sectionId: DashboardSettingsSectionId,
+): `/configuracion?seccion=${DashboardSettingsSectionId}` {
+  return `/configuracion?${dashboardSettingsSectionParamName}=${sectionId}`;
+}

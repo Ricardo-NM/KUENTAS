@@ -20,10 +20,6 @@ import {
   XIcon,
   type MoonIconHandle,
   type SunMediumIconHandle,
-  BellIcon,
-  CogIcon,
-  ShieldCheckIcon,
-  UserRoundCogIcon,
 } from "lucide-animated";
 import {
   Eye,
@@ -54,7 +50,7 @@ import {
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Area, CropperProps } from "react-easy-crop";
 import {
   cancelAccountDeletionAction,
@@ -76,17 +72,13 @@ import {
   dashboardCurrencyOptions,
   dashboardNotificationOptions,
   dashboardSettingsFallbackCopy,
+  dashboardSettingsSectionParamName,
   dashboardSettingsSections,
+  isDashboardSettingsSectionId,
   type DashboardNotificationIcon,
-  type DashboardSettingsIcon,
-  type DashboardSettingsSection,
   type DashboardSettingsSectionId,
 } from "@/lib/dashboard/settings";
 import { isSupportedLanguage } from "@/lib/i18n/resources";
-import {
-  dashboardActiveIndicatorSweepStates,
-  dashboardActiveIndicatorSweepTransition,
-} from "@/lib/dashboard/theme";
 import {
   applyDashboardTheme,
   readDashboardThemePreference,
@@ -124,13 +116,6 @@ type AnimatedIcon = ForwardRefExoticComponent<
     animateOnHover?: boolean;
   } & RefAttributes<AnimatedIconHandle>
 >;
-
-const settingsIcons: Record<DashboardSettingsIcon, AnimatedIcon> = {
-  cog: CogIcon,
-  "user-round-cog": UserRoundCogIcon,
-  bell: BellIcon,
-  "shield-check": ShieldCheckIcon,
-};
 
 const notificationIcons: Record<DashboardNotificationIcon, AnimatedIcon> = {
   "calendar-days": CalendarDaysIcon,
@@ -635,102 +620,6 @@ function PasswordVisibilityToggle({
   );
 }
 
-function SettingsNavItem({
-  section,
-  isActive,
-  onSelect,
-}: {
-  section: DashboardSettingsSection;
-  isActive: boolean;
-  onSelect: (id: DashboardSettingsSectionId) => void;
-}) {
-  const { i18n, t } = useTranslation();
-  const language = i18n.language?.startsWith("en") ? "en" : "es";
-  const iconRef = useRef<AnimatedIconHandle>(null);
-  const animationTimeoutRef = useRef<number | null>(null);
-  const Icon = settingsIcons[section.icon];
-
-  useEffect(() => {
-    return () => {
-      if (animationTimeoutRef.current) {
-        window.clearTimeout(animationTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const triggerIconAnimation = () => {
-    if (animationTimeoutRef.current) {
-      window.clearTimeout(animationTimeoutRef.current);
-    }
-
-    iconRef.current?.startAnimation();
-    animationTimeoutRef.current = window.setTimeout(() => {
-      iconRef.current?.stopAnimation();
-      animationTimeoutRef.current = null;
-    }, 700);
-  };
-
-  const handleSelect = () => {
-    if (!isActive) {
-      triggerIconAnimation();
-    }
-
-    onSelect(section.id);
-  };
-
-  return (
-    <button
-      type="button"
-      id={`settings-tab-${section.id}`}
-      role="tab"
-      aria-selected={isActive}
-      aria-controls="settings-panel"
-      onClick={handleSelect}
-      className={cn(
-        "group relative flex min-h-11 w-full cursor-pointer items-center gap-3 overflow-hidden rounded-lg px-3 text-left text-sm font-semibold transition-colors",
-        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        isActive
-          ? "text-primary-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)]"
-          : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface",
-      )}
-    >
-      <AnimatePresence initial={false}>
-        {isActive ? (
-          <motion.span
-            aria-hidden="true"
-            className="absolute inset-0 origin-left rounded-lg bg-primary will-change-transform"
-            initial={dashboardActiveIndicatorSweepStates.initial}
-            animate={dashboardActiveIndicatorSweepStates.animate}
-            exit={dashboardActiveIndicatorSweepStates.exit}
-            transition={dashboardActiveIndicatorSweepTransition}
-          />
-        ) : null}
-      </AnimatePresence>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "absolute left-0 top-2 z-10 h-7 w-1 rounded-r-full transition-opacity",
-          isActive
-            ? "bg-primary-foreground opacity-100"
-            : "bg-transparent opacity-0",
-        )}
-      />
-      <Icon
-        ref={iconRef}
-        aria-hidden="true"
-        animateOnHover={false}
-        className="relative z-10 shrink-0"
-        size={19}
-      />
-      <span className="relative z-10 min-w-0">
-        {t(section.labelKey, {
-          defaultValue: section.fallbackLabels[language],
-        })}
-      </span>
-    </button>
-  );
-}
-
 function SettingsFocusCard({
   activeSectionId,
   children,
@@ -752,7 +641,7 @@ function SettingsFocusCard({
       inert={isActive ? undefined : true}
       initial={false}
       className={cn(
-        "relative min-w-0 overflow-x-hidden overflow-y-auto rounded-xl bg-background px-4 pb-5 pt-3 text-left text-on-surface shadow-[0_8px_22px_-18px_rgb(13_13_18/0.36),0_1px_2px_rgb(13_13_18/0.04)] outline-none will-change-[filter,opacity] [backface-visibility:hidden] [transform:translateZ(0)] lg:min-h-0",
+        "relative w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-xl bg-background px-4 pb-5 pt-3 text-left text-on-surface shadow-[0_8px_22px_-18px_rgb(13_13_18/0.36),0_1px_2px_rgb(13_13_18/0.04)] outline-none will-change-[filter,opacity] [backface-visibility:hidden] [transform:translateZ(0)] lg:min-h-0",
         "sm:px-5 sm:pb-6 sm:pt-4",
         isActive ? "z-10" : "pointer-events-none z-0",
         className,
@@ -837,7 +726,7 @@ function ConfiguracionGeneralPanel() {
   }));
 
   return (
-    <div className="w-full max-w-[960px] text-left">
+    <div className="w-full text-left">
       <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
         {t("dashboard.settings.general.title", {
           defaultValue: fallbackCopy.generalTitle,
@@ -1261,7 +1150,7 @@ function ConfiguracionProfilePanel({
 
   return (
     <>
-      <form action={formAction} className="w-full max-w-[960px] text-left">
+      <form action={formAction} className="w-full text-left">
         <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
           {t("dashboard.settings.profile.title", {
             defaultValue: fallbackCopy.profileTitle,
@@ -1745,7 +1634,7 @@ function ConfiguracionNotificationsPanel() {
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
 
   return (
-    <div className="w-full max-w-[1120px] text-left">
+    <div className="w-full text-left">
       <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface">
         {t("dashboard.settings.notifications.title", {
           defaultValue: fallbackCopy.notificationsTitle,
@@ -3376,10 +3265,12 @@ export function ConfiguracionSettingsView({
   user: DashboardSettingsProfile;
 }) {
   const { i18n, t } = useTranslation();
+  const searchParams = useSearchParams();
   const language = i18n.language?.startsWith("en") ? "en" : "es";
-  const fallbackCopy = dashboardSettingsFallbackCopy[language];
-  const [activeSectionId, setActiveSectionId] =
-    useState<DashboardSettingsSectionId>("general");
+  const sectionParam = searchParams.get(dashboardSettingsSectionParamName);
+  const activeSectionId = isDashboardSettingsSectionId(sectionParam)
+    ? sectionParam
+    : "general";
   const shouldReduceMotion = useReducedMotion();
   const activeSection =
     dashboardSettingsSections.find(
@@ -3421,45 +3312,19 @@ export function ConfiguracionSettingsView({
 
   return (
     <motion.section
-      className="grid gap-4 lg:h-[calc(100dvh-7.625rem)] lg:min-h-0 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]"
+      className="min-h-[320px] min-w-0 lg:h-[calc(100dvh-7.625rem)] lg:min-h-0"
       initial={pageRevealMotion.initial}
       animate={pageRevealMotion.animate}
       transition={pageRevealMotion.transition}
     >
-      <aside className="rounded-2xl border border-border bg-card px-4 py-5 text-card-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:px-5 lg:h-full lg:min-h-0 lg:self-start">
-        <h1 className="px-1 font-heading text-2xl font-semibold leading-8 tracking-normal text-card-foreground">
-          {t("dashboard.settings.title", { defaultValue: fallbackCopy.title })}
-        </h1>
-        <p className="mb-6 mt-2 px-1 text-sm leading-5 text-on-surface-variant">
-          {t("dashboard.settings.description", {
-            defaultValue: fallbackCopy.description,
-          })}
-        </p>
-
-        <nav
-          aria-label={t("dashboard.settings.navigationLabel", {
-            defaultValue: fallbackCopy.navigationLabel,
-          })}
-        >
-          <div role="tablist" aria-orientation="vertical" className="space-y-1">
-            {dashboardSettingsSections.map((section) => (
-              <SettingsNavItem
-                key={section.id}
-                section={section}
-                isActive={section.id === activeSection.id}
-                onSelect={setActiveSectionId}
-              />
-            ))}
-          </div>
-        </nav>
-      </aside>
-
       <section
         id="settings-panel"
-        role="tabpanel"
-        aria-labelledby={`settings-tab-${activeSection.id}`}
+        role="region"
+        aria-label={t(activeSection.labelKey, {
+          defaultValue: activeSection.fallbackLabels[language],
+        })}
         aria-live="polite"
-        className="min-h-[320px] min-w-0 rounded-2xl border border-border bg-card p-4 text-left shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:min-h-[420px] sm:p-5 lg:h-full lg:min-h-0 lg:overflow-hidden lg:p-6"
+        className="h-full min-h-[320px] min-w-0 rounded-2xl border border-border bg-card p-4 text-left shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:min-h-[420px] sm:p-5 lg:min-h-0 lg:overflow-hidden lg:p-6"
       >
         <AnimatePresence mode="wait">
           {activeSection.id === "seguridad" ? (
