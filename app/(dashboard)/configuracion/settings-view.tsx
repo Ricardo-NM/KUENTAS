@@ -43,6 +43,7 @@ import {
   type ComponentType,
   type ComponentPropsWithoutRef,
   type DragEvent,
+  type FormEvent,
   type ForwardRefExoticComponent,
   type MouseEvent,
   type RefAttributes,
@@ -1919,9 +1920,9 @@ function ConfiguracionSecurityPanel({
     {
       id: "security-current-password",
       name: "currentPassword",
+      inputName: "security-entry-current",
       labelKey: "dashboard.settings.security.password.fields.current",
       fallback: fallbackCopy.securityCurrentPassword,
-      autoComplete: "current-password",
       value: currentPassword,
       onChange: setCurrentPassword,
       icon: LockKeyholeIcon,
@@ -1932,9 +1933,9 @@ function ConfiguracionSecurityPanel({
     {
       id: "security-new-password",
       name: "newPassword",
+      inputName: "security-entry-new",
       labelKey: "dashboard.settings.security.password.fields.new",
       fallback: fallbackCopy.securityNewPassword,
-      autoComplete: "new-password",
       value: newPassword,
       onChange: setNewPassword,
       icon: LockKeyholeOpenIcon,
@@ -1945,9 +1946,9 @@ function ConfiguracionSecurityPanel({
     {
       id: "security-confirm-password",
       name: "confirmPassword",
+      inputName: "security-entry-confirm",
       labelKey: "dashboard.settings.security.password.fields.confirm",
       fallback: fallbackCopy.securityConfirmPassword,
-      autoComplete: "new-password",
       value: confirmPassword,
       onChange: setConfirmPassword,
       icon: LockKeyholeOpenIcon,
@@ -2055,7 +2056,12 @@ function ConfiguracionSecurityPanel({
       ? passwordChangeState.errors[field]
       : null;
   const requestPasswordChangeCode = () => {
-    if (!passwordChangeFieldsAreComplete || isPasswordChangeChallengeActive) {
+    if (
+      !passwordChangeFieldsAreComplete ||
+      isPasswordChangeChallengeActive ||
+      isPasswordChangeActionPending ||
+      isPasswordChangeSessionChoiceOpen
+    ) {
       return;
     }
 
@@ -2081,6 +2087,16 @@ function ConfiguracionSecurityPanel({
       })();
     });
   };
+  const handlePasswordChangeSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (isPasswordChangeChallengeActive) {
+      confirmPasswordChange();
+      return;
+    }
+
+    requestPasswordChangeCode();
+  };
   const cancelPasswordChange = () => {
     startPasswordChangeActionTransition(() => {
       void (async () => {
@@ -2099,7 +2115,7 @@ function ConfiguracionSecurityPanel({
     });
   };
   const confirmPasswordChange = () => {
-    if (!passwordChangeCodeIsValid) {
+    if (!passwordChangeCodeIsValid || isPasswordChangeActionPending) {
       return;
     }
 
@@ -2281,9 +2297,11 @@ function ConfiguracionSecurityPanel({
             </section>
           </div>
 
-          <section
+          <form
             aria-labelledby="security-password-title"
+            autoComplete="off"
             className="min-w-0"
+            onSubmit={handlePasswordChangeSubmit}
           >
             <h3
               id="security-password-title"
@@ -2308,9 +2326,15 @@ function ConfiguracionSecurityPanel({
                     <div className="relative">
                       <input
                         id={field.id}
-                        name={field.name}
+                        name={field.inputName}
                         type={field.isVisible ? "text" : "password"}
-                        autoComplete={field.autoComplete}
+                        autoComplete="new-password"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-form-type="other"
+                        data-lpignore="true"
                         disabled={passwordFieldsAreDisabled}
                         value={field.value}
                         aria-invalid={
@@ -2444,13 +2468,12 @@ function ConfiguracionSecurityPanel({
             </div>
             <div className="mt-5 flex justify-end">
               <button
-                type="button"
+                type="submit"
                 disabled={
                   isPasswordChangeActionPending ||
                   isPasswordChangeChallengeActive ||
                   !passwordChangeFieldsAreComplete
                 }
-                onClick={requestPasswordChangeCode}
                 onFocus={() => savePasswordIconRef.current?.startAnimation()}
                 onBlur={() => savePasswordIconRef.current?.stopAnimation()}
                 onMouseEnter={() =>
@@ -2512,9 +2535,10 @@ function ConfiguracionSecurityPanel({
                   <div className="relative">
                     <input
                       id="security-password-change-code"
+                      name="code"
                       type="text"
                       inputMode="numeric"
-                      autoComplete="one-time-code"
+                      autoComplete="off"
                       maxLength={6}
                       value={normalizedPasswordChangeCode}
                       onChange={(event) => {
@@ -2585,12 +2609,11 @@ function ConfiguracionSecurityPanel({
                       )}
                     </button>
                     <button
-                      type="button"
+                      type="submit"
                       disabled={
                         isPasswordChangeActionPending ||
                         !passwordChangeCodeIsValid
                       }
-                      onClick={confirmPasswordChange}
                       onFocus={() =>
                         verifyPasswordChangeIconRef.current?.startAnimation()
                       }
@@ -2630,7 +2653,7 @@ function ConfiguracionSecurityPanel({
                 </motion.div>
               ) : null}
             </AnimatePresence>
-          </section>
+          </form>
 
           <section
             aria-labelledby="security-activity-title"
@@ -3529,7 +3552,7 @@ export function ConfiguracionSettingsView({
 
   return (
     <motion.section
-      className="min-h-[320px] min-w-0 lg:h-[calc(100dvh-7.625rem)] lg:min-h-0"
+      className="h-full min-h-[320px] min-w-0"
       initial={pageRevealMotion.initial}
       animate={pageRevealMotion.animate}
       transition={pageRevealMotion.transition}
@@ -3541,7 +3564,7 @@ export function ConfiguracionSettingsView({
           defaultValue: activeSection.fallbackLabels[language],
         })}
         aria-live="polite"
-        className="h-full min-h-[320px] min-w-0 rounded-2xl border border-border bg-card p-4 text-left shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:min-h-[420px] sm:p-5 lg:min-h-0 lg:overflow-hidden lg:p-6"
+        className="h-full min-h-[320px] min-w-0 text-left lg:min-h-0 lg:overflow-hidden"
       >
         <AnimatePresence mode="wait">
           {activeSection.id === "seguridad" ? (
