@@ -106,6 +106,16 @@ export const dashboardSettingsFallbackCopy = {
       "¿Estas seguro de eliminar tu cuenta permanentemente? Esta acción no se puede revertir.",
     securityDeleteAccountConfirmCancel: "Cancelar",
     securityDeleteAccountConfirmAction: "Confirmar",
+    securityDeleteAccountPasswordLabel: "Ingresa tu contraseña",
+    securityDeleteAccountCodeTitle: "Verificación para eliminar cuenta",
+    securityDeleteAccountCodeBody:
+      "Ingresa el código de verificación enviado a {{email}} para continuar.",
+    securityDeleteAccountCodeLabel: "Código de verificación",
+    securityDeleteAccountFinalAction: "Eliminar cuenta",
+    securityDeleteAccountSendingCode: "Enviando...",
+    securityDeleteAccountDeleting: "Eliminando...",
+    securityDeleteAccountActionFeedback:
+      "No se pudo completar la eliminación de la cuenta.",
     notificationsTitle: "Ajustes de notificaciones",
     upcomingPaymentsTitle: "Pagos próximos",
     upcomingPaymentsDescription:
@@ -184,6 +194,16 @@ export const dashboardSettingsFallbackCopy = {
       "Are you sure you want to permanently delete your account? This action cannot be undone.",
     securityDeleteAccountConfirmCancel: "Cancel",
     securityDeleteAccountConfirmAction: "Confirm",
+    securityDeleteAccountPasswordLabel: "Enter your password",
+    securityDeleteAccountCodeTitle: "Account deletion verification",
+    securityDeleteAccountCodeBody:
+      "Enter the verification code sent to {{email}} to continue.",
+    securityDeleteAccountCodeLabel: "Verification code",
+    securityDeleteAccountFinalAction: "Delete account",
+    securityDeleteAccountSendingCode: "Sending...",
+    securityDeleteAccountDeleting: "Deleting...",
+    securityDeleteAccountActionFeedback:
+      "We could not complete the account deletion.",
     notificationsTitle: "Notification settings",
     upcomingPaymentsTitle: "Upcoming payments",
     upcomingPaymentsDescription: "Get a reminder one week before your due date.",

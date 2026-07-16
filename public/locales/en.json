@@ -152,7 +152,17 @@
             "title": "Delete account",
             "body": "Are you sure you want to permanently delete your account? This action cannot be undone.",
             "cancel": "Cancel",
-            "confirm": "Confirm"
+            "confirm": "Confirm",
+            "passwordLabel": "Enter your password",
+            "passwordRequired": "Enter your password to continue.",
+            "invalidPassword": "The password is not correct.",
+            "sending": "Sending...",
+            "codeTitle": "Account deletion verification",
+            "codeBody": "Enter the verification code sent to {{email}} to continue.",
+            "invalidCode": "The verification code is invalid or has expired.",
+            "emailSendFailed": "We could not send the verification code. Try again.",
+            "deleteAccount": "Delete account",
+            "deleting": "Deleting..."
           }
         }
       },
@@ -269,6 +279,23 @@
         "The code expires around {{expirationTime}}.",
         "",
         "If you did not request this account, you can ignore this email."
+      ]
+    },
+    "accountDeletion": {
+      "subject": "Verification code for account deletion",
+      "title": "Code to permanently delete your account",
+      "intro": "Use this verification code on the settings screen to confirm permanent deletion of your account.",
+      "codeLabel": "Verification code",
+      "expiration": "The code expires around {{expirationTime}}.",
+      "ignore": "If you did not request account deletion, change your password and review your active sessions.",
+      "textLines": [
+        "{{appName}}",
+        "",
+        "Code to permanently delete your account",
+        "Your verification code is: {{code}}",
+        "The code expires around {{expirationTime}}.",
+        "",
+        "If you did not request account deletion, change your password and review your active sessions."
       ]
     }
   },

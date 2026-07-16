@@ -159,11 +159,14 @@ describe("i18n resources", () => {
     ).toBe("Eliminar mi cuenta permanentemente");
     expect(
       resources.es.translation.dashboard.settings.security.dangerZone.confirm,
-    ).toEqual({
+    ).toMatchObject({
       title: "Eliminar cuenta",
       body: "¿Estas seguro de eliminar tu cuenta permanentemente? Esta acción no se puede revertir.",
       cancel: "Cancelar",
       confirm: "Confirmar",
+      passwordLabel: "Ingresa tu contraseña",
+      codeTitle: "Verificación para eliminar cuenta",
+      deleteAccount: "Eliminar cuenta",
     });
     expect(resources.es.translation.dashboard.settings.notifications.title).toBe(
       "Ajustes de notificaciones",
@@ -232,11 +235,14 @@ describe("i18n resources", () => {
     ).toBe("Delete my account permanently");
     expect(
       resources.en.translation.dashboard.settings.security.dangerZone.confirm,
-    ).toEqual({
+    ).toMatchObject({
       title: "Delete account",
       body: "Are you sure you want to permanently delete your account? This action cannot be undone.",
       cancel: "Cancel",
       confirm: "Confirm",
+      passwordLabel: "Enter your password",
+      codeTitle: "Account deletion verification",
+      deleteAccount: "Delete account",
     });
     expect(resources.en.translation.dashboard.settings.notifications.title).toBe(
       "Notification settings",

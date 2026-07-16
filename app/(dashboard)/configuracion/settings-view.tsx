@@ -42,9 +42,13 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  cancelAccountDeletionAction,
+  confirmAccountDeletionAction,
+  requestAccountDeletionCodeAction,
   revokeOtherSessionsAction,
   revokeSessionAction,
   updateUserProfileAction,
+  type DeleteAccountActionState,
   type DashboardProfileActionState,
 } from "./actions";
 import {
@@ -970,8 +974,10 @@ function ConfiguracionNotificationsPanel() {
 }
 
 function ConfiguracionSecurityPanel({
+  userEmail,
   sessions,
 }: {
+  userEmail: string;
   sessions: DashboardSessionActivity[];
 }) {
   const { i18n, t } = useTranslation();
@@ -980,11 +986,18 @@ function ConfiguracionSecurityPanel({
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
   const cancelDeleteAccountIconRef = useRef<AnimatedIconHandle>(null);
   const confirmDeleteAccountIconRef = useRef<AnimatedIconHandle>(null);
+  const cancelDeletionCodeIconRef = useRef<AnimatedIconHandle>(null);
+  const deleteWithCodeIconRef = useRef<AnimatedIconHandle>(null);
   const cancelSessionIconRef = useRef<AnimatedIconHandle>(null);
   const deleteAccountIconRef = useRef<AnimatedIconHandle>(null);
   const logoutSessionIconRef = useRef<AnimatedIconHandle>(null);
   const [isDeleteAccountConfirmationOpen, setIsDeleteAccountConfirmationOpen] =
     useState(false);
+  const [isDeleteAccountCodeOpen, setIsDeleteAccountCodeOpen] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
+  const [deleteAccountCode, setDeleteAccountCode] = useState("");
+  const [deleteAccountState, setDeleteAccountState] =
+    useState<DeleteAccountActionState | null>(null);
   const [confirmation, setConfirmation] = useState<SessionConfirmation | null>(
     null,
   );
@@ -992,6 +1005,8 @@ function ConfiguracionSecurityPanel({
     null,
   );
   const [isSessionActionPending, startSessionActionTransition] =
+    useTransition();
+  const [isDeleteAccountActionPending, startDeleteAccountActionTransition] =
     useTransition();
   const fieldClassName =
     "min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-medium text-on-surface shadow-[0_1px_2px_rgb(13_13_18/0.04)] outline-none transition placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/15";
@@ -1074,6 +1089,83 @@ function ConfiguracionSecurityPanel({
 
         if (result.status === "success") {
           router.refresh();
+        }
+      })();
+    });
+  };
+  const normalizedDeleteAccountCode = deleteAccountCode
+    .replace(/\D/g, "")
+    .slice(0, 6);
+  const deleteAccountCodeIsValid = normalizedDeleteAccountCode.length === 6;
+  const getMaskedDeleteAccountEmail = (email: string) => {
+    const [localPart, domain] = email.split("@");
+
+    if (!localPart || !domain) {
+      return email;
+    }
+
+    return `${localPart.slice(0, 2)}${"*".repeat(
+      Math.max(localPart.length - 2, 1),
+    )}@${domain}`;
+  };
+  const deleteAccountMaskedEmail =
+    deleteAccountState?.maskedEmail ?? getMaskedDeleteAccountEmail(userEmail);
+  const openDeleteAccountConfirmation = () => {
+    setDeleteAccountPassword("");
+    setDeleteAccountCode("");
+    setDeleteAccountState(null);
+    setIsDeleteAccountConfirmationOpen(true);
+  };
+  const closeDeleteAccountConfirmation = () => {
+    setIsDeleteAccountConfirmationOpen(false);
+    setDeleteAccountPassword("");
+    setDeleteAccountState(null);
+  };
+  const requestDeleteAccountCode = () => {
+    if (!deleteAccountPassword) {
+      return;
+    }
+
+    startDeleteAccountActionTransition(() => {
+      void (async () => {
+        const formData = new FormData();
+        formData.set("password", deleteAccountPassword);
+        formData.set("language", i18n.resolvedLanguage ?? i18n.language);
+        const result = await requestAccountDeletionCodeAction(formData);
+
+        setDeleteAccountState(result);
+
+        if (result.status === "success") {
+          setIsDeleteAccountConfirmationOpen(false);
+          setDeleteAccountCode("");
+          setIsDeleteAccountCodeOpen(true);
+        }
+      })();
+    });
+  };
+  const cancelDeleteAccountCode = () => {
+    startDeleteAccountActionTransition(() => {
+      void (async () => {
+        await cancelAccountDeletionAction();
+        setIsDeleteAccountCodeOpen(false);
+        setDeleteAccountCode("");
+        setDeleteAccountState(null);
+      })();
+    });
+  };
+  const confirmDeleteAccount = () => {
+    if (!deleteAccountCodeIsValid) {
+      return;
+    }
+
+    startDeleteAccountActionTransition(() => {
+      void (async () => {
+        const formData = new FormData();
+        formData.set("code", normalizedDeleteAccountCode);
+        const result = await confirmAccountDeletionAction(formData);
+
+        if (result?.status === "error") {
+          setDeleteAccountState(result);
         }
       })();
     });
@@ -1174,7 +1266,7 @@ function ConfiguracionSecurityPanel({
                 onMouseLeave={() =>
                   deleteAccountIconRef.current?.stopAnimation()
                 }
-                onClick={() => setIsDeleteAccountConfirmationOpen(true)}
+                onClick={openDeleteAccountConfirmation}
                 className={cn(
                   destructiveActionClassName,
                   "mt-5 min-h-11 gap-2 px-5 text-sm",
@@ -1512,10 +1604,43 @@ function ConfiguracionSecurityPanel({
                   defaultValue: fallbackCopy.securityDeleteAccountConfirmBody,
                 })}
               </p>
+              <div className="mt-5">
+                <label
+                  htmlFor="delete-account-password"
+                  className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
+                >
+                  {t(
+                    "dashboard.settings.security.dangerZone.confirm.passwordLabel",
+                    {
+                      defaultValue:
+                        fallbackCopy.securityDeleteAccountPasswordLabel,
+                    },
+                  )}
+                </label>
+                <input
+                  id="delete-account-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={deleteAccountPassword}
+                  onChange={(event) =>
+                    setDeleteAccountPassword(event.target.value)
+                  }
+                  className={fieldClassName}
+                />
+                {deleteAccountState?.status === "error" ? (
+                  <p className="mt-2 text-xs font-semibold text-destructive">
+                    {t(deleteAccountState.messageKey, {
+                      defaultValue:
+                        fallbackCopy.securityDeleteAccountActionFeedback,
+                    })}
+                  </p>
+                ) : null}
+              </div>
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setIsDeleteAccountConfirmationOpen(false)}
+                  disabled={isDeleteAccountActionPending}
+                  onClick={closeDeleteAccountConfirmation}
                   onFocus={() =>
                     cancelDeleteAccountIconRef.current?.startAnimation()
                   }
@@ -1528,7 +1653,7 @@ function ConfiguracionSecurityPanel({
                   onMouseLeave={() =>
                     cancelDeleteAccountIconRef.current?.stopAnimation()
                   }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <XIcon
                     ref={cancelDeleteAccountIconRef}
@@ -1543,7 +1668,10 @@ function ConfiguracionSecurityPanel({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsDeleteAccountConfirmationOpen(false)}
+                  disabled={
+                    isDeleteAccountActionPending || !deleteAccountPassword
+                  }
+                  onClick={requestDeleteAccountCode}
                   onFocus={() =>
                     confirmDeleteAccountIconRef.current?.startAnimation()
                   }
@@ -1556,7 +1684,7 @@ function ConfiguracionSecurityPanel({
                   onMouseLeave={() =>
                     confirmDeleteAccountIconRef.current?.stopAnimation()
                   }
-                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <DeleteIcon
                     ref={confirmDeleteAccountIconRef}
@@ -1564,10 +1692,180 @@ function ConfiguracionSecurityPanel({
                     animateOnHover={false}
                     size={16}
                   />
-                  {t("dashboard.settings.security.dangerZone.confirm.confirm", {
-                    defaultValue:
-                      fallbackCopy.securityDeleteAccountConfirmAction,
+                  {isDeleteAccountActionPending
+                    ? t(
+                        "dashboard.settings.security.dangerZone.confirm.sending",
+                        {
+                          defaultValue:
+                            fallbackCopy.securityDeleteAccountSendingCode,
+                        },
+                      )
+                    : t(
+                        "dashboard.settings.security.dangerZone.confirm.confirm",
+                        {
+                          defaultValue:
+                            fallbackCopy.securityDeleteAccountConfirmAction,
+                        },
+                      )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isDeleteAccountCodeOpen ? (
+          <motion.div
+            role="presentation"
+            className="fixed inset-0 z-50 grid place-items-center bg-inverse-surface/45 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-account-code-title"
+              aria-describedby="delete-account-code-description"
+              className="w-full max-w-[430px] rounded-2xl border border-border bg-popover p-5 text-popover-foreground shadow-[0_18px_40px_rgb(13_13_18/0.18)]"
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
+              <div className="flex min-w-0 items-center gap-3 text-left">
+                <span
+                  aria-hidden="true"
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive-container/75 text-destructive"
+                >
+                  <UserRoundX
+                    aria-hidden="true"
+                    className="shrink-0"
+                    size={20}
+                  />
+                </span>
+                <h3
+                  id="delete-account-code-title"
+                  className="break-words text-sm font-bold leading-5 text-on-surface"
+                >
+                  {t(
+                    "dashboard.settings.security.dangerZone.confirm.codeTitle",
+                    {
+                      defaultValue:
+                        fallbackCopy.securityDeleteAccountCodeTitle,
+                    },
+                  )}
+                </h3>
+              </div>
+              <p
+                id="delete-account-code-description"
+                className="mt-4 text-sm leading-5 text-on-surface-variant"
+              >
+                {t(
+                  "dashboard.settings.security.dangerZone.confirm.codeBody",
+                  {
+                    defaultValue: fallbackCopy.securityDeleteAccountCodeBody,
+                    email: deleteAccountMaskedEmail,
+                  },
+                )}
+              </p>
+              <div className="mt-5">
+                <label
+                  htmlFor="delete-account-code"
+                  className="mb-2 block text-sm font-semibold leading-5 text-on-surface"
+                >
+                  {t("recovery.verificationCode", {
+                    defaultValue: fallbackCopy.securityDeleteAccountCodeLabel,
                   })}
+                </label>
+                <input
+                  id="delete-account-code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={normalizedDeleteAccountCode}
+                  onChange={(event) => setDeleteAccountCode(event.target.value)}
+                  className={cn(fieldClassName, "font-mono tracking-[0.16em]")}
+                />
+                {deleteAccountState?.status === "error" ? (
+                  <p className="mt-2 text-xs font-semibold text-destructive">
+                    {t(deleteAccountState.messageKey, {
+                      defaultValue:
+                        fallbackCopy.securityDeleteAccountActionFeedback,
+                    })}
+                  </p>
+                ) : null}
+              </div>
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={isDeleteAccountActionPending}
+                  onClick={cancelDeleteAccountCode}
+                  onFocus={() =>
+                    cancelDeletionCodeIconRef.current?.startAnimation()
+                  }
+                  onBlur={() =>
+                    cancelDeletionCodeIconRef.current?.stopAnimation()
+                  }
+                  onMouseEnter={() =>
+                    cancelDeletionCodeIconRef.current?.startAnimation()
+                  }
+                  onMouseLeave={() =>
+                    cancelDeletionCodeIconRef.current?.stopAnimation()
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline bg-surface-container-lowest px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <XIcon
+                    ref={cancelDeletionCodeIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
+                  {t("dashboard.settings.security.dangerZone.confirm.cancel", {
+                    defaultValue:
+                      fallbackCopy.securityDeleteAccountConfirmCancel,
+                  })}
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    isDeleteAccountActionPending || !deleteAccountCodeIsValid
+                  }
+                  onClick={confirmDeleteAccount}
+                  onFocus={() => deleteWithCodeIconRef.current?.startAnimation()}
+                  onBlur={() => deleteWithCodeIconRef.current?.stopAnimation()}
+                  onMouseEnter={() =>
+                    deleteWithCodeIconRef.current?.startAnimation()
+                  }
+                  onMouseLeave={() =>
+                    deleteWithCodeIconRef.current?.stopAnimation()
+                  }
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-destructive px-5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <DeleteIcon
+                    ref={deleteWithCodeIconRef}
+                    aria-hidden="true"
+                    animateOnHover={false}
+                    size={16}
+                  />
+                  {isDeleteAccountActionPending
+                    ? t(
+                        "dashboard.settings.security.dangerZone.confirm.deleting",
+                        {
+                          defaultValue:
+                            fallbackCopy.securityDeleteAccountDeleting,
+                        },
+                      )
+                    : t(
+                        "dashboard.settings.security.dangerZone.confirm.deleteAccount",
+                        {
+                          defaultValue:
+                            fallbackCopy.securityDeleteAccountFinalAction,
+                        },
+                      )}
                 </button>
               </div>
             </motion.div>
@@ -1659,7 +1957,10 @@ export function ConfiguracionSettingsView({
             ) : activeSection.id === "notificaciones" ? (
               <ConfiguracionNotificationsPanel />
             ) : activeSection.id === "seguridad" ? (
-              <ConfiguracionSecurityPanel sessions={sessions} />
+              <ConfiguracionSecurityPanel
+                userEmail={user.email}
+                sessions={sessions}
+              />
             ) : (
               <h2 className="font-heading text-2xl font-semibold leading-8 tracking-normal text-on-surface sm:text-3xl sm:leading-10">
                 {t("dashboard.settings.greeting", {

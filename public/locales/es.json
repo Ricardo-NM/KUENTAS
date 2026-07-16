@@ -152,7 +152,17 @@
             "title": "Eliminar cuenta",
             "body": "¿Estas seguro de eliminar tu cuenta permanentemente? Esta acción no se puede revertir.",
             "cancel": "Cancelar",
-            "confirm": "Confirmar"
+            "confirm": "Confirmar",
+            "passwordLabel": "Ingresa tu contraseña",
+            "passwordRequired": "Ingresa tu contraseña para continuar.",
+            "invalidPassword": "La contraseña no es correcta.",
+            "sending": "Enviando...",
+            "codeTitle": "Verificación para eliminar cuenta",
+            "codeBody": "Ingresa el código de verificación enviado a {{email}} para continuar.",
+            "invalidCode": "El código de verificación no es válido o ya expiró.",
+            "emailSendFailed": "No se pudo enviar el código de verificación. Intenta nuevamente.",
+            "deleteAccount": "Eliminar cuenta",
+            "deleting": "Eliminando..."
           }
         }
       },
@@ -269,6 +279,23 @@
         "El código vence alrededor de las {{expirationTime}}",
         "",
         "Si no solicitaste crear esta cuenta, puedes ignorar este correo."
+      ]
+    },
+    "accountDeletion": {
+      "subject": "Código de verificación para eliminación de cuenta",
+      "title": "Código para eliminar tu cuenta permanentemente",
+      "intro": "Usa este código de verificación en la pantalla de configuración para confirmar la eliminación permanente de tu cuenta.",
+      "codeLabel": "Código de verificación",
+      "expiration": "El código vence alrededor de las {{expirationTime}}.",
+      "ignore": "Si no solicitaste eliminar tu cuenta, cambia tu contraseña y revisa tus sesiones activas.",
+      "textLines": [
+        "{{appName}}",
+        "",
+        "Código para eliminar tu cuenta permanentemente",
+        "Tu código de verificación es: {{code}}",
+        "El código vence alrededor de las {{expirationTime}}.",
+        "",
+        "Si no solicitaste eliminar tu cuenta, cambia tu contraseña y revisa tus sesiones activas."
       ]
     }
   },

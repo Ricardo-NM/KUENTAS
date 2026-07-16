@@ -16,6 +16,7 @@ model User {
   sessions                  Session[]
   passwordResetTokens       PasswordResetToken[]
   accountVerificationTokens AccountVerificationToken[]
+  accountDeletionTokens     AccountDeletionToken[]
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
 }
@@ -69,6 +70,20 @@ model PasswordResetToken {
 }
 
 model AccountVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
+}
+
+model AccountDeletionToken {
   id        String    @id @default(cuid())
   userId    String
   tokenHash String    @unique
