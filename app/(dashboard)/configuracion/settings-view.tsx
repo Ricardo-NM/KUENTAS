@@ -714,7 +714,7 @@ function ConfiguracionGeneralPanel() {
   const fallbackCopy = dashboardSettingsFallbackCopy[language];
   const [selectedCurrency, setSelectedCurrency] = useState("MXN");
   const [selectedDateFormat, setSelectedDateFormat] = useState("DD/MM/YYYY");
-  const [selectedWeekStart, setSelectedWeekStart] = useState("monday");
+  const selectedWeekStart = language === "en" ? "sunday" : "monday";
   const [selectedTheme, setSelectedTheme] = useState<DashboardTheme>("light");
   const sunIconRef = useRef<SunMediumIconHandle>(null);
   const moonIconRef = useRef<MoonIconHandle>(null);
@@ -782,6 +782,9 @@ function ConfiguracionGeneralPanel() {
       defaultValue: option.fallbackLabels[language],
     }),
   }));
+  const selectedWeekStartLabel =
+    weekStartOptions.find((option) => option.value === selectedWeekStart)
+      ?.label ?? selectedWeekStart;
 
   return (
     <div className="w-full text-left">
@@ -862,16 +865,27 @@ function ConfiguracionGeneralPanel() {
               defaultValue: fallbackCopy.weekStartLabel,
             })}
           </label>
-          <SettingsSelect
-            id="settings-week-start"
-            Icon={CalendarCheck2Icon}
-            ariaLabel={t("dashboard.settings.general.weekStart.label", {
-              defaultValue: fallbackCopy.weekStartLabel,
-            })}
-            value={selectedWeekStart}
-            onChange={setSelectedWeekStart}
-            options={weekStartOptions}
-          />
+          <div className="relative">
+            <input
+              id="settings-week-start"
+              type="text"
+              autoComplete="off"
+              value={selectedWeekStartLabel}
+              readOnly
+              aria-readonly="true"
+              className="min-h-11 w-full rounded-lg border border-outline-variant bg-surface-container py-0 pl-12 pr-4 text-sm font-medium text-on-surface-variant outline-none"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-4 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center text-on-surface-variant"
+            >
+              <CalendarCheck2Icon
+                aria-hidden="true"
+                animateOnHover={false}
+                size={18}
+              />
+            </span>
+          </div>
         </div>
         <div className="min-w-0">
           <p className="mb-2 text-sm font-medium leading-5 text-on-surface-variant">

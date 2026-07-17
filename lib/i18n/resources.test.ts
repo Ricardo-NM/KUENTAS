@@ -49,6 +49,12 @@ describe("i18n resources", () => {
     expect(resources.en.translation.inicio.title).toBe(
       "This is where home goes",
     );
+    expect(resources.es.translation.inicio.pendingPayment).toBe(
+      "Pago pendiente",
+    );
+    expect(resources.en.translation.inicio.pendingPayment).toBe(
+      "Pending payment",
+    );
   });
 
   it("includes dashboard settings copy in both supported languages", () => {

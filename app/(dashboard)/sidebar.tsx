@@ -290,7 +290,7 @@ function SidebarSettingsSubItem({
       onFocus={() => iconRef.current?.startAnimation()}
       onBlur={stopIconAnimation}
       className={cn(
-        "group relative flex min-h-9 items-center gap-2.5 rounded-md py-2 pl-3 pr-3 text-xs font-semibold leading-4 transition-colors",
+        "group relative flex min-h-9 items-center gap-2.5 rounded-md py-2 pl-3 pr-3 text-sm font-semibold leading-5 transition-colors",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         isActive
           ? "bg-surface-container-highest text-primary"

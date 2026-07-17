@@ -20,6 +20,7 @@
   },
   "inicio": {
     "title": "Aquí ira el inicio",
+    "pendingPayment": "Pago pendiente",
     "logout": "Cerrar sesión",
     "loggingOut": "Cerrando sesión..."
   },

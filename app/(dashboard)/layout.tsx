@@ -28,9 +28,9 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-dvh bg-background text-on-surface lg:grid lg:grid-cols-[260px_1fr]">
+    <div className="min-h-dvh bg-background text-on-surface lg:grid lg:h-dvh lg:grid-cols-[260px_1fr] lg:overflow-hidden">
       <DashboardSidebar />
-      <main className="flex min-h-dvh min-w-0 flex-col px-4 py-4 sm:px-6 lg:px-8">
+      <main className="flex min-h-dvh min-w-0 flex-col px-4 py-4 sm:px-6 lg:h-dvh lg:min-h-0 lg:overflow-hidden lg:px-8">
         <DashboardTopbar user={formatDashboardUser(user)} />
         <DashboardContentCard>{children}</DashboardContentCard>
       </main>
