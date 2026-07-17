@@ -21,6 +21,25 @@
   "inicio": {
     "title": "Aquí ira el inicio",
     "pendingPayment": "Pago pendiente",
+    "upcomingPayments": {
+      "title": "Próximos pagos",
+      "dueDate": "Fecha límite {{date}}",
+      "status": {
+        "pending": "Pendiente"
+      },
+      "weekRange": {
+        "sameMonth": "{{startDay}} - {{endDay}} de {{month}}, {{year}}",
+        "sameYear": "{{startDay}} de {{startMonth}} - {{endDay}} de {{endMonth}}, {{year}}",
+        "crossYear": "{{startDay}} de {{startMonth}}, {{startYear}} - {{endDay}} de {{endMonth}}, {{endYear}}"
+      },
+      "items": {
+        "creditCard": "Tarjeta de crédito",
+        "personalLoan": "Préstamo personal",
+        "autoLoan": "Crédito automotriz",
+        "mortgage": "Hipoteca familiar",
+        "storeCredit": "Crédito departamental"
+      }
+    },
     "logout": "Cerrar sesión",
     "loggingOut": "Cerrando sesión..."
   },

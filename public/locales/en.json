@@ -21,6 +21,25 @@
   "inicio": {
     "title": "This is where home goes",
     "pendingPayment": "Pending payment",
+    "upcomingPayments": {
+      "title": "Upcoming payments",
+      "dueDate": "Due date {{date}}",
+      "status": {
+        "pending": "Pending"
+      },
+      "weekRange": {
+        "sameMonth": "{{month}} {{startDay}} - {{endDay}}, {{year}}",
+        "sameYear": "{{startMonth}} {{startDay}} - {{endMonth}} {{endDay}}, {{year}}",
+        "crossYear": "{{startMonth}} {{startDay}}, {{startYear}} - {{endMonth}} {{endDay}}, {{endYear}}"
+      },
+      "items": {
+        "creditCard": "Credit card",
+        "personalLoan": "Personal loan",
+        "autoLoan": "Auto loan",
+        "mortgage": "Family mortgage",
+        "storeCredit": "Department store credit"
+      }
+    },
     "logout": "Log out",
     "loggingOut": "Logging out..."
   },

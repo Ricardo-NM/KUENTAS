@@ -2,10 +2,12 @@
 
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/es";
+import type { TFunction } from "i18next";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { PickerDay, type PickerDayProps } from "@mui/x-date-pickers/PickerDay";
+import { Landmark } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -16,7 +18,10 @@ const homeCards = [
   { className: "bg-surface-container-lowest" },
   { className: "bg-surface-container-lowest" },
   { className: "bg-surface-container-lowest lg:row-span-2" },
-  { className: "bg-surface-container-lowest lg:col-span-2 lg:row-span-2" },
+  {
+    className: "bg-surface-container-lowest lg:col-span-2 lg:row-span-2",
+    variant: "upcomingPayments",
+  },
   {
     className: "bg-surface-container-lowest lg:row-span-2",
     variant: "calendar",
@@ -51,6 +56,17 @@ export function InicioContent() {
           );
         }
 
+        if (card.variant === "upcomingPayments") {
+          return (
+            <article
+              className={`${cardClassName} flex min-h-0 flex-col overflow-hidden p-4 sm:p-5`}
+              key={`inicio-card-${index}`}
+            >
+              <HomeUpcomingPayments />
+            </article>
+          );
+        }
+
         return (
           <article
             aria-hidden="true"
@@ -61,6 +77,142 @@ export function InicioContent() {
       })}
     </section>
   );
+}
+
+const upcomingPaymentItems = [
+  {
+    amount: 8450,
+    dueInDays: 2,
+    titleKey: "inicio.upcomingPayments.items.creditCard",
+  },
+  {
+    amount: 3200.5,
+    dueInDays: 4,
+    titleKey: "inicio.upcomingPayments.items.personalLoan",
+  },
+  {
+    amount: 12750,
+    dueInDays: 5,
+    titleKey: "inicio.upcomingPayments.items.autoLoan",
+  },
+  {
+    amount: 18900.75,
+    dueInDays: 7,
+    titleKey: "inicio.upcomingPayments.items.mortgage",
+  },
+  {
+    amount: 975.25,
+    dueInDays: 8,
+    titleKey: "inicio.upcomingPayments.items.storeCredit",
+  },
+] as const;
+
+function HomeUpcomingPayments() {
+  const { i18n, t } = useTranslation();
+  const language = i18n.language?.startsWith("en") ? "en" : "es";
+  const locale = language === "es" ? "es-MX" : "en-US";
+  const today = dayjs().locale(language);
+
+  const amountFormatter = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  });
+  const dateFormatter = new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "short",
+  });
+
+  return (
+    <>
+      <div className="mb-3 flex items-start justify-between gap-4">
+        <h2 className="font-heading text-base font-bold leading-6 text-on-surface sm:text-lg">
+          {t("inicio.upcomingPayments.title")}
+        </h2>
+        <p className="max-w-[48%] pt-0.5 text-right text-xs font-bold leading-5 text-on-surface sm:text-sm">
+          {formatCurrentWeek(today, language, t)}
+        </p>
+      </div>
+
+      <ul className="flex min-h-0 flex-1 flex-col justify-between gap-2">
+        {upcomingPaymentItems.map((payment) => {
+          const dueDate = today.add(payment.dueInDays, "day").toDate();
+
+          return (
+            <li
+              className="grid min-h-[48px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3"
+              key={payment.titleKey}
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+              >
+                <Landmark className="size-5" strokeWidth={2.4} />
+              </span>
+
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium leading-5 text-on-surface">
+                  {t(payment.titleKey)}
+                </p>
+                <p className="truncate text-sm font-bold leading-5 text-on-surface">
+                  ${amountFormatter.format(payment.amount)}
+                </p>
+              </div>
+
+              <div className="min-w-[92px] text-right">
+                <p className="text-xs font-medium leading-5 text-on-surface sm:text-sm">
+                  {t("inicio.upcomingPayments.dueDate", {
+                    date: dateFormatter.format(dueDate),
+                  })}
+                </p>
+                <span className="inline-flex min-w-20 justify-center rounded-md border border-warning/15 bg-warning-container px-3 py-0.5 text-xs font-semibold leading-5 text-on-warning-container dark:border-transparent dark:bg-tertiary-container dark:text-on-tertiary-container">
+                  {t("inicio.upcomingPayments.status.pending")}
+                </span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}
+
+function formatCurrentWeek(
+  date: Dayjs,
+  language: "en" | "es",
+  t: TFunction,
+) {
+  const start = date.startOf("week");
+  const end = date.endOf("week");
+  const sameMonth = start.isSame(end, "month");
+  const sameYear = start.isSame(end, "year");
+
+  if (sameMonth) {
+    return t("inicio.upcomingPayments.weekRange.sameMonth", {
+      endDay: end.format("D"),
+      month: start.locale(language).format("MMMM"),
+      startDay: start.format("D"),
+      year: end.format("YYYY"),
+    });
+  }
+
+  if (sameYear) {
+    return t("inicio.upcomingPayments.weekRange.sameYear", {
+      endDay: end.format("D"),
+      endMonth: end.locale(language).format("MMMM"),
+      startDay: start.format("D"),
+      startMonth: start.locale(language).format("MMMM"),
+      year: end.format("YYYY"),
+    });
+  }
+
+  return t("inicio.upcomingPayments.weekRange.crossYear", {
+    endDay: end.format("D"),
+    endMonth: end.locale(language).format("MMMM"),
+    endYear: end.format("YYYY"),
+    startDay: start.format("D"),
+    startMonth: start.locale(language).format("MMMM"),
+    startYear: start.format("YYYY"),
+  });
 }
 
 function HomePaymentCalendar() {

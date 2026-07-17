@@ -29,6 +29,9 @@ colors:
   on-tertiary: '#ffffff'
   tertiary-container: '#1f1b14'
   on-tertiary-container: '#8b8379'
+  warning: '#b45309'
+  warning-container: '#ffedd5'
+  on-warning-container: '#7c2d12'
   error: '#ba1a1a'
   on-error: '#ffffff'
   error-container: '#ffdad6'
@@ -152,7 +155,7 @@ The design system adopts a **Rounded** profile. This softens the high-contrast c
 - **Buttons:** Primary buttons are solid `#0D0D12` with white text. Secondary buttons use a ghost style with a `#E2E8F0` border.
 - **Cards:** Primary cards use a soft off-white background, 16px padding, and 16px corner radius. Internal settings greeting/content cards use `#F7F9FB` against the white page canvas. Every card must have a 1px border to distinguish it from the background layer.
 - **Input Fields:** Minimalist design with a 1px border that thickens and darkens on focus. Use placeholder text in `#94A3B8`.
-- **Status Chips:** Small, condensed labels using `label-caps` typography. Background colors for chips should be high-transparency versions of the status color (e.g., Success is 10% opacity green).
+- **Status Chips:** Small, condensed labels using `label-caps` typography. Background colors for chips should be high-transparency versions of the status color (e.g., Success is 10% opacity green). Pending or warning states use `bg-warning-container text-on-warning-container` in light mode and the documented dark equivalent.
 - **Data Visualizations:** Line charts use a 2px stroke width with smooth interpolation. Grid lines within charts must be faint (`#F1F5F9`) to keep the focus on the data trend.
 - **Sidebar:** Fixed width with a light gray border on the right. Active states are indicated by a subtle background fill or a vertical bar on the left.
 
@@ -170,6 +173,7 @@ Light mode is the default dashboard theme and maps to the original palette above
 - **Raised or hover surface:** `bg-surface-container-highest` -> `#E0E3E5`.
 - **Primary action:** `bg-primary` / `text-primary-foreground` -> `#0D0D12` / `#FFFFFF`.
 - **Secondary text:** `text-on-surface-variant` -> `#47464B`.
+- **Pending/warning chips:** `bg-warning-container` / `text-on-warning-container` -> `#FFEDD5` / `#7C2D12`.
 - **Borders:** `border-border` for structural borders and `border-outline-variant` for controls.
 - **Focus:** `outline-ring`, `ring-primary/15`, or `focus-visible:outline-ring`.
 
@@ -183,6 +187,7 @@ Dark mode is an inverted tonal system, not a pure color negative. It preserves h
 - **Raised or hover surface:** `bg-surface-container-highest` -> `#2A3036`.
 - **Primary action:** `bg-primary` / `text-primary-foreground` -> `#EFF1F3` / `#0D0D12`.
 - **Secondary text:** `text-on-surface-variant` -> `#C8C5CB`.
+- **Pending/warning chips:** `bg-warning-container` / `text-on-warning-container` -> `#3A2718` / `#FED7AA`.
 - **Borders:** `border-border` -> `#343A40`; use `border-outline-variant` for controls that need clearer separation.
 - **Focus:** `outline-ring` uses the inverted primary/focus tone and must remain visible on dark surfaces.
 
