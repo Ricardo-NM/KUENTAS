@@ -485,6 +485,21 @@ export function DashboardSidebar() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const currentSearch = searchParams.toString();
   const currentUrl = `${pathname}${currentSearch ? `?${currentSearch}` : ""}`;
+
+  useEffect(() => {
+    if (pendingNavigation?.href !== currentUrl) {
+      return;
+    }
+
+    const clearPendingNavigation = window.setTimeout(() => {
+      setPendingNavigation(null);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(clearPendingNavigation);
+    };
+  }, [currentUrl, pendingNavigation?.href]);
+
   const activeHref =
     pendingNavigation?.pathname === pathname && pendingNavigation.href !== currentUrl
       ? pendingNavigation.href

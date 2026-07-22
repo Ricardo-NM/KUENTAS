@@ -3,18 +3,28 @@
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/es";
 import type { TFunction } from "i18next";
+import Link from "next/link";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { PickerDay, type PickerDayProps } from "@mui/x-date-pickers/PickerDay";
 import {
+  ArrowUpRightIcon,
+  type ArrowUpRightIconHandle,
+} from "lucide-animated";
+import {
   Calendar1,
   CalendarClock,
+  CalendarDays,
   CalendarRange,
+  CircleCheck,
   Landmark,
+  ListTodo,
+  Percent,
+  SquareChartGantt,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const homeCards = [
@@ -53,8 +63,6 @@ const homeCards = [
 ];
 
 export function InicioContent() {
-  const { t } = useTranslation();
-
   return (
     <section
       aria-label="Inicio"
@@ -102,16 +110,10 @@ export function InicioContent() {
         if (card.variant === "calendar") {
           return (
             <article
-              className={`${cardClassName} flex min-h-0 flex-col gap-2.5 overflow-hidden p-3`}
+              className={`${cardClassName} flex min-h-0 flex-col overflow-hidden p-4 sm:p-5`}
               key={`inicio-card-${index}`}
             >
-              <button
-                type="button"
-                className="min-h-10 w-full rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)] transition-colors hover:bg-inverse-surface hover:text-inverse-on-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                {t("inicio.pendingPayment")}
-              </button>
-              <HomePaymentCalendar />
+              <HomeCalendarCard />
             </article>
           );
         }
@@ -480,6 +482,7 @@ function HomeTotalDue() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const locale = language === "es" ? "es-MX" : "en-US";
   const today = dayjs().locale(language);
+  const detailsIconRef = useRef<ArrowUpRightIconHandle>(null);
   const [hoveredDueCategory, setHoveredDueCategory] = useState<string | null>(
     null,
   );
@@ -556,11 +559,41 @@ function HomeTotalDue() {
 
   return (
     <>
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <h2 className="font-heading text-lg font-bold leading-6 text-on-surface sm:text-xl">
-          {t("inicio.totalDue.distributionTitle")}
-        </h2>
-        <p className="pt-1 text-right text-xs font-bold leading-5 text-on-surface sm:text-sm">
+      <div className="mb-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5 pt-1">
+            <SquareChartGantt
+              aria-hidden="true"
+              className="size-5 shrink-0 text-on-surface sm:size-6"
+              strokeWidth={2.3}
+            />
+            <h2 className="font-heading text-lg font-bold leading-6 text-on-surface sm:text-xl">
+              {t("inicio.totalDue.distributionTitle")}
+            </h2>
+          </div>
+
+          <Link
+            href="/estadisticas"
+            onMouseEnter={() => detailsIconRef.current?.startAnimation()}
+            onMouseLeave={() => detailsIconRef.current?.stopAnimation()}
+            onFocus={() => detailsIconRef.current?.startAnimation()}
+            onBlur={() => detailsIconRef.current?.stopAnimation()}
+            className="inline-flex h-6 shrink-0 items-center justify-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-semibold leading-none text-primary-foreground shadow-[0_3px_5px_-1px_rgb(0_0_0/0.08),0_1px_3px_-2px_rgb(0_0_0/0.08)] transition-[background-color,box-shadow] hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-7 sm:px-3"
+          >
+            <span>{t("inicio.detailsCta")}</span>
+            <ArrowUpRightIcon
+              ref={detailsIconRef}
+              aria-hidden="true"
+              animateOnHover={false}
+              className="shrink-0"
+              size={13}
+            />
+          </Link>
+        </div>
+
+        <div aria-hidden="true" className="mt-3 h-px w-full bg-border" />
+
+        <p className="mt-2 text-left text-xs font-bold leading-5 text-on-surface sm:text-sm">
           {monthFormatter.format(today.toDate())}
         </p>
       </div>
@@ -690,6 +723,7 @@ function HomeTotalPaid() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const locale = language === "es" ? "es-MX" : "en-US";
   const today = dayjs().locale(language);
+  const detailsIconRef = useRef<ArrowUpRightIconHandle>(null);
 
   const amountFormatter = new Intl.NumberFormat(locale, {
     maximumFractionDigits: 2,
@@ -702,11 +736,41 @@ function HomeTotalPaid() {
 
   return (
     <>
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <h2 className="font-heading text-base font-bold leading-6 text-on-surface sm:text-lg">
-          {t("inicio.totalPaid.title")}
-        </h2>
-        <p className="pt-1 text-right text-xs font-bold leading-5 text-on-surface sm:text-sm">
+      <div className="mb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Percent
+              aria-hidden="true"
+              className="size-5 shrink-0 text-on-surface"
+              strokeWidth={2.3}
+            />
+            <h2 className="min-w-0 font-heading text-base font-bold leading-6 text-on-surface sm:text-lg">
+              {t("inicio.totalPaid.title")}
+            </h2>
+          </div>
+
+          <Link
+            href="/estadisticas"
+            onMouseEnter={() => detailsIconRef.current?.startAnimation()}
+            onMouseLeave={() => detailsIconRef.current?.stopAnimation()}
+            onFocus={() => detailsIconRef.current?.startAnimation()}
+            onBlur={() => detailsIconRef.current?.stopAnimation()}
+            className="inline-flex h-6 shrink-0 items-center justify-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-semibold leading-none text-primary-foreground shadow-[0_3px_5px_-1px_rgb(0_0_0/0.08),0_1px_3px_-2px_rgb(0_0_0/0.08)] transition-[background-color,box-shadow] hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-7 sm:px-3"
+          >
+            <span>{t("inicio.detailsCta")}</span>
+            <ArrowUpRightIcon
+              ref={detailsIconRef}
+              aria-hidden="true"
+              animateOnHover={false}
+              className="shrink-0"
+              size={13}
+            />
+          </Link>
+        </div>
+
+        <div aria-hidden="true" className="mt-2 h-px w-full bg-border" />
+
+        <p className="mt-1.5 text-left text-xs font-bold leading-5 text-on-surface sm:text-sm">
           {monthFormatter.format(today.toDate())}
         </p>
       </div>
@@ -796,66 +860,150 @@ function HomeUpcomingPayments() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const locale = language === "es" ? "es-MX" : "en-US";
   const today = dayjs().locale(language);
+  const detailsIconRef = useRef<ArrowUpRightIconHandle>(null);
+  const [checkedPayments, setCheckedPayments] = useState<
+    Record<string, boolean>
+  >({});
 
   const amountFormatter = new Intl.NumberFormat(locale, {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
   });
   const dateFormatter = new Intl.DateTimeFormat(locale, {
-    day: "2-digit",
-    month: "short",
+    day: "numeric",
+    month: "long",
   });
+  const visibleUpcomingPaymentItems = upcomingPaymentItems.slice(0, 4);
+
+  const togglePaymentChecked = (paymentKey: string) => {
+    setCheckedPayments((current) => ({
+      ...current,
+      [paymentKey]: !current[paymentKey],
+    }));
+  };
 
   return (
     <>
-      <div className="mb-3 flex items-start justify-between gap-4">
-        <h2 className="font-heading text-base font-bold leading-6 text-on-surface sm:text-lg">
-          {t("inicio.upcomingPayments.title")}
-        </h2>
-        <p className="max-w-[48%] pt-0.5 text-right text-xs font-bold leading-5 text-on-surface sm:text-sm">
+      <div className="mb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <ListTodo
+              aria-hidden="true"
+              className="size-5 shrink-0 text-on-surface"
+              strokeWidth={2.3}
+            />
+            <h2 className="min-w-0 font-heading text-base font-bold leading-6 text-on-surface sm:text-lg">
+              {t("inicio.upcomingPayments.title")}
+            </h2>
+          </div>
+
+          <Link
+            href="/pagos"
+            onMouseEnter={() => detailsIconRef.current?.startAnimation()}
+            onMouseLeave={() => detailsIconRef.current?.stopAnimation()}
+            onFocus={() => detailsIconRef.current?.startAnimation()}
+            onBlur={() => detailsIconRef.current?.stopAnimation()}
+            className="inline-flex h-6 shrink-0 items-center justify-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-semibold leading-none text-primary-foreground shadow-[0_3px_5px_-1px_rgb(0_0_0/0.08),0_1px_3px_-2px_rgb(0_0_0/0.08)] transition-[background-color,box-shadow] hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-7 sm:px-3"
+          >
+            <span>{t("inicio.detailsCta")}</span>
+            <ArrowUpRightIcon
+              ref={detailsIconRef}
+              aria-hidden="true"
+              animateOnHover={false}
+              className="shrink-0"
+              size={13}
+            />
+          </Link>
+        </div>
+
+        <div aria-hidden="true" className="mt-2 h-px w-full bg-border" />
+
+        <p className="mt-1.5 text-left text-xs font-bold leading-5 text-on-surface sm:text-sm">
           {formatCurrentWeek(today, language, t)}
         </p>
       </div>
 
-      <ul className="flex min-h-0 flex-1 flex-col justify-between gap-2">
-        {upcomingPaymentItems.map((payment) => {
-          const dueDate = today.add(payment.dueInDays, "day").toDate();
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <table className="h-full w-full table-auto border-collapse">
+          <caption className="sr-only">
+            {t("inicio.upcomingPayments.title")}
+          </caption>
+          <tbody>
+            {visibleUpcomingPaymentItems.map((payment) => {
+              const dueDate = today.add(payment.dueInDays, "day").toDate();
+              const paymentName = t(payment.titleKey);
+              const isChecked = Boolean(checkedPayments[payment.titleKey]);
 
-          return (
-            <li
-              className="grid min-h-[48px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3"
-              key={payment.titleKey}
-            >
-              <span
-                aria-hidden="true"
-                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
-              >
-                <Landmark className="size-5" strokeWidth={2.4} />
-              </span>
+              return (
+                <tr
+                  className={`border-b border-border transition-[filter,opacity] duration-200 last:border-b-0 ${
+                    isChecked ? "opacity-45 grayscale" : "opacity-100"
+                  }`}
+                  key={payment.titleKey}
+                >
+                  <td className="w-[1%] whitespace-nowrap py-2 pr-3 align-middle">
+                    <span className="inline-flex w-max min-w-max items-center gap-2.5 rounded-full bg-surface-container-high py-1 pl-2 pr-4 text-on-surface">
+                      <span
+                        aria-hidden="true"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                      >
+                        <Landmark className="size-4" strokeWidth={2.4} />
+                      </span>
+                      <span className="shrink-0 whitespace-nowrap">
+                        <span className="block text-xs font-semibold leading-4 text-on-surface">
+                          {paymentName}
+                        </span>
+                        <span className="block text-xs font-bold leading-4 text-on-surface tabular-nums">
+                          ${amountFormatter.format(payment.amount)}
+                        </span>
+                      </span>
+                    </span>
+                  </td>
 
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium leading-5 text-on-surface">
-                  {t(payment.titleKey)}
-                </p>
-                <p className="truncate text-sm font-bold leading-5 text-on-surface">
-                  ${amountFormatter.format(payment.amount)}
-                </p>
-              </div>
+                  <td className="w-36 px-3 py-2 align-middle">
+                    <span className="mx-auto block w-fit text-center text-xs font-semibold leading-4 text-on-surface sm:text-sm">
+                      {dateFormatter.format(dueDate)}
+                    </span>
+                  </td>
 
-              <div className="min-w-[92px] text-right">
-                <p className="text-xs font-medium leading-5 text-on-surface sm:text-sm">
-                  {t("inicio.upcomingPayments.dueDate", {
-                    date: dateFormatter.format(dueDate),
-                  })}
-                </p>
-                <span className="inline-flex min-w-20 justify-center rounded-md border border-warning/15 bg-warning-container px-3 py-0.5 text-xs font-semibold leading-5 text-on-warning-container dark:border-transparent dark:bg-tertiary-container dark:text-on-tertiary-container">
-                  {t("inicio.upcomingPayments.status.pending")}
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                  <td className="w-32 px-3 py-2 align-middle">
+                    <span className="mx-auto inline-flex h-5 min-w-16 items-center justify-center rounded-md border border-border bg-surface-container-high px-2 text-[11px] font-semibold leading-none text-on-surface">
+                      {t("inicio.upcomingPayments.status.pending")}
+                    </span>
+                  </td>
+
+                  <td className="w-8 py-2 pl-2 text-right align-middle">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isChecked}
+                      aria-label={t("inicio.upcomingPayments.toggleLabel", {
+                        payment: paymentName,
+                      })}
+                      onClick={() => togglePaymentChecked(payment.titleKey)}
+                      className={`inline-grid size-6 cursor-pointer place-items-center rounded-full border transition-[background-color,border-color,color,box-shadow] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                        isChecked
+                          ? "border-primary bg-primary text-primary-foreground shadow-[0_3px_6px_-2px_rgb(0_0_0/0.18)]"
+                          : "border-outline bg-surface-container text-on-surface/50 hover:border-primary hover:bg-surface-container-highest hover:text-primary"
+                      }`}
+                    >
+                      <CircleCheck
+                        aria-hidden="true"
+                        className={`size-4 transition-[opacity,transform] duration-150 ${
+                          isChecked
+                            ? "scale-100 opacity-100"
+                            : "scale-75 opacity-0"
+                        }`}
+                        strokeWidth={2.5}
+                      />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
@@ -979,6 +1127,52 @@ function formatCurrentWeek(date: Dayjs, language: "en" | "es", t: TFunction) {
     startMonth: start.locale(language).format("MMMM"),
     startYear: start.format("YYYY"),
   });
+}
+
+function HomeCalendarCard() {
+  const { t } = useTranslation();
+  const detailsIconRef = useRef<ArrowUpRightIconHandle>(null);
+
+  return (
+    <>
+      <div className="mb-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <CalendarDays
+              aria-hidden="true"
+              className="size-5 shrink-0 text-on-surface"
+              strokeWidth={2.3}
+            />
+            <h2 className="min-w-0 font-heading text-base font-bold leading-6 text-on-surface sm:text-lg">
+              {t("dashboard.navigation.calendario")}
+            </h2>
+          </div>
+
+          <Link
+            href="/calendario"
+            onMouseEnter={() => detailsIconRef.current?.startAnimation()}
+            onMouseLeave={() => detailsIconRef.current?.stopAnimation()}
+            onFocus={() => detailsIconRef.current?.startAnimation()}
+            onBlur={() => detailsIconRef.current?.stopAnimation()}
+            className="inline-flex h-6 shrink-0 items-center justify-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-semibold leading-none text-primary-foreground shadow-[0_3px_5px_-1px_rgb(0_0_0/0.08),0_1px_3px_-2px_rgb(0_0_0/0.08)] transition-[background-color,box-shadow] hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-7 sm:px-3"
+          >
+            <span>{t("inicio.detailsCta")}</span>
+            <ArrowUpRightIcon
+              ref={detailsIconRef}
+              aria-hidden="true"
+              animateOnHover={false}
+              className="shrink-0"
+              size={13}
+            />
+          </Link>
+        </div>
+
+        <div aria-hidden="true" className="mt-2 h-px w-full bg-border" />
+      </div>
+
+      <HomePaymentCalendar />
+    </>
+  );
 }
 
 function HomePaymentCalendar() {

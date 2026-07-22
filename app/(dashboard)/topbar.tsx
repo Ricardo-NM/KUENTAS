@@ -3,9 +3,9 @@
 import Image from "next/image";
 import {
   BellIcon,
-  SearchIcon,
   type BellIconHandle,
-  type SearchIconHandle,
+  PlusIcon,
+  type PlusIconHandle,
 } from "lucide-animated";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,43 +13,42 @@ import type { DashboardUser } from "@/lib/dashboard/user";
 
 export function DashboardTopbar({ user }: { user: DashboardUser }) {
   const { i18n, t } = useTranslation();
-  const searchIconRef = useRef<SearchIconHandle>(null);
+  const pendingPaymentIconRef = useRef<PlusIconHandle>(null);
   const bellIconRef = useRef<BellIconHandle>(null);
   const isEnglish = i18n.language?.startsWith("en");
-  const searchLabel = t("dashboard.topbar.searchLabel", {
-    defaultValue: isEnglish ? "Search" : "Buscar",
-  });
-  const searchPlaceholder = t("dashboard.topbar.searchPlaceholder", {
-    defaultValue: isEnglish ? "Search..." : "Buscar...",
+  const pendingPaymentLabel = t("inicio.pendingPayment", {
+    defaultValue: isEnglish ? "Pending payment" : "Pago pendiente",
   });
   const notificationsLabel = t("dashboard.topbar.notifications", {
     defaultValue: isEnglish ? "Notifications" : "Notificaciones",
   });
 
-  const startSearchAnimation = () => searchIconRef.current?.startAnimation();
-  const stopSearchAnimation = () => searchIconRef.current?.stopAnimation();
+  const startPendingPaymentAnimation = () =>
+    pendingPaymentIconRef.current?.startAnimation();
+  const stopPendingPaymentAnimation = () =>
+    pendingPaymentIconRef.current?.stopAnimation();
   const startBellAnimation = () => bellIconRef.current?.startAnimation();
   const stopBellAnimation = () => bellIconRef.current?.stopAnimation();
 
   return (
     <header className="mb-4 flex w-full flex-col gap-4 rounded-2xl border border-border bg-card px-4 py-3 text-card-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.05),0_2px_4px_-2px_rgb(0_0_0/0.05)] sm:flex-row sm:items-center sm:justify-between sm:px-5">
-      <label className="group flex h-11 w-full items-center gap-3 rounded-xl bg-surface-container px-4 text-on-surface-variant transition-shadow focus-within:shadow-[0_0_0_2px_var(--ring)] sm:max-w-[380px]">
-        <span className="sr-only">{searchLabel}</span>
-        <SearchIcon
-          ref={searchIconRef}
+      <button
+        type="button"
+        onFocus={startPendingPaymentAnimation}
+        onBlur={stopPendingPaymentAnimation}
+        onMouseEnter={startPendingPaymentAnimation}
+        onMouseLeave={stopPendingPaymentAnimation}
+        className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_4px_6px_-1px_rgb(0_0_0/0.08),0_2px_4px_-2px_rgb(0_0_0/0.08)] transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-auto sm:min-w-[180px]"
+      >
+        <PlusIcon
+          ref={pendingPaymentIconRef}
           aria-hidden="true"
           animateOnHover={false}
-          className="shrink-0 text-on-surface-variant"
+          className="shrink-0"
           size={18}
         />
-        <input
-          type="search"
-          placeholder={searchPlaceholder}
-          onFocus={startSearchAnimation}
-          onBlur={stopSearchAnimation}
-          className="min-w-0 flex-1 bg-transparent text-sm font-medium text-on-surface outline-none placeholder:text-outline"
-        />
-      </label>
+        <span>{pendingPaymentLabel}</span>
+      </button>
 
       <div className="flex min-w-0 items-center justify-end gap-4">
         <button

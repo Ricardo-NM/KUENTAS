@@ -21,6 +21,7 @@
   "inicio": {
     "title": "Aquí ira el inicio",
     "pendingPayment": "Pago pendiente",
+    "detailsCta": "Ver detalles",
     "totalPaid": {
       "title": "Porcentaje pagado",
       "progressLabel": "{{category}} pagado al {{percent}}%",
@@ -65,6 +66,7 @@
     "upcomingPayments": {
       "title": "Próximos pagos",
       "dueDate": "Fecha límite {{date}}",
+      "toggleLabel": "Marcar {{payment}}",
       "status": {
         "pending": "Pendiente"
       },
