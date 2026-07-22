@@ -21,6 +21,17 @@
   "inicio": {
     "title": "Aquí ira el inicio",
     "pendingPayment": "Pago pendiente",
+    "totalPaid": {
+      "title": "Total pagado",
+      "progressLabel": "{{category}} pagado al {{percent}}%",
+      "items": {
+        "housing": "Vivienda",
+        "services": "Servicios",
+        "insurance": "Seguros",
+        "subscriptions": "Suscripciones",
+        "education": "Educación"
+      }
+    },
     "upcomingPayments": {
       "title": "Próximos pagos",
       "dueDate": "Fecha límite {{date}}",

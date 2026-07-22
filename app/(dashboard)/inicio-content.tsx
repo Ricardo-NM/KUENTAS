@@ -17,7 +17,10 @@ const homeCards = [
   { className: "bg-surface-container-lowest lg:col-span-2 lg:row-span-2" },
   { className: "bg-surface-container-lowest" },
   { className: "bg-surface-container-lowest" },
-  { className: "bg-surface-container-lowest lg:row-span-2" },
+  {
+    className: "bg-surface-container-lowest lg:row-span-2",
+    variant: "totalPaid",
+  },
   {
     className: "bg-surface-container-lowest lg:col-span-2 lg:row-span-2",
     variant: "upcomingPayments",
@@ -37,7 +40,7 @@ export function InicioContent() {
       className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[minmax(96px,1fr)] gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-4 lg:auto-rows-fr"
     >
       {homeCards.map((card, index) => {
-        const cardClassName = `rounded-2xl shadow-[0_1px_3px_rgb(13_13_18/0.06),0_1px_2px_rgb(13_13_18/0.04)] ${card.className}`;
+        const cardClassName = `rounded-2xl border border-border shadow-[0_1px_3px_rgb(13_13_18/0.06),0_1px_2px_rgb(13_13_18/0.04)] ${card.className}`;
 
         if (card.variant === "calendar") {
           return (
@@ -52,6 +55,17 @@ export function InicioContent() {
                 {t("inicio.pendingPayment")}
               </button>
               <HomePaymentCalendar />
+            </article>
+          );
+        }
+
+        if (card.variant === "totalPaid") {
+          return (
+            <article
+              className={`${cardClassName} flex min-h-0 flex-col overflow-hidden p-4 sm:p-5`}
+              key={`inicio-card-${index}`}
+            >
+              <HomeTotalPaid />
             </article>
           );
         }
@@ -76,6 +90,112 @@ export function InicioContent() {
         );
       })}
     </section>
+  );
+}
+
+const paidSummaryItems = [
+  {
+    amount: 12500,
+    paidPercent: 70,
+    titleKey: "inicio.totalPaid.items.housing",
+  },
+  {
+    amount: 2200,
+    paidPercent: 65,
+    titleKey: "inicio.totalPaid.items.services",
+  },
+  {
+    amount: 1850,
+    paidPercent: 50,
+    titleKey: "inicio.totalPaid.items.insurance",
+  },
+  {
+    amount: 1200,
+    paidPercent: 60,
+    titleKey: "inicio.totalPaid.items.subscriptions",
+  },
+  {
+    amount: 4800,
+    paidPercent: 55,
+    titleKey: "inicio.totalPaid.items.education",
+  },
+] as const;
+
+function HomeTotalPaid() {
+  const { i18n, t } = useTranslation();
+  const language = i18n.language?.startsWith("en") ? "en" : "es";
+  const locale = language === "es" ? "es-MX" : "en-US";
+  const today = dayjs().locale(language);
+
+  const amountFormatter = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  });
+  const monthFormatter = new Intl.DateTimeFormat(locale, {
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <h2 className="font-heading text-base font-bold leading-6 text-on-surface sm:text-lg">
+          {t("inicio.totalPaid.title")}
+        </h2>
+        <p className="pt-1 text-right text-xs font-semibold leading-5 text-on-surface-variant sm:text-sm">
+          {monthFormatter.format(today.toDate())}
+        </p>
+      </div>
+
+      <ul className="flex min-h-0 flex-1 flex-col justify-between gap-2.5">
+        {paidSummaryItems.map((item) => {
+          const pendingAmount = item.amount * ((100 - item.paidPercent) / 100);
+
+          return (
+            <li className="min-w-0" key={item.titleKey}>
+              <div className="mb-1.5 flex items-center justify-between gap-3">
+                <p className="min-w-0 truncate text-sm font-medium leading-5 text-on-surface">
+                  {t(item.titleKey)}
+                </p>
+                <p className="shrink-0 text-right text-xs font-bold leading-5 text-on-surface sm:text-sm">
+                  ${amountFormatter.format(item.amount)}
+                </p>
+              </div>
+
+              <div
+                aria-label={t("inicio.totalPaid.progressLabel", {
+                  category: t(item.titleKey),
+                  percent: item.paidPercent,
+                })}
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={item.paidPercent}
+                className="relative h-3 overflow-hidden rounded-full bg-surface-container-high"
+                role="progressbar"
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 flex items-center justify-center overflow-hidden rounded-full bg-primary text-primary-foreground"
+                  style={{ width: `${item.paidPercent}%` }}
+                >
+                  <span className="text-[0.58rem] font-bold leading-none">
+                    {item.paidPercent}%
+                  </span>
+                </span>
+                <span
+                  className="absolute inset-y-0 right-0 flex items-center justify-center overflow-hidden text-on-surface"
+                  style={{ left: `${item.paidPercent}%` }}
+                >
+                  <span className="text-[0.58rem] font-bold leading-none">
+                    ${amountFormatter.format(pendingAmount)}
+                  </span>
+                </span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }
 

@@ -21,6 +21,17 @@
   "inicio": {
     "title": "This is where home goes",
     "pendingPayment": "Pending payment",
+    "totalPaid": {
+      "title": "Total paid",
+      "progressLabel": "{{category}} paid at {{percent}}%",
+      "items": {
+        "housing": "Housing",
+        "services": "Utilities",
+        "insurance": "Insurance",
+        "subscriptions": "Subscriptions",
+        "education": "Education"
+      }
+    },
     "upcomingPayments": {
       "title": "Upcoming payments",
       "dueDate": "Due date {{date}}",

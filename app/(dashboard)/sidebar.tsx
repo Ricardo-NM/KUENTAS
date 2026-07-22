@@ -110,6 +110,7 @@ function SidebarNavItem({
   const { t } = useTranslation();
   const iconRef = useRef<AnimatedIconHandle>(null);
   const animationTimeoutRef = useRef<number | null>(null);
+  const wasActiveRef = useRef(isActive);
   const Icon = icons[icon];
 
   useEffect(() => {
@@ -120,7 +121,15 @@ function SidebarNavItem({
     };
   }, []);
 
-  const triggerIconAnimation = () => {
+  useEffect(() => {
+    const becameActive = isActive && !wasActiveRef.current;
+
+    wasActiveRef.current = isActive;
+
+    if (!becameActive) {
+      return;
+    }
+
     if (animationTimeoutRef.current) {
       window.clearTimeout(animationTimeoutRef.current);
     }
@@ -130,15 +139,11 @@ function SidebarNavItem({
       iconRef.current?.stopAnimation();
       animationTimeoutRef.current = null;
     }, 700);
-  };
+  }, [isActive]);
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.defaultPrevented || !isPlainPrimaryNavigationEvent(event)) {
       return;
-    }
-
-    if (!isActive) {
-      triggerIconAnimation();
     }
 
     onNavigate(href);
