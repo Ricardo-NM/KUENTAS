@@ -59,6 +59,11 @@
   --chart-3: #78767b;
   --chart-4: #c8c5cb;
   --chart-5: #1b1b20;
+  --total-due-chart-1: #000000;
+  --total-due-chart-2: #545454;
+  --total-due-chart-3: #737373;
+  --total-due-chart-4: #a5a5a5;
+  --total-due-chart-5: #b4b4b4;
   --radius: 0.625rem;
   --sidebar: #f7f9fb;
   --sidebar-foreground: #191c1e;
@@ -201,6 +206,11 @@ body {
   --chart-3: #8f9298;
   --chart-4: #4a5158;
   --chart-5: #eff1f3;
+  --total-due-chart-1: #ffffff;
+  --total-due-chart-2: #ababab;
+  --total-due-chart-3: #8c8c8c;
+  --total-due-chart-4: #5a5a5a;
+  --total-due-chart-5: #4b4b4b;
   --sidebar: #101317;
   --sidebar-foreground: #eff1f3;
   --sidebar-primary: #eff1f3;

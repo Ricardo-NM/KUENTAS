@@ -22,7 +22,7 @@
     "title": "Aquí ira el inicio",
     "pendingPayment": "Pago pendiente",
     "totalPaid": {
-      "title": "Total pagado",
+      "title": "Porcentaje pagado",
       "progressLabel": "{{category}} pagado al {{percent}}%",
       "items": {
         "housing": "Vivienda",
@@ -30,6 +30,16 @@
         "insurance": "Seguros",
         "subscriptions": "Suscripciones",
         "education": "Educación"
+      }
+    },
+    "totalDue": {
+      "title": "Total a pagar",
+      "chartLabel": "Total a pagar del mes: ${{total}}",
+      "tableCaption": "Total a pagar por categoría durante el mes actual",
+      "columns": {
+        "category": "Categoría",
+        "amount": "Total a pagar",
+        "percent": "Porcentaje"
       }
     },
     "upcomingPayments": {

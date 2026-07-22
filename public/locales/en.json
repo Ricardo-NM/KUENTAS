@@ -22,7 +22,7 @@
     "title": "This is where home goes",
     "pendingPayment": "Pending payment",
     "totalPaid": {
-      "title": "Total paid",
+      "title": "Percentage paid",
       "progressLabel": "{{category}} paid at {{percent}}%",
       "items": {
         "housing": "Housing",
@@ -30,6 +30,16 @@
         "insurance": "Insurance",
         "subscriptions": "Subscriptions",
         "education": "Education"
+      }
+    },
+    "totalDue": {
+      "title": "Total due",
+      "chartLabel": "Total due this month: ${{total}}",
+      "tableCaption": "Total due by category during the current month",
+      "columns": {
+        "category": "Category",
+        "amount": "Total due",
+        "percent": "Percent"
       }
     },
     "upcomingPayments": {
