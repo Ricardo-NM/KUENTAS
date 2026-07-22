@@ -37,10 +37,10 @@ export function InicioContent() {
   return (
     <section
       aria-label="Inicio"
-      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[minmax(96px,1fr)] gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-4 lg:auto-rows-fr"
+      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[minmax(96px,1fr)] gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-4 lg:auto-rows-fr"
     >
       {homeCards.map((card, index) => {
-        const cardClassName = `rounded-2xl border border-border shadow-[0_1px_3px_rgb(13_13_18/0.06),0_1px_2px_rgb(13_13_18/0.04)] ${card.className}`;
+        const cardClassName = `rounded-2xl shadow-[0_1px_3px_rgb(13_13_18/0.06),0_1px_2px_rgb(13_13_18/0.04)] ${card.className}`;
 
         if (card.variant === "calendar") {
           return (
@@ -296,11 +296,7 @@ function HomeUpcomingPayments() {
   );
 }
 
-function formatCurrentWeek(
-  date: Dayjs,
-  language: "en" | "es",
-  t: TFunction,
-) {
+function formatCurrentWeek(date: Dayjs, language: "en" | "es", t: TFunction) {
   const start = date.startOf("week");
   const end = date.endOf("week");
   const sameMonth = start.isSame(end, "month");
