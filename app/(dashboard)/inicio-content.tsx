@@ -72,7 +72,7 @@ export function InicioContent() {
 
           return (
             <article
-              className={`${cardClassName} flex min-h-[172px] flex-col justify-between overflow-hidden p-4 sm:p-5 lg:min-h-0`}
+              className={`${cardClassName} relative isolate flex min-h-[172px] flex-col justify-between overflow-hidden p-4 sm:p-5 lg:min-h-0`}
               key={`inicio-card-${index}`}
               style={{
                 backgroundColor: `var(${summaryCard.backgroundVar})`,
@@ -258,7 +258,9 @@ function HomeDueSummaryCard({
 
   return (
     <>
-      <div className="flex items-start justify-between gap-2">
+      <DueSummaryDecorativeShape variant={variant} />
+
+      <div className="relative z-10 flex items-start justify-between gap-2">
         <h2 className="font-heading text-base font-bold leading-6 sm:text-lg">
           {t("inicio.totalDue.title")}
         </h2>
@@ -269,7 +271,7 @@ function HomeDueSummaryCard({
         ) : null}
       </div>
 
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="relative z-10 flex min-w-0 items-center gap-3">
         <span
           aria-hidden="true"
           className="flex size-12 shrink-0 items-center justify-center rounded-xl lg:size-10"
@@ -291,7 +293,7 @@ function HomeDueSummaryCard({
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="relative z-10 flex justify-end">
         <span
           className="inline-flex max-w-full rounded-full px-3 py-1 font-heading text-base font-bold leading-5 tabular-nums lg:px-2.5 lg:py-0.5"
           style={{
@@ -303,6 +305,36 @@ function HomeDueSummaryCard({
         </span>
       </div>
     </>
+  );
+}
+
+function DueSummaryDecorativeShape({
+  variant,
+}: {
+  variant: keyof typeof dueSummaryCards;
+}) {
+  const opacityClassName =
+    variant === "dueToday"
+      ? "opacity-[0.14] dark:opacity-[0.16]"
+      : variant === "dueWeek"
+        ? "opacity-[0.06] dark:opacity-[0.09]"
+        : "opacity-[0.08] dark:opacity-[0.1]";
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute bottom-2 right-4 z-0 size-36 rotate-[10deg] select-none bg-[#ffffff] dark:bg-[#07090b] ${opacityClassName}`}
+      style={{
+        WebkitMaskImage: "url('/graphics/due-summary-coins.svg')",
+        WebkitMaskPosition: "center",
+        WebkitMaskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+        maskImage: "url('/graphics/due-summary-coins.svg')",
+        maskPosition: "center",
+        maskRepeat: "no-repeat",
+        maskSize: "contain",
+      }}
+    />
   );
 }
 
@@ -419,7 +451,10 @@ function HomeTotalDue() {
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const locale = language === "es" ? "es-MX" : "en-US";
   const today = dayjs().locale(language);
-  const totalDue = paidSummaryItems.reduce((total, item) => total + item.amount, 0);
+  const totalDue = paidSummaryItems.reduce(
+    (total, item) => total + item.amount,
+    0,
+  );
 
   const amountFormatter = new Intl.NumberFormat(locale, {
     maximumFractionDigits: 2,
@@ -494,24 +529,26 @@ function HomeTotalDue() {
                 r="38"
                 strokeWidth="20"
               />
-              {totalDueItems.map(({ color, item, percent, strokeDashoffset }) => {
-                return (
-                  <circle
-                    aria-hidden="true"
-                    cx="50"
-                    cy="50"
-                    fill="none"
-                    key={item.titleKey}
-                    pathLength={100}
-                    r="38"
-                    stroke={color}
-                    strokeDasharray={`${percent} ${100 - percent}`}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeWidth="20"
-                    transform="rotate(-90 50 50)"
-                  />
-                );
-              })}
+              {totalDueItems.map(
+                ({ color, item, percent, strokeDashoffset }) => {
+                  return (
+                    <circle
+                      aria-hidden="true"
+                      cx="50"
+                      cy="50"
+                      fill="none"
+                      key={item.titleKey}
+                      pathLength={100}
+                      r="38"
+                      stroke={color}
+                      strokeDasharray={`${percent} ${100 - percent}`}
+                      strokeDashoffset={strokeDashoffset}
+                      strokeWidth="20"
+                      transform="rotate(-90 50 50)"
+                    />
+                  );
+                },
+              )}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
               <p className="font-heading text-lg font-bold leading-6 text-on-surface sm:text-xl">
@@ -525,7 +562,9 @@ function HomeTotalDue() {
         </div>
 
         <table className="w-full table-fixed border-collapse pr-1 text-sm text-on-surface md:pr-3">
-          <caption className="sr-only">{t("inicio.totalDue.tableCaption")}</caption>
+          <caption className="sr-only">
+            {t("inicio.totalDue.tableCaption")}
+          </caption>
           <thead className="sr-only">
             <tr>
               <th scope="col">{t("inicio.totalDue.columns.category")}</th>
@@ -538,7 +577,10 @@ function HomeTotalDue() {
               const percent = item.amount / totalDue;
 
               return (
-                <tr className="border-b border-border last:border-b-0" key={item.titleKey}>
+                <tr
+                  className="border-b border-border last:border-b-0"
+                  key={item.titleKey}
+                >
                   <td className="w-[44%] py-2.5 pr-3 text-left align-middle">
                     <span className="flex min-w-0 items-center gap-2">
                       <span
@@ -791,7 +833,9 @@ function getMondayWeekRange(date: Dayjs) {
 }
 
 function capitalizeLocalized(value: string) {
-  return value.length > 0 ? value.charAt(0).toLocaleUpperCase() + value.slice(1) : value;
+  return value.length > 0
+    ? value.charAt(0).toLocaleUpperCase() + value.slice(1)
+    : value;
 }
 
 function describeSemiCircleArc(
