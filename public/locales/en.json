@@ -34,12 +34,32 @@
     },
     "totalDue": {
       "title": "Total due",
+      "distributionTitle": "Payment distribution",
+      "sumLabel": "Total sum",
       "chartLabel": "Total due this month: ${{total}}",
       "tableCaption": "Total due by category during the current month",
       "columns": {
         "category": "Category",
         "amount": "Total due",
         "percent": "Percent"
+      }
+    },
+    "summaryCards": {
+      "today": {
+        "label": "TODAY",
+        "value": "{{weekday}} {{day}}"
+      },
+      "week": {
+        "label": "WEEK",
+        "value": "{{startDay}} - {{endDay}}"
+      },
+      "month": {
+        "label": "MONTH"
+      },
+      "progress": {
+        "title": "Progress",
+        "pending": "Pending payment",
+        "ariaLabel": "Pending payment progress at {{percent}}%"
       }
     },
     "upcomingPayments": {

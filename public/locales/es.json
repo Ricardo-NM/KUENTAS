@@ -34,12 +34,32 @@
     },
     "totalDue": {
       "title": "Total a pagar",
+      "distributionTitle": "Distribución de pagos",
+      "sumLabel": "Sumatoria total",
       "chartLabel": "Total a pagar del mes: ${{total}}",
       "tableCaption": "Total a pagar por categoría durante el mes actual",
       "columns": {
         "category": "Categoría",
         "amount": "Total a pagar",
         "percent": "Porcentaje"
+      }
+    },
+    "summaryCards": {
+      "today": {
+        "label": "HOY",
+        "value": "{{weekday}} {{day}}"
+      },
+      "week": {
+        "label": "SEMANA",
+        "value": "{{startDay}} - {{endDay}}"
+      },
+      "month": {
+        "label": "MES"
+      },
+      "progress": {
+        "title": "Progreso",
+        "pending": "Pendiente por pagar",
+        "ariaLabel": "Progreso pendiente por pagar al {{percent}}%"
       }
     },
     "upcomingPayments": {

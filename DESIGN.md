@@ -174,6 +174,7 @@ Light mode is the default dashboard theme and maps to the original palette above
 - **Primary action:** `bg-primary` / `text-primary-foreground` -> `#0D0D12` / `#FFFFFF`.
 - **Secondary text:** `text-on-surface-variant` -> `#47464B`.
 - **Pending/warning chips:** `bg-warning-container` / `text-on-warning-container` -> `#FFEDD5` / `#7C2D12`.
+- **Inicio summary cards:** `--inicio-card-1` / `--inicio-card-2` / `--inicio-card-3` / `--inicio-card-4` -> `#000000` / `#545454` / `#737373` / `#A6A6A6`; matching `*-fg` tokens set readable badge, icon, and text contrast.
 - **Borders:** `border-border` for structural borders and `border-outline-variant` for controls.
 - **Focus:** `outline-ring`, `ring-primary/15`, or `focus-visible:outline-ring`.
 
@@ -188,6 +189,7 @@ Dark mode is an inverted tonal system, not a pure color negative. It preserves h
 - **Primary action:** `bg-primary` / `text-primary-foreground` -> `#EFF1F3` / `#0D0D12`.
 - **Secondary text:** `text-on-surface-variant` -> `#C8C5CB`.
 - **Pending/warning chips:** `bg-warning-container` / `text-on-warning-container` -> `#3A2718` / `#FED7AA`.
+- **Inicio summary cards:** `--inicio-card-1` / `--inicio-card-2` / `--inicio-card-3` / `--inicio-card-4` -> `#FFFFFF` / `#ABABAB` / `#8C8C8C` / `#595959`; matching `*-fg` tokens preserve readable inverted contrast.
 - **Borders:** `border-border` -> `#343A40`; use `border-outline-variant` for controls that need clearer separation.
 - **Focus:** `outline-ring` uses the inverted primary/focus tone and must remain visible on dark surfaces.
 

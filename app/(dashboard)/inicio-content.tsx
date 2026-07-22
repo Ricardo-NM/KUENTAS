@@ -7,19 +7,37 @@ import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { PickerDay, type PickerDayProps } from "@mui/x-date-pickers/PickerDay";
-import { Landmark } from "lucide-react";
+import {
+  Calendar1,
+  CalendarClock,
+  CalendarRange,
+  Landmark,
+  type LucideIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const homeCards = [
-  { className: "bg-surface-container-lowest" },
-  { className: "bg-surface-container-lowest" },
+  {
+    className: "",
+    variant: "dueToday",
+  },
+  {
+    className: "",
+    variant: "dueWeek",
+  },
   {
     className: "bg-surface-container-lowest lg:col-span-2 lg:row-span-2",
     variant: "totalDue",
   },
-  { className: "bg-surface-container-lowest" },
-  { className: "bg-surface-container-lowest" },
+  {
+    className: "",
+    variant: "dueMonth",
+  },
+  {
+    className: "",
+    variant: "pendingProgress",
+  },
   {
     className: "bg-surface-container-lowest lg:row-span-2",
     variant: "totalPaid",
@@ -40,10 +58,46 @@ export function InicioContent() {
   return (
     <section
       aria-label="Inicio"
-      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-[minmax(96px,1fr)] gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-4 lg:auto-rows-fr"
+      className="grid min-h-0 flex-1 grid-cols-1 auto-rows-auto gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:grid-rows-4 lg:auto-rows-fr"
     >
       {homeCards.map((card, index) => {
         const cardClassName = `rounded-2xl shadow-[0_1px_3px_rgb(13_13_18/0.06),0_1px_2px_rgb(13_13_18/0.04)] ${card.className}`;
+
+        if (
+          card.variant === "dueToday" ||
+          card.variant === "dueWeek" ||
+          card.variant === "dueMonth"
+        ) {
+          const summaryCard = dueSummaryCards[card.variant];
+
+          return (
+            <article
+              className={`${cardClassName} flex min-h-[172px] flex-col justify-between overflow-hidden p-4 sm:p-5 lg:min-h-0`}
+              key={`inicio-card-${index}`}
+              style={{
+                backgroundColor: `var(${summaryCard.backgroundVar})`,
+                color: `var(${summaryCard.foregroundVar})`,
+              }}
+            >
+              <HomeDueSummaryCard variant={card.variant} />
+            </article>
+          );
+        }
+
+        if (card.variant === "pendingProgress") {
+          return (
+            <article
+              className={`${cardClassName} flex min-h-[172px] flex-col justify-between overflow-hidden p-4 sm:p-5 lg:min-h-0`}
+              key={`inicio-card-${index}`}
+              style={{
+                backgroundColor: "var(--inicio-card-4)",
+                color: "var(--inicio-card-4-fg)",
+              }}
+            >
+              <HomePendingProgress />
+            </article>
+          );
+        }
 
         if (card.variant === "calendar") {
           return (
@@ -135,6 +189,223 @@ const paidSummaryItems = [
   },
 ] as const;
 
+const dueSummaryCards = {
+  dueToday: {
+    amount: 8450,
+    backgroundVar: "--inicio-card-1",
+    foregroundVar: "--inicio-card-1-fg",
+    icon: Calendar1,
+    labelKey: "inicio.summaryCards.today.label",
+    showMonth: true,
+    valueKind: "today",
+  },
+  dueWeek: {
+    amount: 11650.5,
+    backgroundVar: "--inicio-card-2",
+    foregroundVar: "--inicio-card-2-fg",
+    icon: CalendarRange,
+    labelKey: "inicio.summaryCards.week.label",
+    showMonth: true,
+    valueKind: "week",
+  },
+  dueMonth: {
+    amount: 22550,
+    backgroundVar: "--inicio-card-3",
+    foregroundVar: "--inicio-card-3-fg",
+    icon: CalendarClock,
+    labelKey: "inicio.summaryCards.month.label",
+    showMonth: false,
+    valueKind: "month",
+  },
+} as const satisfies Record<
+  "dueMonth" | "dueToday" | "dueWeek",
+  {
+    amount: number;
+    backgroundVar: string;
+    foregroundVar: string;
+    icon: LucideIcon;
+    labelKey: string;
+    showMonth: boolean;
+    valueKind: "month" | "today" | "week";
+  }
+>;
+
+function HomeDueSummaryCard({
+  variant,
+}: {
+  variant: keyof typeof dueSummaryCards;
+}) {
+  const { i18n, t } = useTranslation();
+  const language = i18n.language?.startsWith("en") ? "en" : "es";
+  const locale = language === "es" ? "es-MX" : "en-US";
+  const today = dayjs().locale(language);
+  const card = dueSummaryCards[variant];
+  const Icon = card.icon;
+  const amountFormatter = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  });
+  const monthLabel = formatCurrentMonth(today, language);
+  const periodValue =
+    card.valueKind === "today"
+      ? formatCurrentDay(today, language, t)
+      : card.valueKind === "week"
+        ? formatShortCurrentWeek(today, t)
+        : formatCurrentMonthName(today, language);
+
+  const cardBackground = `var(${card.backgroundVar})`;
+  const cardForeground = `var(${card.foregroundVar})`;
+
+  return (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="font-heading text-base font-bold leading-6 sm:text-lg">
+          {t("inicio.totalDue.title")}
+        </h2>
+        {card.showMonth ? (
+          <p className="pt-1 text-right text-xs font-bold leading-5 sm:text-sm">
+            {monthLabel}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="flex size-12 shrink-0 items-center justify-center rounded-xl lg:size-10"
+          style={{
+            backgroundColor: cardForeground,
+            color: cardBackground,
+          }}
+        >
+          <Icon className="size-7 lg:size-6" strokeWidth={2.6} />
+        </span>
+
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase leading-4 opacity-90">
+            {t(card.labelKey)}
+          </p>
+          <p className="truncate font-heading text-xl font-bold leading-7 lg:text-lg lg:leading-6">
+            {periodValue}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <span
+          className="inline-flex max-w-full rounded-full px-3 py-1 font-heading text-base font-bold leading-5 tabular-nums lg:px-2.5 lg:py-0.5"
+          style={{
+            backgroundColor: cardForeground,
+            color: cardBackground,
+          }}
+        >
+          ${amountFormatter.format(card.amount)}
+        </span>
+      </div>
+    </>
+  );
+}
+
+function HomePendingProgress() {
+  const { i18n, t } = useTranslation();
+  const language = i18n.language?.startsWith("en") ? "en" : "es";
+  const locale = language === "es" ? "es-MX" : "en-US";
+  const today = dayjs().locale(language);
+  const totalDue = 22550;
+  const pendingAmount = 8085;
+  const progress = Math.round((pendingAmount / totalDue) * 100);
+  const clampedProgress = Math.min(Math.max(progress, 0), 100);
+  const progressBoundaryAngle = 180 - (clampedProgress / 100) * 180;
+  const trackArcPath = describeSemiCircleArc(120, 104, 92, 180, 0);
+  const progressArcPath =
+    clampedProgress > 0
+      ? describeSemiCircleArc(120, 104, 92, 180, progressBoundaryAngle)
+      : null;
+  const amountFormatter = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  });
+
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="font-heading text-base font-bold leading-6 sm:text-lg">
+          {t("inicio.summaryCards.progress.title")}
+        </h2>
+        <p className="max-w-[44%] pt-1 text-right text-xs font-bold leading-5 sm:text-sm">
+          {formatCurrentMonth(today, language)}
+        </p>
+      </div>
+
+      <div className="relative -mx-3 mt-auto h-[132px] sm:-mx-4 sm:h-[148px] lg:-mx-5 lg:h-[120px]">
+        <svg
+          aria-label={t("inicio.summaryCards.progress.ariaLabel", {
+            percent: progress,
+          })}
+          className="mx-auto h-full w-full max-w-[320px]"
+          role="img"
+          viewBox="0 0 240 132"
+        >
+          <path
+            aria-hidden="true"
+            d={trackArcPath}
+            fill="none"
+            stroke="var(--inicio-card-progress-track)"
+            strokeLinecap="round"
+            strokeWidth="18"
+          />
+          {progressArcPath ? (
+            <path
+              aria-hidden="true"
+              d={progressArcPath}
+              fill="none"
+              stroke="var(--inicio-card-progress-fill)"
+              strokeLinecap="round"
+              strokeWidth="18"
+            />
+          ) : null}
+          <text
+            className="text-[13px] font-bold"
+            fill="var(--inicio-card-4-fg)"
+            textAnchor="middle"
+            x="28"
+            y="128"
+          >
+            0
+          </text>
+          <text
+            className="text-[13px] font-bold"
+            fill="var(--inicio-card-4-fg)"
+            textAnchor="middle"
+            x="212"
+            y="128"
+          >
+            100
+          </text>
+          <text
+            className="font-heading text-[20px] font-bold"
+            fill="var(--inicio-card-4-fg)"
+            textAnchor="middle"
+            x="120"
+            y="78"
+          >
+            ${amountFormatter.format(pendingAmount)}
+          </text>
+          <text
+            className="text-[13px] font-semibold"
+            fill="var(--inicio-card-4-fg)"
+            textAnchor="middle"
+            x="120"
+            y="96"
+          >
+            {t("inicio.summaryCards.progress.pending")}
+          </text>
+        </svg>
+      </div>
+    </>
+  );
+}
+
 const totalDueChartColors = [
   "var(--total-due-chart-1)",
   "var(--total-due-chart-2)",
@@ -195,7 +466,7 @@ function HomeTotalDue() {
     <>
       <div className="mb-5 flex items-start justify-between gap-4">
         <h2 className="font-heading text-lg font-bold leading-6 text-on-surface sm:text-xl">
-          {t("inicio.totalDue.title")}
+          {t("inicio.totalDue.distributionTitle")}
         </h2>
         <p className="pt-1 text-right text-xs font-bold leading-5 text-on-surface sm:text-sm">
           {monthFormatter.format(today.toDate())}
@@ -242,9 +513,12 @@ function HomeTotalDue() {
                 );
               })}
             </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
               <p className="font-heading text-lg font-bold leading-6 text-on-surface sm:text-xl">
                 ${compactAmountFormatter.format(totalDue)}
+              </p>
+              <p className="max-w-20 text-[10px] font-semibold leading-3 text-on-surface-variant sm:max-w-24 sm:text-xs sm:leading-4">
+                {t("inicio.totalDue.sumLabel")}
               </p>
             </div>
           </div>
@@ -466,6 +740,90 @@ function HomeUpcomingPayments() {
       </ul>
     </>
   );
+}
+
+function formatCurrentDay(date: Dayjs, language: "en" | "es", t: TFunction) {
+  const weekday = new Intl.DateTimeFormat(
+    language === "es" ? "es-MX" : "en-US",
+    {
+      weekday: "long",
+    },
+  ).format(date.toDate());
+
+  return t("inicio.summaryCards.today.value", {
+    day: date.format("D"),
+    weekday: capitalizeLocalized(weekday),
+  });
+}
+
+function formatShortCurrentWeek(date: Dayjs, t: TFunction) {
+  const { end, start } = getMondayWeekRange(date);
+
+  return t("inicio.summaryCards.week.value", {
+    endDay: end.format("D"),
+    startDay: start.format("D"),
+  });
+}
+
+function formatCurrentMonth(date: Dayjs, language: "en" | "es") {
+  return new Intl.DateTimeFormat(language === "es" ? "es-MX" : "en-US", {
+    month: "long",
+    year: "numeric",
+  }).format(date.toDate());
+}
+
+function formatCurrentMonthName(date: Dayjs, language: "en" | "es") {
+  const month = new Intl.DateTimeFormat(language === "es" ? "es-MX" : "en-US", {
+    month: "long",
+  }).format(date.toDate());
+
+  return capitalizeLocalized(month);
+}
+
+function getMondayWeekRange(date: Dayjs) {
+  const daysFromMonday = (date.day() + 6) % 7;
+  const start = date.subtract(daysFromMonday, "day");
+
+  return {
+    end: start.add(6, "day"),
+    start,
+  };
+}
+
+function capitalizeLocalized(value: string) {
+  return value.length > 0 ? value.charAt(0).toLocaleUpperCase() + value.slice(1) : value;
+}
+
+function describeSemiCircleArc(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
+) {
+  const start = getSemiCirclePoint(centerX, centerY, radius, startAngle);
+  const end = getSemiCirclePoint(centerX, centerY, radius, endAngle);
+  const largeArcFlag = Math.abs(startAngle - endAngle) > 180 ? 1 : 0;
+
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
+}
+
+function getSemiCirclePoint(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  angle: number,
+) {
+  const angleInRadians = (angle * Math.PI) / 180;
+
+  return {
+    x: roundSvgValue(centerX + radius * Math.cos(angleInRadians)),
+    y: roundSvgValue(centerY - radius * Math.sin(angleInRadians)),
+  };
+}
+
+function roundSvgValue(value: number) {
+  return Number(value.toFixed(3));
 }
 
 function formatCurrentWeek(date: Dayjs, language: "en" | "es", t: TFunction) {
