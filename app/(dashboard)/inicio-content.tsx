@@ -14,7 +14,7 @@ import {
   Landmark,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const homeCards = [
@@ -446,11 +446,43 @@ const totalDueChartColors = [
   "var(--total-due-chart-5)",
 ] as const;
 
+function getDonutPoint(radius: number, angleInDegrees: number) {
+  const angleInRadians = (angleInDegrees * Math.PI) / 180;
+
+  return {
+    x: 50 + radius * Math.cos(angleInRadians),
+    y: 50 + radius * Math.sin(angleInRadians),
+  };
+}
+
+function getDonutSegmentPath(startPercent: number, endPercent: number) {
+  const startAngle = startPercent * 3.6 - 90;
+  const endAngle = endPercent * 3.6 - 90;
+  const outerRadius = 48;
+  const innerRadius = 28;
+  const largeArcFlag = endPercent - startPercent > 50 ? 1 : 0;
+  const outerStart = getDonutPoint(outerRadius, startAngle);
+  const outerEnd = getDonutPoint(outerRadius, endAngle);
+  const innerEnd = getDonutPoint(innerRadius, endAngle);
+  const innerStart = getDonutPoint(innerRadius, startAngle);
+
+  return [
+    `M ${outerStart.x} ${outerStart.y}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y}`,
+    `L ${innerEnd.x} ${innerEnd.y}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y}`,
+    "Z",
+  ].join(" ");
+}
+
 function HomeTotalDue() {
   const { i18n, t } = useTranslation();
   const language = i18n.language?.startsWith("en") ? "en" : "es";
   const locale = language === "es" ? "es-MX" : "en-US";
   const today = dayjs().locale(language);
+  const [hoveredDueCategory, setHoveredDueCategory] = useState<string | null>(
+    null,
+  );
   const totalDue = paidSummaryItems.reduce(
     (total, item) => total + item.amount,
     0,
@@ -476,8 +508,8 @@ function HomeTotalDue() {
     Array<{
       color: string;
       item: (typeof paidSummaryItems)[number];
+      path: string;
       percent: number;
-      strokeDashoffset: number;
     }>
   >((items, item, index) => {
     const percent = (item.amount / totalDue) * 100;
@@ -491,11 +523,36 @@ function HomeTotalDue() {
       {
         color: totalDueChartColors[index] ?? "var(--total-due-chart-1)",
         item,
+        path: getDonutSegmentPath(previousPercent, previousPercent + percent),
         percent,
-        strokeDashoffset: -previousPercent,
       },
     ];
   }, []);
+
+  useEffect(() => {
+    if (hoveredDueCategory === null) {
+      return;
+    }
+
+    function clearOnOutsidePress(event: PointerEvent) {
+      const target = event.target;
+
+      if (
+        target instanceof Element &&
+        target.closest("[data-total-due-segment='true']")
+      ) {
+        return;
+      }
+
+      setHoveredDueCategory(null);
+    }
+
+    document.addEventListener("pointerdown", clearOnOutsidePress);
+
+    return () => {
+      document.removeEventListener("pointerdown", clearOnOutsidePress);
+    };
+  }, [hoveredDueCategory]);
 
   return (
     <>
@@ -516,6 +573,11 @@ function HomeTotalDue() {
                 total: amountFormatter.format(totalDue),
               })}
               className="size-full"
+              onPointerLeave={(event) => {
+                if (event.pointerType === "mouse") {
+                  setHoveredDueCategory(null);
+                }
+              }}
               role="img"
               viewBox="0 0 100 100"
             >
@@ -525,32 +587,34 @@ function HomeTotalDue() {
                 cx="50"
                 cy="50"
                 fill="none"
-                pathLength={100}
                 r="38"
                 strokeWidth="20"
               />
-              {totalDueItems.map(
-                ({ color, item, percent, strokeDashoffset }) => {
-                  return (
-                    <circle
-                      aria-hidden="true"
-                      cx="50"
-                      cy="50"
-                      fill="none"
-                      key={item.titleKey}
-                      pathLength={100}
-                      r="38"
-                      stroke={color}
-                      strokeDasharray={`${percent} ${100 - percent}`}
-                      strokeDashoffset={strokeDashoffset}
-                      strokeWidth="20"
-                      transform="rotate(-90 50 50)"
-                    />
-                  );
-                },
-              )}
+              {totalDueItems.map(({ color, item, path }) => {
+                return (
+                  <path
+                    aria-hidden="true"
+                    className="cursor-pointer transition-opacity duration-700 ease-in-out hover:opacity-90"
+                    data-total-due-segment="true"
+                    d={path}
+                    fill={color}
+                    key={item.titleKey}
+                    onPointerDown={() => setHoveredDueCategory(item.titleKey)}
+                    onPointerEnter={() => setHoveredDueCategory(item.titleKey)}
+                  />
+                );
+              })}
+              <circle
+                aria-hidden="true"
+                cx="50"
+                cy="50"
+                fill="transparent"
+                onPointerDown={() => setHoveredDueCategory(null)}
+                onPointerEnter={() => setHoveredDueCategory(null)}
+                r="28"
+              />
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
               <p className="font-heading text-lg font-bold leading-6 text-on-surface sm:text-xl">
                 ${compactAmountFormatter.format(totalDue)}
               </p>
@@ -575,13 +639,21 @@ function HomeTotalDue() {
           <tbody>
             {totalDueItems.map(({ color, item }) => {
               const percent = item.amount / totalDue;
+              const rowIsDimmed =
+                hoveredDueCategory !== null &&
+                hoveredDueCategory !== item.titleKey;
+              const rowFadeClass = rowIsDimmed
+                ? "opacity-30 blur-[1px]"
+                : "opacity-100 blur-0";
 
               return (
                 <tr
                   className="border-b border-border last:border-b-0"
                   key={item.titleKey}
                 >
-                  <td className="w-[44%] py-2.5 pr-3 text-left align-middle">
+                  <td
+                    className={`w-[44%] py-2.5 pr-3 text-left align-middle transition-[filter,opacity] duration-700 ease-in-out ${rowFadeClass}`}
+                  >
                     <span className="flex min-w-0 items-center gap-2">
                       <span
                         aria-hidden="true"
@@ -593,10 +665,14 @@ function HomeTotalDue() {
                       </span>
                     </span>
                   </td>
-                  <td className="w-[32%] px-2 py-2.5 text-center align-middle text-sm font-semibold leading-5 tabular-nums text-on-surface">
+                  <td
+                    className={`w-[32%] px-2 py-2.5 text-center align-middle text-sm font-semibold leading-5 tabular-nums text-on-surface transition-[filter,opacity] duration-700 ease-in-out ${rowFadeClass}`}
+                  >
                     ${amountFormatter.format(item.amount)}
                   </td>
-                  <td className="w-[24%] py-2.5 pl-3 pr-1 text-right align-middle text-sm font-medium leading-5 tabular-nums text-on-surface-variant md:pr-2">
+                  <td
+                    className={`w-[24%] py-2.5 pl-3 pr-1 text-right align-middle text-sm font-medium leading-5 tabular-nums text-on-surface-variant transition-[filter,opacity] duration-700 ease-in-out md:pr-2 ${rowFadeClass}`}
+                  >
                     {percentFormatter.format(percent)}
                   </td>
                 </tr>
